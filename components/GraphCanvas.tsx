@@ -10,16 +10,18 @@ interface GraphCanvasProps {
   onNodeContextMenu: (node: GraphNode | null, x: number, y: number) => void;
   selectedNodeIds: string[];
   sessionId: string; // Used to trigger reset on level change
+  layoutTrigger?: number;
 }
 
-const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoubleClick, onNodeContextMenu, selectedNodeIds, sessionId }) => {
+const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoubleClick, onNodeContextMenu, selectedNodeIds, sessionId, layoutTrigger }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // Refs to maintain D3 state across React renders
   const simulationRef = useRef<d3.Simulation<GraphNode, GraphLink> | null>(null);
   const gRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const lastStructureRef = useRef<string>(""); // JSON fingerprint of nodes/links IDs
 
   // Initialize graph structure once
   useEffect(() => {
@@ -36,60 +38,60 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     // Glow Filter for selected nodes
     const filter = defs.append("filter")
-        .attr("id", "glow")
-        .attr("x", "-50%")
-        .attr("y", "-50%")
-        .attr("width", "200%")
-        .attr("height", "200%");
-    
+      .attr("id", "glow")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+
     filter.append("feGaussianBlur")
-        .attr("stdDeviation", "3.5")
-        .attr("result", "coloredBlur");
-    
+      .attr("stdDeviation", "3.5")
+      .attr("result", "coloredBlur");
+
     const feMerge = filter.append("feMerge");
     feMerge.append("feMergeNode").attr("in", "coloredBlur");
     feMerge.append("feMergeNode").attr("in", "SourceGraphic");
 
     // Inner Glow/Pulse for Nested Nodes
     const nestedGlow = defs.append("filter")
-        .attr("id", "nested-glow")
-        .attr("x", "-50%")
-        .attr("y", "-50%")
-        .attr("width", "200%")
-        .attr("height", "200%");
-    
+      .attr("id", "nested-glow")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+
     nestedGlow.append("feGaussianBlur")
-        .attr("stdDeviation", "6") // Sharper glow
-        .attr("result", "blur");
-    
+      .attr("stdDeviation", "6") // Sharper glow
+      .attr("result", "blur");
+
     // Gradients for each Node Type (Sphere effect)
     Object.keys(NODE_COLORS).forEach((key) => {
-        const type = key as NodeType;
-        const color = NODE_COLORS[type];
-        
-        const grad = defs.append("radialGradient")
-            .attr("id", `grad-${type}`)
-            .attr("cx", "30%")
-            .attr("cy", "30%")
-            .attr("r", "70%");
-        
-        // Highlight
-        grad.append("stop")
-            .attr("offset", "0%")
-            .attr("stop-color", d3.color(color)?.brighter(1.5).formatHex() || "#fff")
-            .attr("stop-opacity", 0.8);
+      const type = key as NodeType;
+      const color = NODE_COLORS[type];
 
-        // Main Body
-        grad.append("stop")
-            .attr("offset", "40%")
-            .attr("stop-color", color)
-            .attr("stop-opacity", 0.6);
-            
-        // Shadow/Edge
-        grad.append("stop")
-            .attr("offset", "100%")
-            .attr("stop-color", d3.color(color)?.darker(2).formatHex() || "#000")
-            .attr("stop-opacity", 0.4);
+      const grad = defs.append("radialGradient")
+        .attr("id", `grad-${type}`)
+        .attr("cx", "30%")
+        .attr("cy", "30%")
+        .attr("r", "70%");
+
+      // Highlight
+      grad.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", d3.color(color)?.brighter(1.5).formatHex() || "#fff")
+        .attr("stop-opacity", 0.8);
+
+      // Main Body
+      grad.append("stop")
+        .attr("offset", "40%")
+        .attr("stop-color", color)
+        .attr("stop-opacity", 0.6);
+
+      // Shadow/Edge
+      grad.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", d3.color(color)?.darker(2).formatHex() || "#000")
+        .attr("stop-opacity", 0.4);
     });
 
     // Arrow Marker
@@ -117,9 +119,9 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         g.attr("transform", event.transform);
         onNodeContextMenu(null, 0, 0); // Close menu on zoom
       });
-    
+
     svg.call(zoom).on("dblclick.zoom", null);
-    
+
     zoomRef.current = zoom;
 
     // Initialize Simulation
@@ -127,7 +129,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .force("link", d3.forceLink<GraphNode, GraphLink>()
         .id(d => d.id)
         .distance(d => (d.target as GraphNode).type === NodeType.TRACE ? 50 : 180) // Shorter distance for Trace
-      ) 
+      )
       .force("charge", d3.forceManyBody().strength(-500)) // Stronger repulsion for clarity
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collide", d3.forceCollide(d => (d.type === NodeType.TRACE ? 35 : 60))); // Dynamic collision radius
@@ -143,17 +145,51 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
   // Reset Zoom/Center when Session Changes
   useEffect(() => {
     if (!svgRef.current || !zoomRef.current || !containerRef.current) return;
-    
+
     const svg = d3.select(svgRef.current);
     svg.transition().duration(750).call(zoomRef.current.transform, d3.zoomIdentity);
-    
+
     if (simulationRef.current) {
-        const width = containerRef.current.clientWidth;
-        const height = containerRef.current.clientHeight;
-        simulationRef.current.force("center", d3.forceCenter(width / 2, height / 2));
-        simulationRef.current.alpha(1).restart();
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+      simulationRef.current.force("center", d3.forceCenter(width / 2, height / 2));
+      simulationRef.current.alpha(1).restart();
     }
   }, [sessionId]);
+
+  // Handle Structure View (Relayout)
+  useEffect(() => {
+    if (layoutTrigger === 0) return;
+    if (!svgRef.current || !zoomRef.current || !containerRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+    // 1. Reset Zoom with transition
+    svg.transition().duration(1000).call(zoomRef.current.transform, d3.zoomIdentity);
+
+    // 2. Restart simulation with fresh energy
+    if (simulationRef.current) {
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+
+      // Ensure center force is correct
+      simulationRef.current.force("center", d3.forceCenter(width / 2, height / 2));
+
+      // Temporarily boost repulsion/collision to "un-entangle"
+      const charge = simulationRef.current.force("charge") as d3.ForceManyBody<GraphNode>;
+      if (charge) charge.strength(-1500); // Stronger repulsion temporarily
+
+      simulationRef.current.alpha(1).restart();
+
+      // Restore normal repulsion after a delay
+      setTimeout(() => {
+        if (simulationRef.current) {
+          const normalCharge = simulationRef.current.force("charge") as d3.ForceManyBody<GraphNode>;
+          if (normalCharge) normalCharge.strength(-500);
+          simulationRef.current.alphaTarget(0);
+        }
+      }, 1000);
+    }
+  }, [layoutTrigger]);
 
 
   // Update Data and Simulation
@@ -169,7 +205,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     const nodes = data.nodes.map(n => {
       const existing = nodeMap.get(n.id);
       if (existing) {
-        return Object.assign(existing, n); 
+        return Object.assign(existing, n);
       }
       return { ...n };
     });
@@ -179,11 +215,11 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     simulation.nodes(nodes);
     const linkForce = simulation.force<d3.ForceLink<GraphNode, GraphLink>>("link");
     if (linkForce) {
-        linkForce.links(links);
-        // Re-apply distance based on updated links
-        linkForce.distance(d => (d.target as GraphNode).type === NodeType.TRACE ? 50 : 180); 
+      linkForce.links(links);
+      // Re-apply distance based on updated links
+      linkForce.distance(d => (d.target as GraphNode).type === NodeType.TRACE ? 50 : 180);
     }
-    
+
     // Update collision force for new nodes
     simulation.force("collide", d3.forceCollide(d => (d.type === NodeType.TRACE ? 35 : 60)));
 
@@ -192,9 +228,9 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     // 1. LINKS
     const getLinkId = (d: GraphLink) => {
-        const s = typeof d.source === 'object' ? (d.source as GraphNode).id : d.source;
-        const t = typeof d.target === 'object' ? (d.target as GraphNode).id : d.target;
-        return `${s}-${t}-${d.relation}`;
+      const s = typeof d.source === 'object' ? (d.source as GraphNode).id : d.source;
+      const t = typeof d.target === 'object' ? (d.target as GraphNode).id : d.target;
+      return `${s}-${t}-${d.relation}`;
     };
 
     const linkSelection = g.selectAll<SVGLineElement, GraphLink>("line.link")
@@ -206,10 +242,10 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("stroke-opacity", 0.3) // More subtle
       .attr("stroke-width", 1)
       .attr("marker-end", "url(#arrow)");
-    
+
     linkSelection.exit().remove();
     const allLinks = linkEnter.merge(linkSelection)
-        .attr("stroke-dasharray", d => (d.target as GraphNode).type === NodeType.TRACE ? "4 3" : "none"); // Dotted for Trace
+      .attr("stroke-dasharray", d => (d.target as GraphNode).type === NodeType.TRACE ? "4 3" : "none"); // Dotted for Trace
 
     // 2. LINK LABELS
     const labelSelection = g.selectAll<SVGTextElement, GraphLink>("text.link-label")
@@ -226,7 +262,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     labelSelection.exit().remove();
     const allLabels = labelEnter.merge(labelSelection)
-        .text(d => (d.target as GraphNode).type === NodeType.TRACE ? "" : d.relation); // Hide label for short trace links
+      .text(d => (d.target as GraphNode).type === NodeType.TRACE ? "" : d.relation); // Hide label for short trace links
 
 
     // 3. NODES
@@ -239,16 +275,16 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended));
-    
+
     // Nested Session Indicator (Outer Pulse)
     // We add this BEFORE the body so it sits behind
     nodeEnter.append("circle")
-        .attr("class", "node-nested-glow")
-        .attr("r", 0) // Animate to larger
-        .attr("fill", "none")
-        .attr("stroke", "white")
-        .attr("stroke-width", 0)
-        .attr("opacity", 0);
+      .attr("class", "node-nested-glow")
+      .attr("r", 0) // Animate to larger
+      .attr("fill", "none")
+      .attr("stroke", "white")
+      .attr("stroke-width", 0)
+      .attr("opacity", 0);
 
     // Node Body (The "Orb")
     // Use function for attributes to handle different node sizes immediately
@@ -262,17 +298,34 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     // Node Ring (Selection Indicator)
     nodeEnter.append("circle")
-        .attr("class", "node-ring")
-        .attr("r", d => d.type === NodeType.TRACE ? 20 : 32)
-        .attr("fill", "none")
-        .attr("stroke", "none")
-        .attr("stroke-width", 1.5)
-        .style("pointer-events", "none");
+      .attr("class", "node-ring")
+      .attr("r", d => d.type === NodeType.TRACE ? 20 : 32)
+      .attr("fill", "none")
+      .attr("stroke", "none")
+      .attr("stroke-width", 1.5)
+      .style("pointer-events", "none");
 
     // Icon
     nodeEnter.append("path")
+      .attr("class", "node-icon")
       .style("pointer-events", "none")
       .attr("opacity", 0.9);
+
+    // Root Indicator Badge
+    const rootBadge = nodeEnter.append("g")
+      .attr("class", "root-badge")
+      .style("pointer-events", "none");
+
+    rootBadge.append("circle")
+      .attr("r", 10)
+      .attr("fill", "#fbbf24") // Amber 400
+      .attr("stroke", "#0f172a")
+      .attr("stroke-width", 1.5);
+
+    rootBadge.append("path")
+      .attr("d", "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z")
+      .attr("transform", "translate(-6, -6) scale(0.5)")
+      .attr("fill", "#0f172a");
 
     // Text Label Background (Pill)
     nodeEnter.append("rect")
@@ -300,44 +353,54 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     // Update Nested Glow Indicator
     allNodes.select("circle.node-nested-glow")
-      .attr("r", d => d.type === NodeType.TRACE ? 24 : 40)
+      .attr("r", d => {
+        const r = d.type === NodeType.TRACE ? 24 : 40;
+        return d.isRoot ? r * 1.2 : r;
+      })
       .attr("opacity", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 0.7 : 0) // Increased base opacity
       .attr("stroke", d => NODE_COLORS[d.type])
       .attr("stroke-width", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 2.5 : 0) // Thicker stroke
       .style("filter", "url(#nested-glow)");
 
     // Add simple animation for the glow if it exists
-    allNodes.each(function(d) {
-        const el = d3.select(this).select("circle.node-nested-glow");
-        if (d.subGraphData && d.subGraphData.nodes.length > 0) {
-            // Pulse animation manually with D3 since CSS keyframes are annoying to inject dynamically
-            function pulse() {
-                el.transition()
-                  .duration(1500)
-                  .attr("r", d.type === NodeType.TRACE ? 28 : 46) // Larger expansion
-                  .attr("opacity", 0.3)
-                  .attr("stroke-width", 1.5)
-                  .transition()
-                  .duration(1500)
-                  .attr("r", d.type === NodeType.TRACE ? 24 : 40) // Back to base
-                  .attr("opacity", 0.8) // Brighter peak
-                  .attr("stroke-width", 2.5)
-                  .on("end", pulse);
-            }
-            pulse();
-        } else {
-            el.interrupt(); // Stop animation if no longer nested
-            el.attr("opacity", 0);
+    allNodes.each(function (d) {
+      const glow = d3.select(this).select("circle.node-nested-glow");
+      const body = d3.select(this).select("circle.node-body");
+
+      // 1. Nested Pulse
+      if (d.subGraphData && d.subGraphData.nodes.length > 0) {
+        function pulse() {
+          glow.transition()
+            .duration(1500)
+            .attr("r", d => d.type === NodeType.TRACE ? (d.isRoot ? 28 * 1.2 : 28) : (d.isRoot ? 46 * 1.2 : 46))
+            .attr("opacity", 0.3)
+            .attr("stroke-width", 1.5)
+            .transition()
+            .duration(1500)
+            .attr("r", d => d.type === NodeType.TRACE ? (d.isRoot ? 24 * 1.2 : 24) : (d.isRoot ? 40 * 1.2 : 40))
+            .attr("opacity", 0.8)
+            .attr("stroke-width", 2.5)
+            .on("end", pulse);
         }
+        pulse();
+      } else {
+        glow.interrupt();
+        glow.attr("opacity", 0);
+      }
     });
 
 
     // Update Node Visuals
     allNodes.select("circle.node-body")
-      .attr("r", d => d.type === NodeType.TRACE ? 16 : 28)
+      .attr("r", d => {
+        const r = d.type === NodeType.TRACE ? 16 : 28;
+        return d.isRoot ? r * 1.2 : r;
+      })
       .attr("fill", d => `url(#grad-${d.type})`)
-      // Apply glow filter if selected
-      .attr("filter", d => selectedNodeIds.includes(d.id) ? "url(#glow)" : null)
+      .attr("stroke", "transparent")
+      .attr("stroke-width", 0)
+      // Apply glow filter if selected or root
+      .attr("filter", d => (selectedNodeIds.includes(d.id) || d.isRoot) ? "url(#glow)" : null)
       .on("contextmenu", (event, d) => {
         event.preventDefault();
         onNodeContextMenu(d, event.clientX, event.clientY);
@@ -355,30 +418,52 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     // Update Selection Ring
     allNodes.select("circle.node-ring")
-      .attr("r", d => d.type === NodeType.TRACE ? 20 : 32)
-      .attr("stroke", d => selectedNodeIds.includes(d.id) ? "rgba(255,255,255,0.6)" : "transparent")
-      .attr("stroke-dasharray", d => selectedNodeIds.includes(d.id) ? "4 2" : "none");
+      .attr("r", d => {
+        const r = d.type === NodeType.TRACE ? 20 : 32;
+        return d.isRoot ? r * 1.2 : r;
+      })
+      .attr("stroke", d => {
+        if (d.isRoot) return "#a855f7"; // Persistent Purple for Root
+        return selectedNodeIds.includes(d.id) ? "rgba(255,255,255,0.6)" : "transparent";
+      })
+      .attr("stroke-width", d => d.isRoot ? 3 : 1.5)
+      .attr("stroke-dasharray", d => (selectedNodeIds.includes(d.id) && !d.isRoot) ? "4 2" : "none");
 
     // Update Icon
-    allNodes.select("path")
-       .attr("transform", d => d.type === NodeType.TRACE ? "translate(-8, -8) scale(0.66)" : "translate(-12, -12) scale(1)")
-       .attr("d", d => NODE_ICONS[d.type])
-       .attr("fill", "#ffffff"); 
-    
+    allNodes.select("path.node-icon")
+      .attr("transform", d => {
+        const scale = d.isRoot ? 1.2 : 1;
+        return d.type === NodeType.TRACE
+          ? `translate(${-8 * scale}, ${-8 * scale}) scale(${0.66 * scale})`
+          : `translate(${-12 * scale}, ${-12 * scale}) scale(${1 * scale})`;
+      })
+      .attr("d", d => NODE_ICONS[d.type])
+      .attr("fill", "#ffffff");
+
+    // Update Root Badge
+    allNodes.select("g.root-badge")
+      .attr("transform", d => {
+        const offset = d.type === NodeType.TRACE ? (d.isRoot ? 14 : 12) : (d.isRoot ? 26 : 22);
+        return `translate(${offset}, -${offset})`;
+      })
+      .style("opacity", 0); // Hidden as per request to remove the star badge
     // Update Text & Pill
     allNodes.select("text")
-       .attr("x", 0)
-       .attr("y", d => d.type === NodeType.TRACE ? 32 : 47)
-       .text(d => d.label)
-       .each(function(d) {
-           // Dynamic pill sizing based on text width
-           const bbox = this.getBBox();
-           const padding = 12;
-           d3.select(this.parentNode as Element).select("rect.label-bg")
-             .attr("width", bbox.width + padding)
-             .attr("x", -(bbox.width + padding) / 2)
-             .attr("y", d.type === NodeType.TRACE ? 20 : 35);
-       });
+      .attr("x", 0)
+      .attr("y", d => {
+        const base = d.type === NodeType.TRACE ? 32 : 47;
+        return d.isRoot ? base + 8 : base;
+      })
+      .text(d => d.label)
+      .each(function (d) {
+        // Dynamic pill sizing based on text width
+        const bbox = this.getBBox();
+        const padding = 12;
+        d3.select(this.parentNode as Element).select("rect.label-bg")
+          .attr("width", bbox.width + padding)
+          .attr("x", -(bbox.width + padding) / 2)
+          .attr("y", d.type === NodeType.TRACE ? (d.isRoot ? 28 : 20) : (d.isRoot ? 43 : 35));
+      });
 
 
     // Tick Function
@@ -397,7 +482,26 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         .attr("transform", d => `translate(${d.x},${d.y})`);
     });
 
-    simulation.alpha(0.3).restart();
+    // 4. CONDITIONAL RESTART
+    // Generate a fingerprint of the graph structure (IDs and connections)
+    const structureFingerprint = JSON.stringify({
+      nodes: data.nodes.map(n => n.id),
+      links: data.links.map(l => {
+        const s = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
+        const t = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
+        return `${s}-${t}`;
+      })
+    });
+
+    const isStructuralChange = structureFingerprint !== lastStructureRef.current;
+
+    if (isStructuralChange) {
+      lastStructureRef.current = structureFingerprint;
+      simulation.alpha(0.3).restart();
+    } else {
+      // Just update visual elements without boosting alpha
+      simulation.alpha(0.01).restart(); // Minimal nudge to ensure nodes align if they moved slightly
+    }
 
     // Drag Handlers
     function dragstarted(event: any, d: GraphNode) {
@@ -418,18 +522,18 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       d.fy = null;
     }
 
-  }, [data, selectedNodeIds]); 
+  }, [data, selectedNodeIds]);
 
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden">
-        {/* Background Grid Layer */}
-        <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
-        <svg ref={svgRef} className="w-full h-full relative z-10" onClick={(e) => {
-            if (e.target === svgRef.current) {
-                onNodeClick(null, false);
-                onNodeContextMenu(null, 0, 0);
-            }
-        }} />
+      {/* Background Grid Layer */}
+      <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <svg ref={svgRef} className="w-full h-full relative z-10" onClick={(e) => {
+        if (e.target === svgRef.current) {
+          onNodeClick(null, false);
+          onNodeContextMenu(null, 0, 0);
+        }
+      }} />
     </div>
   );
 };

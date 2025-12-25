@@ -6,6 +6,7 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   label: string;
   type: NodeType;
   description?: string;
+  isRoot?: boolean;
   // Nested Graph Persistence
   subGraphData?: GraphData;
   // D3 optional properties

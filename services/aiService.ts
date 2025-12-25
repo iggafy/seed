@@ -104,11 +104,18 @@ export const analyzeNodeLineage = async (
     if (!settings.apiKey) return null;
 
     try {
-        const prompt = `Perform a deep "Trace Analysis" of "${nodeLabel}" (${nodeDescription}).
-        Context Path: [ ${lineage} ].
-        Generate a "Trace Analysis" node. 
+        const prompt = `Perform an exhaustive, multi-dimensional "Trace Analysis" of "${nodeLabel}" (${nodeDescription}).
+        Context Path from Root: [ ${lineage} ].
+        
+        Generate a "Trace Analysis" node that functions as a structural synthesis of this entire lineage. 
         Label: "Trace: ${nodeLabel}".
-        Description: Comprehensive narrative (80-120 words) synthesizing the journey, hidden logic, and philosophical necessity of this path.`;
+        Description: An insightful, comprehensive narrative (150-200 words). 
+        Include:
+        1. The logical necessity of why this node emerged from its predecessors.
+        2. The structural tensions or architectural shifts this path represents.
+        3. A synthesis of the hidden themes and "ghost logic" connecting the root to this specific point.
+        4. The potential future trajectory this path implies for the system.
+        Be profound, technical, and analytical. Avoid fluff.`;
 
         const result = await runIPCRequest(settings, prompt, false);
         return result[0] || null;
@@ -118,14 +125,84 @@ export const analyzeNodeLineage = async (
     }
 };
 
+export const generateInnovationOpportunity = async (
+    settings: AISettings,
+    nodeLabel: string,
+    nodeDescription: string,
+    nodeType: string,
+    fullGraphContext: string
+): Promise<AISuggestion | null> => {
+    if (!settings.apiKey) return null;
+
+    try {
+        const prompt = `You are a high-level innovation strategist and systems architect. 
+        Target Node for Innovation: "${nodeLabel}" (Type: ${nodeType}, Description: ${nodeDescription}).
+        
+        FULL GRAPH CONTEXT (All nodes, descriptions, and relationships):
+        ${fullGraphContext}
+        
+        Your Task:
+        Critically analyze the target node's position, meaning, and relationships within this entire systemic context. 
+        Produce a "Fully Developed Innovation Opportunity" node.
+        
+        Label: "Innovation: ${nodeLabel}".
+        Description: A masterful, highly-developed synthesis (200-250 words) that:
+        1. Identifies a non-obvious, groundbreaking opportunity revealed by the target node's intersection with the rest of the graph.
+        2. Describes the technical architecture or system shift required to capture this opportunity.
+        3. Explains how this innovation resolves a fundamental tension or bottleneck present in the global graph.
+        4. Predicts the emergent properties this innovation would trigger in the system.
+        
+        This must be profound, technically rigorous, and go far beyond a simple expansion. It is a structural breakthrough.`;
+
+        const result = await runIPCRequest(settings, prompt, false);
+        return result[0] || null;
+    } catch (e) {
+        console.error("AI Service Error (Innovate):", e);
+        return null;
+    }
+};
+
 
 export const generateRandomSeedNode = async (settings: AISettings): Promise<AISuggestion | null> => {
     if (!settings.apiKey) return null;
 
+    const domains = [
+        "Mechanistic Interpretability & Model Transparency",
+        "Reinforcement Learning from Human Feedback (RLHF) Bias",
+        "Large Language Model (LLM) Reasoning & Logic Bounds",
+        "Vector Search Optimization & Dimensionality Reduction",
+        "Multi-Agent Coordination & emergent behaviors",
+        "Neural Network Architecture Search (NAS)",
+        "On-Device AI & model Quantization/Pruning",
+        "Synthetic Data Generation & Distribution Collapse",
+        "AI Safety, Alignment & Jailbreak prevention",
+        "Retrieval-Augmented Generation (RAG) context precision",
+        "Automated Software Reasoning & Code Generation",
+        "Ethical AI Governance & Algorithmic Bias Auditing"
+    ];
+
+    const vibes = [
+        "Provocative & Non-Obvious",
+        "Deeply Technical & Fundamental",
+        "Disruptive & Structural",
+        "Paradoxical & Challenging",
+        "Efficiency-Focused & Radical",
+        "Systemic & Architectural"
+    ];
+
+    const randomDomain = domains[Math.floor(Math.random() * domains.length)];
+    const randomVibe = vibes[Math.floor(Math.random() * vibes.length)];
+
     try {
-        const prompt = `Generate a single, high-potential starting point for an innovation graph in Information Technology.
-        CRITICAL CONSTRAINT: The node must be either a "PROBLEM" or a "QUESTION".
-        Areas: Unsolved CS Problems, AI Alignment, Crypto, Digital Sovereignty, Hardware Limits.`;
+        const prompt = `Generate a single, high-potential starting point for a technical innovation graph.
+        Vibe: ${randomVibe}.
+        Technical Domain: ${randomDomain}.
+        
+        CRITICAL CONSTRAINT: 
+        1. The node must be either a "PROBLEM" or a "QUESTION".
+        2. It must be a real-world or theoretical challenge in IT/CS that sparks deep technical thinking.
+        3. Avoid generic terms or sci-fi. Focus on structural bottlenecks, architectural paradoxes, or unsolved technical questions.
+        4. Focus on the intersection of ${randomDomain} and current industry or academic constraints.`;
 
         const result = await runIPCRequest(settings, prompt, false);
         return result[0] || null;

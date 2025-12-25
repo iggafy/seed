@@ -6,8 +6,8 @@ import Toolbar from './components/Toolbar';
 import SettingsModal from './components/SettingsModal';
 import SeedsDashboard from './components/SeedsDashboard';
 import { INITIAL_DATA, NOVEL_SEEDS, NODE_ICONS, NODE_COLORS, RELATION_OPTIONS } from './constants';
-import { expandConcept, expandConceptTargeted, generateSynergyNode, generateRandomSeedNode, analyzeNodeLineage } from './services/aiService';
-import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal } from 'lucide-react';
+import { expandConcept, expandConceptTargeted, generateSynergyNode, generateRandomSeedNode, analyzeNodeLineage, generateInnovationOpportunity } from './services/aiService';
+import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu } from 'lucide-react';
 
 // Utility to generate UUIDs locally
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -31,6 +31,7 @@ function App() {
   const [hiddenTypes, setHiddenTypes] = useState<NodeType[]>([]);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [layoutTrigger, setLayoutTrigger] = useState(0);
 
   // Context / Lineage Mode
   const [isContextMode, setIsContextMode] = useState(true);
@@ -107,6 +108,10 @@ function App() {
     // @ts-ignore
     const seed: SeedFile = await window.api.db.loadSeed(id);
     if (seed) {
+      // Ensure there's a root node for legacy seeds
+      if (seed.data.nodes.length > 0 && !seed.data.nodes.some(n => n.isRoot)) {
+        seed.data.nodes[0].isRoot = true;
+      }
       setData(seed.data);
       setSessionStack(seed.sessionStack || []);
       setCurrentSeedFileId(seed.id);
@@ -431,6 +436,50 @@ function App() {
     setIsProcessing(false);
   };
 
+  const handleInnovateNode = async (node: GraphNode) => {
+    setIsProcessing(true);
+
+    // 1. Prepare Full Graph Context
+    const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
+    const linksString = data.links.map(l => {
+      const source = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
+      const target = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
+      return `- ${source} --[${l.relation}]--> ${target}`;
+    }).join('\n');
+
+    const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+
+    const innovation = await generateInnovationOpportunity(
+      aiSettings,
+      node.label,
+      node.description || "",
+      node.type,
+      fullGraphContext
+    );
+
+    if (innovation) {
+      const newNodeId = generateId();
+      const newNode: GraphNode = {
+        id: newNodeId,
+        label: innovation.label,
+        type: innovation.type,
+        description: innovation.description,
+        x: (node.x || 0) + 120, // Slightly further away for distinction
+        y: (node.y || 0) + 120
+      };
+
+      const newLink = { source: node.id, target: newNodeId, relation: "facilitates" };
+
+      setData(prev => ({
+        nodes: [...prev.nodes, newNode],
+        links: [...prev.links, newLink]
+      }));
+
+      setSelectedNodeIds([newNodeId]);
+    }
+    setIsProcessing(false);
+  };
+
   const handleAnalyzeSynergy = async (nodeA: GraphNode, nodeB: GraphNode) => {
     setIsProcessing(true);
 
@@ -533,6 +582,16 @@ function App() {
     setIsProcessing(false);
   };
 
+  const handleDeleteInternalSpace = (node: GraphNode) => {
+    if (window.confirm(`Permanently eliminate internal space of "${node.label}"? All nodes and associations inside it and other nested internal spaces will be eliminated.`)) {
+      setData(prev => ({
+        ...prev,
+        nodes: prev.nodes.map(n => n.id === node.id ? { ...n, subGraphData: undefined } : n)
+      }));
+      setContextMenuNode(null);
+    }
+  };
+
   // Helper for context menu delete to ensure event propagation is handled
   const handleDeleteFromContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -576,6 +635,7 @@ function App() {
       label: newNodeLabel,
       type: newNodeType,
       description: newNodeDescription.trim() || "User defined node.",
+      isRoot: data.nodes.length === 0,
       x,
       y
     };
@@ -625,6 +685,7 @@ function App() {
         label: nodeData.label,
         type: nodeData.type,
         description: nodeData.description,
+        isRoot: true,
         x: 0,
         y: 0
       };
@@ -640,6 +701,7 @@ function App() {
         label: seed.label,
         type: seed.type,
         description: seed.description,
+        isRoot: true,
         x: 0,
         y: 0
       };
@@ -764,6 +826,7 @@ function App() {
           onNodeContextMenu={handleNodeContextMenu}
           selectedNodeIds={selectedNodeIds}
           sessionId={currentSessionId}
+          layoutTrigger={layoutTrigger}
         />
 
         {/* Filter Menu Overlay */}
@@ -852,7 +915,7 @@ function App() {
                       </li>
                       <li className="flex items-start gap-2">
                         <div className="mt-0.5 bg-slate-800 p-1 rounded"><Layers size={12} className="text-emerald-400" /></div>
-                        <span><b>Double-click</b> or use context menu to dive into a Nested Session.</span>
+                        <span><b>Double-click</b> or use context menu to <b>Seed In</b> and explore internal space.</span>
                       </li>
                     </ul>
                   </div>
@@ -894,8 +957,8 @@ function App() {
               >
                 <Layers size={16} className="text-sky-500 group-hover:text-sky-300" />
                 <div className="flex flex-col leading-none gap-1">
-                  <span>Start Session</span>
-                  <span className="text-[9px] text-slate-500 group-hover:text-sky-200/70">Dive into this seed</span>
+                  <span>Seed In</span>
+                  <span className="text-[9px] text-slate-500 group-hover:text-sky-200/70">Enter internal space</span>
                 </div>
               </button>
 
@@ -907,6 +970,17 @@ function App() {
                 <div className="flex flex-col leading-none gap-1">
                   <span>Trace Lineage</span>
                   <span className="text-[9px] text-slate-500 group-hover:text-fuchsia-200/70">Analyze origin path</span>
+                </div>
+              </button>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); handleInnovateNode(contextMenuNode); setContextMenuNode(null); }}
+                className="p-2 hover:bg-violet-500/20 hover:text-violet-200 rounded-xl text-slate-300 transition-all flex items-center gap-3 text-sm text-left group"
+              >
+                <Cpu size={16} className="text-violet-500 group-hover:text-violet-300" />
+                <div className="flex flex-col leading-none gap-1">
+                  <span>Innovate</span>
+                  <span className="text-[9px] text-slate-500 group-hover:text-violet-200/70">Structural breakthrough</span>
                 </div>
               </button>
 
@@ -963,6 +1037,16 @@ function App() {
 
               <div className="h-px bg-white/5 my-1 mx-2"></div>
 
+              {contextMenuNode.subGraphData && contextMenuNode.subGraphData.nodes.length > 0 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDeleteInternalSpace(contextMenuNode); }}
+                  className="p-2 hover:bg-amber-500/20 hover:text-amber-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
+                >
+                  <Minimize2 size={16} className="text-amber-500 group-hover:text-amber-300" />
+                  <span>Seed Out</span>
+                </button>
+              )}
+
               <button
                 onClick={handleDeleteFromContextMenu}
                 className="p-2 hover:bg-red-900/40 hover:text-red-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group cursor-pointer"
@@ -1008,7 +1092,7 @@ function App() {
 
       <Toolbar
         onAddNode={handleAddCustomNode}
-        onResetZoom={() => { }}
+        onStructureView={() => setLayoutTrigger(prev => prev + 1)}
         onToggleSettings={() => { setShowSettings(!showSettings); setShowFilterMenu(false); setShowInfo(false); }}
         onToggleFilterMenu={() => { setShowFilterMenu(!showFilterMenu); setShowInfo(false); setShowSettings(false); }}
         onToggleInfo={() => { setShowInfo(!showInfo); setShowFilterMenu(false); setShowSettings(false); }}

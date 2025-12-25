@@ -1,9 +1,9 @@
 import React from 'react';
-import { Plus, Maximize, Filter, Info, GitMerge, Cpu, LayoutGrid, Save } from 'lucide-react';
+import { Plus, Network, Filter, Info, GitMerge, Cpu, LayoutGrid, Save } from 'lucide-react';
 
 interface ToolbarProps {
   onAddNode: () => void;
-  onResetZoom: () => void;
+  onStructureView: () => void;
   onToggleSettings: () => void;
   onToggleFilterMenu: () => void;
   onToggleInfo: () => void;
@@ -19,7 +19,7 @@ interface ToolbarProps {
 
 const Toolbar: React.FC<ToolbarProps> = ({
   onAddNode,
-  onResetZoom,
+  onStructureView,
   onToggleSettings,
   onToggleFilterMenu,
   onToggleInfo,
@@ -79,11 +79,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
       {/* View Controls */}
       <button
-        onClick={onResetZoom}
+        onClick={onStructureView}
         className="bg-slate-900/60 hover:bg-slate-800 backdrop-blur-md text-slate-300 p-3.5 rounded-full shadow-lg border border-white/10 hover:border-white/20 transition-all hover:scale-110"
-        title="Reset View"
+        title="Structure View"
       >
-        <Maximize size={20} />
+        <Network size={20} />
       </button>
       <button
         onClick={onToggleFilterMenu}
