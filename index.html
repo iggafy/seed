@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://api.deepseek.com; img-src 'self' data: https:;">
+  <title>SEED - Shared Exploration & Emergent Discovery</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body,
+    html,
+    #root {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background-color: #020617;
+      /* Slate 950 base */
+      color: #e2e8f0;
+    }
+
+    /* Deep Cosmos Background */
+    #root {
+      background: radial-gradient(circle at 50% 50%, #172554 0%, #020617 80%);
+    }
+
+    /* Dot Grid Pattern */
+    .bg-grid {
+      background-size: 40px 40px;
+      background-image: radial-gradient(circle, #334155 1px, transparent 1px);
+      mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* Custom scrollbar for sidebar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(71, 85, 105, 0.5);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.8);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>
