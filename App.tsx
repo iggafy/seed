@@ -22,6 +22,34 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingSeed, setIsGeneratingSeed] = useState(false);
 
+  // History State
+  const [past, setPast] = useState<GraphData[]>([]);
+  const [future, setFuture] = useState<GraphData[]>([]);
+
+  const recordHistory = useCallback(() => {
+    setPast(prev => {
+      const newPast = [...prev, JSON.parse(JSON.stringify(data))];
+      return newPast.slice(-10); // Keep last 10 turns
+    });
+    setFuture([]); // Clear redo stack on new action
+  }, [data]);
+
+  const handleUndo = useCallback(() => {
+    if (past.length === 0) return;
+    const previous = past[past.length - 1];
+    setFuture(prev => [JSON.parse(JSON.stringify(data)), ...prev]);
+    setPast(prev => prev.slice(0, -1));
+    setData(previous);
+  }, [past, data]);
+
+  const handleRedo = useCallback(() => {
+    if (future.length === 0) return;
+    const next = future[0];
+    setPast(prev => [...prev, JSON.parse(JSON.stringify(data))]);
+    setFuture(prev => prev.slice(1));
+    setData(next);
+  }, [future, data]);
+
   // Session / Nested View State
   const [sessionStack, setSessionStack] = useState<SessionSnapshot[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('root'); // Used to force-reset canvas
@@ -182,16 +210,7 @@ function App() {
       // 'Delete' or 'Backspace' to delete selected nodes
       if (e.key === 'Delete' || (e.key === 'Backspace' && (e.metaKey || e.ctrlKey))) {
         if (selectedNodeIds.length > 0) {
-          askConfirm(
-            "Eliminate Seeds",
-            `Are you sure you want to eliminate ${selectedNodeIds.length} selected seed(s)? This will permanently remove them and all their associations.`,
-            () => {
-              selectedNodeIds.forEach(id => handleDeleteNode(id, true));
-              setSelectedNodeIds([]);
-            },
-            'danger',
-            "Eliminate"
-          );
+          handleDeleteNodes(selectedNodeIds);
         }
       }
 
@@ -201,6 +220,20 @@ function App() {
         setContextMenuNode(null);
         setIsChatOpen(false);
         setShowFilterMenu(false);
+      }
+
+      // Ctrl+Z for Undo, Ctrl+Y for Redo
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+        e.preventDefault();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        handleRedo();
+        e.preventDefault();
       }
     };
 
@@ -392,6 +425,7 @@ function App() {
   }, [discoveryState.isActive]);
 
   const handleAssimilateNode = (nodeId: string) => {
+    recordHistory();
     setData(prev => ({
       ...prev,
       nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, isGhost: false, isNew: false } : n),
@@ -403,6 +437,7 @@ function App() {
   };
 
   const handlePruneNode = (nodeId: string) => {
+    recordHistory();
     setData(prev => ({
       nodes: prev.nodes.filter(n => n.id !== nodeId),
       links: prev.links.filter(l => {
@@ -555,6 +590,7 @@ function App() {
     } catch (e) { }
 
     // 1. Create Wormhole in CURRENT session
+    recordHistory();
     const wormholeId = generateId();
     const newWormholeSeed: GraphNode = {
       id: wormholeId,
@@ -746,6 +782,7 @@ function App() {
 
   const handleExpandNode = async (node: GraphNode) => {
     setIsProcessing(true);
+    recordHistory();
 
     let contextString = undefined;
     if (isContextMode) {
@@ -788,6 +825,7 @@ function App() {
 
   const handleExpandNodeSingle = async (node: GraphNode, relation: string, count: number = 1, targetType?: NodeType) => {
     setIsProcessing(true);
+    recordHistory();
 
     let contextString = undefined;
     if (isContextMode) {
@@ -830,6 +868,7 @@ function App() {
 
   const handleTraceLineage = async (node: GraphNode) => {
     setIsProcessing(true);
+    recordHistory();
     const ancestry = getNodeLineage(node.id);
     const fullPath = ancestry ? `${ancestry} -> ${node.label}` : node.label;
 
@@ -865,6 +904,7 @@ function App() {
 
   const handleInnovateNode = async (node: GraphNode) => {
     setIsProcessing(true);
+    recordHistory();
 
     // 1. Prepare Full Graph Context
     const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
@@ -914,6 +954,7 @@ function App() {
 
   const handleSolveProblem = async (node: GraphNode) => {
     setIsProcessing(true);
+    recordHistory();
 
     const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
     const linksString = data.links.map(l => {
@@ -962,6 +1003,7 @@ function App() {
 
   const handleAnswerQuestion = async (node: GraphNode) => {
     setIsProcessing(true);
+    recordHistory();
 
     const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
     const linksString = data.links.map(l => {
@@ -1010,6 +1052,7 @@ function App() {
 
   const handleAnalyzeSynergy = async (nodeA: GraphNode, nodeB: GraphNode) => {
     setIsProcessing(true);
+    recordHistory();
 
     let contextA = undefined;
     let contextB = undefined;
@@ -1050,6 +1093,7 @@ function App() {
   };
 
   const handleConnectNodes = (nodeA: GraphNode, nodeB: GraphNode, relation: string) => {
+    recordHistory();
     setData(prev => ({
       ...prev,
       links: [
@@ -1064,6 +1108,7 @@ function App() {
   };
 
   const handleUpdateLink = (sourceId: string, targetId: string, relation: string) => {
+    recordHistory();
     setData(prev => ({
       ...prev,
       links: prev.links.map(l => {
@@ -1078,6 +1123,7 @@ function App() {
   };
 
   const handleDeleteLink = (sourceId: string, targetId: string) => {
+    recordHistory();
     setData(prev => ({
       ...prev,
       links: prev.links.filter(l => {
@@ -1089,23 +1135,29 @@ function App() {
   };
 
   const handleUpdateNode = (updatedNode: GraphNode) => {
+    recordHistory();
     setData(prev => ({
       ...prev,
       nodes: prev.nodes.map(n => n.id === updatedNode.id ? updatedNode : n)
     }));
   };
 
-  const performDeleteNode = (nodeId: string) => {
-    const remainingNodes = data.nodes.filter(n => n.id !== nodeId);
-
+  const performDeleteNodes = (nodeIds: string[]) => {
+    recordHistory();
     setData(prev => {
-      // Filter links connected to this node
+      const remainingNodes = prev.nodes.filter(n => !nodeIds.includes(n.id));
       const newLinks = prev.links.filter(l => {
-        // Handle both string IDs (initial) and object references (d3 processed)
         const sourceId = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
         const targetId = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
-        return sourceId !== nodeId && targetId !== nodeId;
+        return !nodeIds.includes(sourceId as string) && !nodeIds.includes(targetId as string);
       });
+
+      // Also check if we just emptied the current session's visible nodes
+      // (This is tricky because the session stack stores data too, but we are editing the CURRENT active data)
+      if (remainingNodes.length === 0 && sessionStack.length > 0) {
+        // Schedule navigation back after this update
+        setTimeout(() => handleNavigateToSession(sessionStack.length - 1, { nodes: [], links: [] }), 0);
+      }
 
       return {
         nodes: remainingNodes,
@@ -1113,36 +1165,42 @@ function App() {
       };
     });
 
-    // Remove from selection if present
-    setSelectedNodeIds(prev => prev.filter(id => id !== nodeId));
+    // Remove from selection
+    setSelectedNodeIds(prev => prev.filter(id => !nodeIds.includes(id)));
+  };
 
-    // Auto-exit if we just emptied a nested session
-    if (remainingNodes.length === 0 && sessionStack.length > 0) {
-      handleNavigateToSession(sessionStack.length - 1, { nodes: [], links: [] });
+  const handleDeleteNodes = (nodeIds: string[]) => {
+    if (nodeIds.length === 0) return;
+
+    if (nodeIds.length === 1) {
+      const nodeToDelete = data.nodes.find(n => n.id === nodeIds[0]);
+      if (!nodeToDelete) return;
+
+      const hasInternalNodes = nodeToDelete.subGraphData && nodeToDelete.subGraphData.nodes.length > 0;
+      const confirmMsg = hasInternalNodes
+        ? `Node "${nodeToDelete.label}" contains internal seeds. Deleting it will eliminate its entire internal space.`
+        : `Permanently eliminate "${nodeToDelete.label}" and all its research associations?`;
+
+      askConfirm(
+        "Eliminate Seed",
+        confirmMsg,
+        () => performDeleteNodes(nodeIds),
+        'danger',
+        "Eliminate"
+      );
+    } else {
+      askConfirm(
+        "Eliminate Seeds",
+        `Are you sure you want to eliminate ${nodeIds.length} selected seeds? This will permanently remove them and all their associations.`,
+        () => performDeleteNodes(nodeIds),
+        'danger',
+        "Eliminate"
+      );
     }
   };
 
-  const handleDeleteNode = (nodeId: string, skipConfirm = false) => {
-    const nodeToDelete = data.nodes.find(n => n.id === nodeId);
-    if (!nodeToDelete) return;
-
-    if (skipConfirm) {
-      performDeleteNode(nodeId);
-      return;
-    }
-
-    const hasInternalNodes = nodeToDelete.subGraphData && nodeToDelete.subGraphData.nodes.length > 0;
-    const confirmMsg = hasInternalNodes
-      ? `Node "${nodeToDelete.label}" contains internal seeds. Deleting it will eliminate its entire internal space. Proceed?`
-      : `Permanently eliminate "${nodeToDelete.label}" and all its research associations?`;
-
-    askConfirm(
-      "Eliminate Seed",
-      confirmMsg,
-      () => performDeleteNode(nodeId),
-      'danger',
-      "Eliminate"
-    );
+  const handleDeleteNode = (nodeId: string) => {
+    handleDeleteNodes([nodeId]);
   };
 
 
@@ -1151,6 +1209,7 @@ function App() {
       "Eliminate Internal Space",
       `Permanently eliminate the internal research space of "${node.label}"? All seeds and associations inside it will be lost.`,
       () => {
+        recordHistory();
         setData(prev => ({
           ...prev,
           nodes: prev.nodes.map(n => n.id === node.id ? { ...n, subGraphData: undefined } : n)
@@ -1199,6 +1258,7 @@ function App() {
   };
 
   const handleConfirmNexusSeed = (suggestion: AISuggestion, parentId: string) => {
+    recordHistory();
     const parentNode = data.nodes.find(n => n.id === parentId);
 
     const newNodeId = generateId();
@@ -1239,6 +1299,7 @@ function App() {
 
   const submitCustomNode = () => {
     if (!newNodeLabel.trim()) return;
+    recordHistory();
 
     // Determine position
     let x = 0;
@@ -1288,6 +1349,7 @@ function App() {
       "Reset Exploration",
       "Start fresh? This will clear all seeds and connections from the current workspace. This action cannot be undone.",
       () => {
+        recordHistory();
         setData({ nodes: [], links: [] });
         setSelectedNodeIds([]);
       },
@@ -1298,6 +1360,7 @@ function App() {
 
   const handleImFeelingLucky = async (isRetry: boolean = false) => {
     setIsGeneratingSeed(true);
+    recordHistory();
 
     try {
       const entropy = Date.now().toString();
@@ -1823,6 +1886,10 @@ function App() {
         onSave={handleSaveSeed}
         onToggleDiscovery={() => setDiscoveryState(prev => ({ ...prev, isActive: !prev.isActive }))}
         onToggleChat={() => setIsChatOpen(!isChatOpen)}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={past.length > 0}
+        canRedo={future.length > 0}
         isFilterActive={hiddenTypes.length > 0}
         isInfoOpen={showInfo}
         isContextMode={isContextMode}
@@ -1862,7 +1929,7 @@ function App() {
         onUpdateLink={handleUpdateLink}
         onDeleteLink={handleDeleteLink}
         onUpdateNode={handleUpdateNode}
-        onDeleteNode={handleDeleteNode}
+        onDeleteNodes={handleDeleteNodes}
         onKeepLucky={handleKeepLucky}
         onTryAgainLucky={handleTryAgainLucky}
         onInnovate={handleInnovateNode}

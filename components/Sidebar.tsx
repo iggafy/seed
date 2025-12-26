@@ -13,7 +13,7 @@ interface SidebarProps {
   onUpdateLink: (sourceId: string, targetId: string, relation: string) => void;
   onDeleteLink: (sourceId: string, targetId: string) => void;
   onUpdateNode: (node: GraphNode) => void;
-  onDeleteNode: (nodeId: string) => void;
+  onDeleteNodes: (nodeIds: string[]) => void;
   onKeepLucky: (nodeId: string) => void;
   onTryAgainLucky: (node: GraphNode) => void;
   onInnovate: (node: GraphNode) => void;
@@ -33,7 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAnalyzeSynergy,
   onConnectNodes,
   onUpdateNode,
-  onDeleteNode,
+  onDeleteNodes,
   onKeepLucky,
   onTryAgainLucky,
   onInnovate,
@@ -404,7 +404,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             ID: {node.id.split('-')[0]}...
           </div>
           <button
-            onClick={() => onDeleteNode(node.id)}
+            onClick={() => onDeleteNodes([node.id])}
             className="text-slate-500 hover:text-red-400 transition-colors flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider group"
           >
             <Trash2 size={12} className="group-hover:scale-110 transition-transform" /> Delete
@@ -568,9 +568,17 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
         <h2 className="text-xl font-bold text-white mb-2">{nodes.length} Items Selected</h2>
         <p className="text-slate-400 text-sm max-w-[200px]">Select exactly 2 seeds to perform relationship analysis or linking.</p>
-        <button onClick={onClose} className="mt-6 text-slate-500 hover:text-white flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
-          <X size={14} /> Clear Selection
-        </button>
+        <div className="flex flex-col gap-3 mt-8 w-full">
+          <button
+            onClick={() => onDeleteNodes(nodes.map(n => n.id))}
+            className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+          >
+            <Trash2 size={14} /> Delete {nodes.length} Seeds
+          </button>
+          <button onClick={onClose} className="w-full py-2 text-slate-500 hover:text-white flex items-center justify-center gap-2 text-[10px] uppercase font-bold tracking-widest">
+            <X size={14} /> Clear Selection
+          </button>
+        </div>
       </div>
     </div>
   );
