@@ -34,8 +34,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const handleProviderChange = (provider: AIProvider) => {
         setLocalSettings(prev => ({
             ...prev,
-            provider,
-            model: DEFAULT_MODELS[provider] // Reset to default model for that provider
+            provider
+        }));
+    };
+
+    const handleUpdateActiveProviderSettings = (updates: Partial<{ apiKey: string, model: string }>) => {
+        setLocalSettings(prev => ({
+            ...prev,
+            providers: {
+                ...prev.providers,
+                [prev.provider]: {
+                    ...prev.providers[prev.provider],
+                    ...updates
+                }
+            }
         }));
     };
 
@@ -74,8 +86,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                         key={opt.value}
                                         onClick={() => handleProviderChange(opt.value)}
                                         className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200 gap-2 ${isActive
-                                                ? 'bg-sky-500/10 border-sky-500/50 text-sky-200 shadow-[0_0_15px_rgba(14,165,233,0.1)]'
-                                                : 'bg-slate-800/50 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10'
+                                            ? 'bg-sky-500/10 border-sky-500/50 text-sky-200 shadow-[0_0_15px_rgba(14,165,233,0.1)]'
+                                            : 'bg-slate-800/50 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10'
                                             }`}
                                     >
                                         <Icon size={20} className={isActive ? 'text-sky-400' : 'opacity-50'} />
@@ -98,8 +110,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                             </div>
                             <input
                                 type="password"
-                                value={localSettings.apiKey}
-                                onChange={(e) => setLocalSettings({ ...localSettings, apiKey: e.target.value })}
+                                value={localSettings.providers[localSettings.provider]?.apiKey || ''}
+                                onChange={(e) => handleUpdateActiveProviderSettings({ apiKey: e.target.value })}
                                 placeholder={`Enter ${localSettings.provider} API Key...`}
                                 className="w-full bg-slate-950 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all font-mono"
                             />
@@ -111,8 +123,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Model Name</label>
                         <input
                             type="text"
-                            value={localSettings.model}
-                            onChange={(e) => setLocalSettings({ ...localSettings, model: e.target.value })}
+                            value={localSettings.providers[localSettings.provider]?.model || DEFAULT_MODELS[localSettings.provider]}
+                            onChange={(e) => handleUpdateActiveProviderSettings({ model: e.target.value })}
                             className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all"
                         />
                         <p className="text-[10px] text-slate-600">

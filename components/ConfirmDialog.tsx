@@ -37,9 +37,9 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     };
 
     const buttonColors = {
-        danger: 'bg-red-600 hover:bg-red-500 shadow-red-900/20 hover:shadow-red-500/40',
-        warning: 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/20 hover:shadow-amber-500/40',
-        info: 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20 hover:shadow-indigo-500/40'
+        danger: 'bg-red-600 hover:bg-red-500 shadow-red-900/10',
+        warning: 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/10',
+        info: 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/10'
     };
 
     return (
@@ -53,19 +53,18 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                     <h3 className="text-xl font-bold text-white mb-3 tracking-tight">{title}</h3>
                     <p className="text-sm text-slate-400 leading-relaxed mb-8">{message}</p>
 
-                    <div className="flex w-full gap-3">
+                    <div className="grid grid-cols-2 gap-3 w-full">
                         <button
                             onClick={onCancel}
-                            className="flex-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-sm font-bold transition-all whitespace-nowrap"
+                            className="py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-sm font-bold transition-all whitespace-nowrap border border-white/5"
                         >
                             {cancelText}
                         </button>
                         <button
                             onClick={onConfirm}
-                            className={`flex-1 py-3.5 ${buttonColors[type]} text-white rounded-2xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95 whitespace-nowrap`}
+                            className={`py-3 ${buttonColors[type]} text-white rounded-2xl text-sm font-bold transition-all active:scale-95 whitespace-nowrap shadow-md`}
                         >
-                            <Check size={18} className="shrink-0" />
-                            <span>{confirmText}</span>
+                            {confirmText}
                         </button>
                     </div>
                 </div>

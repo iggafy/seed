@@ -84,8 +84,11 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [aiSettings, setAiSettings] = useState<AISettings>({
     provider: AIProvider.GEMINI,
-    apiKey: process.env.VITE_GEMINI_API_KEY || '',
-    model: ''
+    providers: {
+      [AIProvider.GEMINI]: { apiKey: process.env.VITE_GEMINI_API_KEY || '', model: 'gemini-2.0-flash' },
+      [AIProvider.OPENAI]: { apiKey: '', model: 'gpt-4o' },
+      [AIProvider.DEEPSEEK]: { apiKey: '', model: 'deepseek-chat' }
+    }
   });
 
   // Discovery Mode State
@@ -109,8 +112,14 @@ function App() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        // Merge with defaults to ensure all fields exist
-        setAiSettings(prev => ({ ...prev, ...parsed }));
+        setAiSettings(prev => ({
+          ...prev,
+          ...parsed,
+          providers: {
+            ...prev.providers,
+            ...(parsed.providers || {})
+          }
+        }));
       } catch (e) {
         console.error("Failed to parse settings", e);
       }
@@ -230,16 +239,8 @@ function App() {
       }
     };
 
-    if (!currentSeedFileId && !silent) {
-      askConfirm(
-        "Save New Seed Space",
-        "Would you like to save this exploration as a new Seed Space for future access?",
-        performSave,
-        'info',
-        "Save Space"
-      );
-      return;
-    }
+    // Global guard: never save if there are no nodes (prevents empty untitled spaces)
+    if (data.nodes.length === 0) return;
 
     await performSave();
   };

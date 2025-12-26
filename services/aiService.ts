@@ -33,7 +33,7 @@ export const expandConcept = async (
     nodeDescription: string,
     contextLineage?: string
 ): Promise<AISuggestion[]> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const prompt = `You are an innovation engine. Given the node "${nodeLabel}" (${nodeDescription}), suggest 3-5 distinct, innovative connections.
 ${contextLineage ? `CRITICAL CONTEXTUAL CONSTRAINT: The node "${nodeLabel}" emerged from: [ ${contextLineage} ]. Interpret it strictly within this context.` : ''}
@@ -52,7 +52,7 @@ export const expandConceptTargeted = async (
     contextLineage?: string,
     targetType?: NodeType
 ): Promise<AISuggestion[]> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const prompt = `You are an innovation engine. Given the source node "${nodeLabel}" (${nodeDescription}), generate exactly ${count} distinct node(s) that satisfy this relationship: --[${relationType}]--> [New Node].
 ${targetType ? `TARGET NODE TYPE: ${targetType}. Ensure every generated node is strictly of this type.` : ''}
@@ -68,7 +68,7 @@ export const generateSynergyNode = async (
     labelB: string, descriptionB: string,
     contextA?: string, contextB?: string
 ): Promise<AISuggestion | null> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const prompt = `Analyze the intersection between:
     1. "${labelA}" (${descriptionA}) ${contextA ? `[History: ${contextA}]` : ''}
@@ -87,7 +87,7 @@ export const traceLineageAnalysis = async (
     nodeDescription: string,
     fullPathContext: string
 ): Promise<AISuggestion | null> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const prompt = `You are a forensic innovation analyst. 
     Analyze this discovery path: [ ${fullPathContext} ].
@@ -107,7 +107,7 @@ export const innovateConcept = async (
     nodeType: string,
     fullGraphContext: string
 ): Promise<AISuggestion | null> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const prompt = `You are a product architect and software innovator. 
     Target node: "${nodeLabel}" (Type: ${nodeType}, Description: ${nodeDescription}).
@@ -135,7 +135,7 @@ export const solveProblem = async (
     nodeType: string,
     fullGraphContext: string
 ): Promise<AISuggestion | null> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const prompt = `You are a product architect and software innovator. 
     Target Problem/Pain Point: "${nodeLabel}" (Type: ${nodeType}, Description: ${nodeDescription}).
@@ -163,7 +163,7 @@ export const answerQuestion = async (
     nodeType: string,
     fullGraphContext: string
 ): Promise<AISuggestion | null> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const prompt = `You are a research scientist. 
     Question: "${nodeLabel}" (${nodeDescription}).
@@ -189,7 +189,7 @@ export const quickExpand = async (
     nodeType: string,
     fullGraphContext: string
 ): Promise<AISuggestion[]> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const prompt = `You are an innovation engine. 
     Current node: "${nodeLabel}" (Type: ${nodeType}, Description: ${nodeDescription}).
@@ -208,7 +208,7 @@ export const autonomousDiscovery = async (
     fullGraphContext: string,
     dieToGrow: boolean = true
 ): Promise<AISuggestion | null> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const prompt = dieToGrow
         ? `You are an Autonomous Gardener in an innovation graph. 
@@ -237,7 +237,7 @@ export const agenticDiscovery = async (
     fullGraphContext: string,
     activeNode?: GraphNode
 ): Promise<AISuggestion | null> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const intent = Math.random() > 0.3 ? "EXPAND" : "CHALLENGE";
 
@@ -264,7 +264,7 @@ export const agenticDiscovery = async (
 };
 
 export const generateRandomSeedNode = async (settings: AISettings, entropy?: string, discardedTitles?: string[]): Promise<AISuggestion | null> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const isRetry = discardedTitles && discardedTitles.length > 0;
     const avoidContext = isRetry
@@ -289,7 +289,8 @@ export const researchAssistantChat = async (
     selectedNodes: GraphNode[],
     allLinks: GraphLink[]
 ): Promise<ChatMessage> => {
-    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+    const activeSettings = settings.providers[settings.provider];
+    if (!activeSettings?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     // 1. Construct Contextual Brief
     let contextBrief = "NO NODES SELECTED.";
@@ -344,8 +345,8 @@ export const researchAssistantChat = async (
     // @ts-ignore
     const response = await window.api.aiRequest({
         provider: settings.provider,
-        apiKey: settings.apiKey,
-        model: settings.model || undefined,
+        apiKey: activeSettings.apiKey,
+        model: activeSettings.model || undefined,
         messages: formattedMessages,
         systemPrompt: systemPrompt
     });
@@ -398,7 +399,8 @@ async function runIPCRequest(
     isArray: boolean = false,
     entropy: number = 0.7
 ): Promise<AISuggestion[]> {
-    const isDeepSeek = settings.model?.toLowerCase().includes("deepseek");
+    const activeSettings = settings.providers[settings.provider];
+    const isDeepSeek = activeSettings?.model?.toLowerCase().includes("deepseek");
 
     const messages = [
         { role: "user", content: prompt }
@@ -424,8 +426,8 @@ async function runIPCRequest(
     // @ts-ignore
     const response = await window.api.aiRequest({
         provider: settings.provider,
-        apiKey: settings.apiKey,
-        model: settings.model || undefined,
+        apiKey: activeSettings.apiKey,
+        model: activeSettings.model || undefined,
         messages: messages,
         jsonSchema: jsonSchema,
         systemPrompt: systemPrompt

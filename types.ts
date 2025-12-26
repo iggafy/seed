@@ -79,8 +79,10 @@ export enum AIProvider {
 
 export interface AISettings {
   provider: AIProvider;
-  apiKey: string;
-  model: string;
+  providers: Record<AIProvider, {
+    apiKey: string;
+    model: string;
+  }>;
 }
 
 export interface SeedFile {
