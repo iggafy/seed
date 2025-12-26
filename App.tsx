@@ -85,7 +85,7 @@ function App() {
   const [aiSettings, setAiSettings] = useState<AISettings>({
     provider: AIProvider.GEMINI,
     providers: {
-      [AIProvider.GEMINI]: { apiKey: process.env.VITE_GEMINI_API_KEY || '', model: 'gemini-2.0-flash' },
+      [AIProvider.GEMINI]: { apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY || '', model: 'gemini-2.5-flash' },
       [AIProvider.OPENAI]: { apiKey: '', model: 'gpt-4o' },
       [AIProvider.DEEPSEEK]: { apiKey: '', model: 'deepseek-chat' }
     }
@@ -112,14 +112,24 @@ function App() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        setAiSettings(prev => ({
-          ...prev,
-          ...parsed,
-          providers: {
-            ...prev.providers,
-            ...(parsed.providers || {})
-          }
-        }));
+        if (parsed && typeof parsed === 'object') {
+          setAiSettings(prev => {
+            const newProviders = { ...prev.providers };
+            if (parsed.providers) {
+              Object.keys(parsed.providers).forEach(key => {
+                newProviders[key as AIProvider] = {
+                  ...newProviders[key as AIProvider],
+                  ...parsed.providers[key]
+                };
+              });
+            }
+            return {
+              ...prev,
+              provider: parsed.provider || prev.provider,
+              providers: newProviders
+            };
+          });
+        }
       } catch (e) {
         console.error("Failed to parse settings", e);
       }
@@ -1575,7 +1585,7 @@ function App() {
               </div>
 
               <div className="text-center pt-6 border-t border-white/5 text-xs text-slate-600">
-                v1.2.0 • Powered by Google Gemini 2.0 Flash • D3.js Force Engine
+                Shared Exploration & Emergent Discovery
               </div>
             </div>
           </div>
