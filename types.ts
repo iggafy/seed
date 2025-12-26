@@ -45,17 +45,50 @@ export interface SessionSnapshot {
   triggerNodeId?: string; // The ID of the node in THIS snapshot that leads to the NEXT session
 }
 
+// Mode System
+export enum ExplorationMode {
+  INNOVATION = 'INNOVATION',
+  KNOWLEDGE = 'KNOWLEDGE'
+}
+
+export interface ModeConfig {
+  id: ExplorationMode;
+  name: string;
+  description: string;
+  nodeTypes: NodeType[];
+  defaultRelations: string[];
+  aiPersona: string;
+  seedExamples: Array<{ label: string; type: NodeType; description: string }>;
+}
+
+// Node Types - Now mode-agnostic
 export enum NodeType {
+  // Universal types (used in both modes)
   CONCEPT = 'CONCEPT',
+  ENTITY = 'ENTITY', // Person, Company, Place, Organization
+  QUESTION = 'QUESTION',
+
+  // Innovation Mode specific
   TECHNOLOGY = 'TECHNOLOGY',
   PROBLEM = 'PROBLEM',
   PAIN_POINT = 'PAIN_POINT',
   INNOVATION = 'INNOVATION',
   CONSTRAINT = 'CONSTRAINT',
   FRICTION = 'FRICTION',
-  ENTITY = 'ENTITY', // Person, Company, etc.
-  QUESTION = 'QUESTION',
-  TRACE = 'TRACE' // New Analysis Node
+  TRACE = 'TRACE',
+  IMPLEMENTATION = 'IMPLEMENTATION', // Practical application, app, or product
+  USER_SEGMENT = 'USER_SEGMENT', // Target audience, persona, or market segment
+
+  // Knowledge Mode specific
+  EVENT = 'EVENT', // Historical events, occurrences
+  PERSON = 'PERSON', // Individuals
+  PLACE = 'PLACE', // Locations, geography
+  THEORY = 'THEORY', // Scientific theories, philosophies
+  ARTIFACT = 'ARTIFACT', // Objects, documents, creations
+  MOVEMENT = 'MOVEMENT', // Social, political, artistic movements
+  DISCOVERY = 'DISCOVERY', // Scientific discoveries, findings
+  RELATIONSHIP = 'RELATIONSHIP', // Connections between entities
+  CONTRADICTION = 'CONTRADICTION', // Conflicting accounts, debates, or opposing theories
 }
 
 export interface AISuggestion {
@@ -92,6 +125,7 @@ export interface SeedFile {
   data: GraphData; // The core graph
   sessionStack: SessionSnapshot[]; // Navigation history
   viewport: { x: number, y: number, zoom: number }; // Camera state
+  mode?: ExplorationMode; // The mode this seed was created in
 }
 
 // Chat System Types

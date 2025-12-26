@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { SeedFile, GraphNode } from '../types';
-import { RELATION_OPTIONS } from '../constants';
 import { Orbit, X, Search, Globe, Link2, Loader2, Sparkles, ChevronDown, Zap, LayoutGrid, List, Filter } from 'lucide-react';
 import { NodeType } from '../types';
 
@@ -9,16 +8,17 @@ interface WormholeSelectorProps {
     onClose: () => void;
     onSelect: (sessionId: string, sessionName: string, nodeId: string, nodeLabel: string, relation: string) => void;
     currentSeedId?: string;
+    relationOptions: string[];
 }
 
-const WormholeSelector: React.FC<WormholeSelectorProps> = ({ isOpen, onClose, onSelect, currentSeedId }) => {
+const WormholeSelector: React.FC<WormholeSelectorProps> = ({ isOpen, onClose, onSelect, currentSeedId, relationOptions }) => {
     const [seeds, setSeeds] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [selectedSeed, setSelectedSeed] = useState<string | null>(null);
     const [nodes, setNodes] = useState<GraphNode[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedNode, setSelectedNode] = useState<{ id: string, label: string } | null>(null);
-    const [selectedRelation, setSelectedRelation] = useState(RELATION_OPTIONS[0]);
+    const [selectedRelation, setSelectedRelation] = useState(relationOptions[0]);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [selectedType, setSelectedType] = useState<NodeType | 'all'>('all');
 
@@ -146,7 +146,7 @@ const WormholeSelector: React.FC<WormholeSelectorProps> = ({ isOpen, onClose, on
                                                 onChange={(e) => setSelectedRelation(e.target.value)}
                                                 className="w-full appearance-none bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 transition-all cursor-pointer hover:bg-black/60 capitalize"
                                             >
-                                                {RELATION_OPTIONS.map(rel => (
+                                                {relationOptions.map(rel => (
                                                     <option key={rel} value={rel} className="bg-slate-900 text-slate-200">{rel}</option>
                                                 ))}
                                             </select>

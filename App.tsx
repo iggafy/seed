@@ -4,14 +4,15 @@ import Sidebar from './components/Sidebar';
 import Toolbar from './components/Toolbar';
 import SettingsModal from './components/SettingsModal';
 import SeedsDashboard from './components/SeedsDashboard';
-import { INITIAL_DATA, NOVEL_SEEDS, NODE_ICONS, NODE_COLORS, RELATION_OPTIONS, EXPANSION_BLUEPRINTS } from './constants';
-import { expandConcept, expandConceptTargeted, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat } from './services/aiService';
-import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit } from 'lucide-react';
+import { INITIAL_DATA, NODE_ICONS, NODE_COLORS, getModeConfig, getExpansionBlueprints, getRelationOptions, getSeedExamples } from './constants';
+import { expandConcept, expandConceptTargeted, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat, optimizeConcept, stressTestConcept, generateImplementation } from './services/aiService';
+import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit, RefreshCw, Network } from 'lucide-react';
 import NexusAssistant from './components/NexusAssistant';
 import NexusConfirmDialog from './components/NexusConfirmDialog';
 import ConfirmDialog from './components/ConfirmDialog';
 import WormholeSelector from './components/WormholeSelector';
-import { ChatMessage, AISuggestion, DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile, GraphLink } from './types';
+import WelcomeScreen from './components/WelcomeScreen';
+import { ChatMessage, AISuggestion, DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile, GraphLink, ExplorationMode } from './types';
 
 // Utility to generate UUIDs locally
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -133,11 +134,23 @@ function App() {
 
   const [discardedLuckySeeds, setDiscardedLuckySeeds] = useState<string[]>([]);
 
+  // Exploration Mode State
+  const [currentMode, setCurrentMode] = useState<ExplorationMode>(ExplorationMode.INNOVATION);
+
+  // Derived mode-specific constants
+  const RELATION_OPTIONS = getRelationOptions(currentMode);
+  const EXPANSION_BLUEPRINTS = getExpansionBlueprints(currentMode);
+  const NOVEL_SEEDS = getSeedExamples(currentMode);
+  const modeConfig = getModeConfig(currentMode);
+
   // Assistant / Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [proposingSeed, setProposingSeed] = useState<AISuggestion | null>(null);
   const [isChatProcessing, setIsChatProcessing] = useState(false);
+
+  // Welcome Screen State
+  const [showWelcome, setShowWelcome] = useState(true);
 
   // Load Settings from LocalStorage
   useEffect(() => {
@@ -194,12 +207,20 @@ function App() {
       if (selectedNodes.length === 1) {
         const node = selectedNodes[0];
 
-        // 'i' for Innovate
-        if (e.key.toLowerCase() === 'i' && (node.type === NodeType.TECHNOLOGY || node.type === NodeType.INNOVATION)) {
+        // 'i' for Innovate / Synthesize
+        if (e.key.toLowerCase() === 'i' && (
+          node.type === NodeType.TECHNOLOGY ||
+          node.type === NodeType.INNOVATION ||
+          (currentMode === ExplorationMode.KNOWLEDGE && (node.type === NodeType.THEORY || node.type === NodeType.CONCEPT || node.type === NodeType.DISCOVERY))
+        )) {
           handleInnovateNode(node);
         }
-        // 's' for Solve
-        else if (e.key.toLowerCase() === 's' && (node.type === NodeType.PROBLEM || node.type === NodeType.PAIN_POINT)) {
+        // 's' for Solve / Resolve
+        else if (e.key.toLowerCase() === 's' && (
+          node.type === NodeType.PROBLEM ||
+          node.type === NodeType.PAIN_POINT ||
+          (currentMode === ExplorationMode.KNOWLEDGE && node.type === NodeType.EVENT)
+        )) {
           handleSolveProblem(node);
         }
         // 'a' for Answer
@@ -260,7 +281,8 @@ function App() {
         lastModified: Date.now(),
         data: data,
         sessionStack: sessionStack,
-        viewport: { x: 0, y: 0, zoom: 1 }
+        viewport: { x: 0, y: 0, zoom: 1 },
+        mode: currentMode
       };
 
       try {
@@ -309,6 +331,10 @@ function App() {
       setCurrentSeedFileId(seed.id);
       setCurrentSeedFileName(seed.name);
       setCurrentSessionId(generateId()); // Force re-render
+
+      // Restore mode (default to INNOVATION for legacy seeds)
+      setCurrentMode(seed.mode || ExplorationMode.INNOVATION);
+
       if (seed.sessionStack && seed.sessionStack.length > 0) {
         // Restore deep session name
         setCurrentSessionName(seed.name || "Seed Space");
@@ -316,6 +342,7 @@ function App() {
         setCurrentSessionName("Root");
       }
       setShowDashboard(false);
+      setShowWelcome(false);
     }
   };
 
@@ -323,6 +350,13 @@ function App() {
     // Auto-save current before starting new
     await handleSaveSeed(true);
 
+    // Show welcome screen for mode selection
+    setShowWelcome(true);
+    setShowDashboard(false);
+  };
+
+  const handleWelcomeModeSelect = (mode: ExplorationMode) => {
+    setCurrentMode(mode);
     setData({ nodes: [], links: [] });
     setSessionStack([]);
     setCurrentSeedFileId(undefined);
@@ -330,6 +364,7 @@ function App() {
     setCurrentSessionId('root');
     setCurrentSessionName('Root');
     setShowDashboard(false);
+    setShowWelcome(false);
     setDiscardedLuckySeeds([]); // Reset AI memory for new session
   };
 
@@ -345,10 +380,12 @@ function App() {
   const isActiveRef = useRef(discoveryState.isActive);
   const dataRef = useRef(data);
   const settingsRef = useRef(aiSettings);
+  const modeRef = useRef(currentMode);
 
   useEffect(() => { isActiveRef.current = discoveryState.isActive; }, [discoveryState.isActive]);
   useEffect(() => { dataRef.current = data; }, [data]);
   useEffect(() => { settingsRef.current = aiSettings; }, [aiSettings]);
+  useEffect(() => { modeRef.current = currentMode; }, [currentMode]);
 
   useEffect(() => {
     if (!discoveryState.isActive) return;
@@ -380,7 +417,7 @@ function App() {
         if (!isActiveRef.current) return;
 
         const target = currentNodes[Math.floor(Math.random() * currentNodes.length)];
-        const suggestion = await agenticDiscovery(settingsRef.current, fullGraphContext, target);
+        const suggestion = await agenticDiscovery(settingsRef.current, fullGraphContext, target, modeRef.current);
 
         // LOYAL STOP: Discard result if user clicked stop while AI was thinking
         if (suggestion && isActiveRef.current) {
@@ -796,7 +833,7 @@ function App() {
     }
 
     try {
-      const suggestions = await expandConcept(aiSettings, node.label, node.description || "", contextString);
+      const suggestions = await expandConcept(aiSettings, node.label, node.description || "", contextString, currentMode);
 
       if (suggestions.length > 0) {
         setData(prevData => {
@@ -839,7 +876,7 @@ function App() {
     }
 
     try {
-      const suggestions = await expandConceptTargeted(aiSettings, node.label, node.description || "", relation, count, contextString, targetType);
+      const suggestions = await expandConceptTargeted(aiSettings, node.label, node.description || "", relation, count, contextString, targetType, currentMode);
 
       if (suggestions && suggestions.length > 0) {
         setData(prevData => {
@@ -878,7 +915,7 @@ function App() {
     const fullPath = ancestry ? `${ancestry} -> ${node.label}` : node.label;
 
     try {
-      const analysis = await traceLineageAnalysis(aiSettings, node.label, node.description || "", fullPath);
+      const analysis = await traceLineageAnalysis(aiSettings, node.label, node.description || "", fullPath, currentMode);
 
       if (analysis) {
         const newNodeId = generateId();
@@ -927,7 +964,8 @@ function App() {
         node.label,
         node.description || "",
         node.type,
-        fullGraphContext
+        fullGraphContext,
+        currentMode
       );
 
       if (innovation) {
@@ -951,7 +989,7 @@ function App() {
         setSelectedNodeIds([newNodeId]);
       }
     } catch (e: any) {
-      popError(e.message || "Innovation request failed");
+      popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Innovation request failed" : "Synthesis request failed"));
     } finally {
       setIsProcessing(false);
     }
@@ -976,7 +1014,8 @@ function App() {
         node.label,
         node.description || "",
         node.type,
-        fullGraphContext
+        fullGraphContext,
+        currentMode
       );
 
       if (solution) {
@@ -990,7 +1029,7 @@ function App() {
           y: (node.y || 0) + 120
         };
 
-        const newLink = { source: node.id, target: newNodeId, relation: "solved by" };
+        const newLink = { source: node.id, target: newNodeId, relation: currentMode === ExplorationMode.INNOVATION ? "solved by" : "resolved by" };
 
         setData(prev => ({
           nodes: [...prev.nodes, newNode],
@@ -1000,7 +1039,7 @@ function App() {
         setSelectedNodeIds([newNodeId]);
       }
     } catch (e: any) {
-      popError(e.message || "Problem solving failed");
+      popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Problem solving failed" : "Resolution failed"));
     } finally {
       setIsProcessing(false);
     }
@@ -1025,7 +1064,8 @@ function App() {
         node.label,
         node.description || "",
         node.type,
-        fullGraphContext
+        fullGraphContext,
+        currentMode
       );
 
       if (answer) {
@@ -1049,7 +1089,7 @@ function App() {
         setSelectedNodeIds([newNodeId]);
       }
     } catch (e: any) {
-      popError(e.message || "Answer request failed");
+      popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Answer request failed" : "Fact check failed"));
     } finally {
       setIsProcessing(false);
     }
@@ -1070,7 +1110,8 @@ function App() {
       aiSettings,
       nodeA.label, nodeA.description || "",
       nodeB.label, nodeB.description || "",
-      contextA, contextB
+      contextA, contextB,
+      currentMode
     );
 
     if (suggestion) {
@@ -1095,6 +1136,114 @@ function App() {
       setSelectedNodeIds([newNodeId]);
     }
     setIsProcessing(false);
+  };
+
+  const handleOptimizeNode = async (node: GraphNode) => {
+    setIsProcessing(true);
+    recordHistory();
+
+    const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
+    const linksString = data.links.map(l => {
+      const source = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
+      const target = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
+      return `- ${source} --[${l.relation}]--> ${target}`;
+    }).join('\n');
+    const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+
+    try {
+      const optimization = await optimizeConcept(aiSettings, node.label, node.description || "", fullGraphContext);
+      if (optimization) {
+        const newNodeId = generateId();
+        const newNode: GraphNode = {
+          id: newNodeId,
+          label: optimization.label,
+          type: optimization.type,
+          description: optimization.description,
+          x: (node.x || 0) + 120,
+          y: (node.y || 0) - 120 // Position it above for contrast with evolution
+        };
+        const newLink = { source: node.id, target: newNodeId, relation: "optimized as" };
+        setData(prev => ({ nodes: [...prev.nodes, newNode], links: [...prev.links, newLink] }));
+        setSelectedNodeIds([newNodeId]);
+      }
+    } catch (e: any) {
+      popError(e.message || "Optimization failed");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleStressTestNode = async (node: GraphNode) => {
+    setIsProcessing(true);
+    recordHistory();
+
+    const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
+    const linksString = data.links.map(l => {
+      const source = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
+      const target = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
+      return `- ${source} --[${l.relation}]--> ${target}`;
+    }).join('\n');
+    const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+
+    try {
+      const failures = await stressTestConcept(aiSettings, node.label, node.description || "", fullGraphContext);
+      if (failures && failures.length > 0) {
+        const newNodes: GraphNode[] = [];
+        const newLinks: any[] = [];
+        failures.forEach((fail, i) => {
+          const newNodeId = generateId();
+          newNodes.push({
+            id: newNodeId,
+            label: fail.label,
+            type: fail.type,
+            description: fail.description,
+            x: (node.x || 0) - 150,
+            y: (node.y || 0) + (i - 1) * 120
+          });
+          newLinks.push({ source: node.id, target: newNodeId, relation: fail.relationToParent });
+        });
+        setData(prev => ({ nodes: [...prev.nodes, ...newNodes], links: [...prev.links, ...newLinks] }));
+      }
+    } catch (e: any) {
+      popError(e.message || "Stress test failed");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleImplementNode = async (node: GraphNode) => {
+    setIsProcessing(true);
+    recordHistory();
+
+    const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
+    const linksString = data.links.map(l => {
+      const source = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
+      const target = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
+      return `- ${source} --[${l.relation}]--> ${target}`;
+    }).join('\n');
+    const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+
+    try {
+      const impl = await generateImplementation(aiSettings, node.label, node.description || "", fullGraphContext);
+      if (impl) {
+        const newNodeId = generateId();
+        const newNode: GraphNode = {
+          id: newNodeId,
+          label: impl.label,
+          type: impl.type,
+          description: impl.description,
+          x: (node.x || 0) + 150,
+          y: (node.y || 0)
+        };
+        const newLink = { source: node.id, target: newNodeId, relation: impl.relationToParent };
+        setData(prev => ({ nodes: [...prev.nodes, newNode], links: [...prev.links, newLink] }));
+        setSelectedNodeIds([newNodeId]);
+      }
+    } catch (e: any) {
+      popError(e.message || "Implementation generation failed");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleConnectNodes = (nodeA: GraphNode, nodeB: GraphNode, relation: string) => {
@@ -1259,7 +1408,7 @@ function App() {
 
     try {
       const selectedNodes = data.nodes.filter(n => selectedNodeIds.includes(n.id));
-      const response = await researchAssistantChat(aiSettings, newMessages, selectedNodes, data.links);
+      const response = await researchAssistantChat(aiSettings, newMessages, selectedNodes, data.links, currentMode);
       setChatMessages(prev => [...prev, response]);
     } catch (e: any) {
       popError(e.message || "Nexus chat failed");
@@ -1375,7 +1524,7 @@ function App() {
 
     try {
       const entropy = Date.now().toString();
-      const seed = await generateRandomSeedNode(aiSettings, entropy, isRetry ? discardedLuckySeeds : []);
+      const seed = await generateRandomSeedNode(aiSettings, entropy, isRetry ? discardedLuckySeeds : [], currentMode);
 
       let nodeData;
       if (seed) {
@@ -1604,7 +1753,7 @@ function App() {
                 <div>
                   <h3 className="text-xs font-bold uppercase text-slate-500 tracking-wider mb-4 border-b border-white/5 pb-2">Seed Ontology</h3>
                   <div className="space-y-3">
-                    {Object.values(NodeType).map(type => (
+                    {modeConfig.nodeTypes.map(type => (
                       <div key={type} className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: `${NODE_COLORS[type]}20`, border: `1px solid ${NODE_COLORS[type]}60` }}>
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS[type] }}></div>
@@ -1619,7 +1768,17 @@ function App() {
                             {type === NodeType.INNOVATION && "Breakthrough solutions"}
                             {type === NodeType.ENTITY && "People, companies, orgs"}
                             {type === NodeType.QUESTION && "Research inquiries & unknowns"}
+                            {type === NodeType.IMPLEMENTATION && "Practical apps & products"}
+                            {type === NodeType.USER_SEGMENT && "Target audience & personas"}
                             {type === NodeType.TRACE && "Historical analysis path"}
+                            {type === NodeType.EVENT && "Historical occurrences & milestones"}
+                            {type === NodeType.PERSON && "Influential individuals & figures"}
+                            {type === NodeType.PLACE && "Geographic locations & civilizations"}
+                            {type === NodeType.THEORY && "Philosophies, laws & frameworks"}
+                            {type === NodeType.ARTIFACT && "Objects, documents & creations"}
+                            {type === NodeType.MOVEMENT && "Social & cultural shifts"}
+                            {type === NodeType.DISCOVERY && "Revelations & scientific findings"}
+                            {type === NodeType.RELATIONSHIP && "Significant interconnections"}
                           </div>
                         </div>
                       </div>
@@ -1651,15 +1810,15 @@ function App() {
                       <h3 className="text-xs font-bold uppercase text-slate-500 tracking-wider mb-3 border-b border-white/5 pb-2">Power Shortcuts</h3>
                       <div className="space-y-2">
                         <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Innovate</span>
+                          <span className="text-slate-400">{currentMode === ExplorationMode.INNOVATION ? 'Innovate' : 'Synthesize'}</span>
                           <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-violet-400 font-mono">I</kbd>
                         </div>
                         <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Solve Problem</span>
+                          <span className="text-slate-400">{currentMode === ExplorationMode.INNOVATION ? 'Solve Problem' : 'Resolve'}</span>
                           <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-emerald-400 font-mono">S</kbd>
                         </div>
                         <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Answer Question</span>
+                          <span className="text-slate-400">{currentMode === ExplorationMode.INNOVATION ? 'Answer Question' : 'Answer'}</span>
                           <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-amber-400 font-mono">A</kbd>
                         </div>
                         <div className="flex justify-between items-center text-xs">
@@ -1713,26 +1872,54 @@ function App() {
                   className="px-3 py-1.5 hover:bg-fuchsia-500/20 rounded-xl text-slate-300 hover:text-fuchsia-200 transition-all flex items-center gap-3 text-xs font-semibold group"
                 >
                   <Search size={18} className="text-fuchsia-500 group-hover:rotate-12 transition-transform shrink-0" />
-                  <span>Analyze</span>
+                  <span>Trace Seed</span>
                 </button>
 
-                {(contextMenuNode.type === NodeType.TECHNOLOGY || contextMenuNode.type === NodeType.INNOVATION) && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleInnovateNode(contextMenuNode); setContextMenuNode(null); }}
-                    className="px-3 py-1.5 hover:bg-violet-500/20 rounded-xl text-slate-300 hover:text-violet-200 transition-all flex items-center gap-3 text-xs font-semibold group"
-                  >
-                    <Cpu size={18} className="text-violet-500 group-hover:animate-pulse shrink-0" />
-                    <span>Innovate</span>
-                  </button>
+                {(contextMenuNode.type === NodeType.TECHNOLOGY || contextMenuNode.type === NodeType.INNOVATION || (currentMode === ExplorationMode.KNOWLEDGE && (contextMenuNode.type === NodeType.THEORY || contextMenuNode.type === NodeType.CONCEPT || contextMenuNode.type === NodeType.DISCOVERY))) && (
+                  <>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleInnovateNode(contextMenuNode); setContextMenuNode(null); }}
+                      className="px-3 py-1.5 hover:bg-violet-500/20 rounded-xl text-slate-300 hover:text-violet-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                    >
+                      <Cpu size={18} className="text-violet-500 group-hover:animate-pulse shrink-0" />
+                      <span>{currentMode === ExplorationMode.INNOVATION ? 'Innovate' : 'Synthesize'}</span>
+                    </button>
+
+                    {currentMode === ExplorationMode.INNOVATION && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleOptimizeNode(contextMenuNode); setContextMenuNode(null); }}
+                          className="px-3 py-1.5 hover:bg-indigo-500/20 rounded-xl text-slate-300 hover:text-indigo-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                        >
+                          <RefreshCw size={18} className="text-indigo-400 shrink-0" />
+                          <span>Optimize</span>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleStressTestNode(contextMenuNode); setContextMenuNode(null); }}
+                          className="px-3 py-1.5 hover:bg-red-500/20 rounded-xl text-slate-300 hover:text-red-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                        >
+                          <AlertCircle size={18} className="text-red-500 shrink-0" />
+                          <span>Stress Test</span>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleImplementNode(contextMenuNode); setContextMenuNode(null); }}
+                          className="px-3 py-1.5 hover:bg-emerald-500/20 rounded-xl text-slate-300 hover:text-emerald-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                        >
+                          <Network size={18} className="text-emerald-400 shrink-0" />
+                          <span>Implement</span>
+                        </button>
+                      </>
+                    )}
+                  </>
                 )}
 
-                {(contextMenuNode.type === NodeType.PROBLEM || contextMenuNode.type === NodeType.PAIN_POINT) && (
+                {(contextMenuNode.type === NodeType.PROBLEM || contextMenuNode.type === NodeType.PAIN_POINT || (currentMode === ExplorationMode.KNOWLEDGE && (contextMenuNode.type === NodeType.QUESTION || contextMenuNode.type === NodeType.EVENT))) && (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleSolveProblem(contextMenuNode); setContextMenuNode(null); }}
                     className="px-3 py-1.5 hover:bg-emerald-500/20 rounded-xl text-slate-300 hover:text-emerald-200 transition-all flex items-center gap-3 text-xs font-semibold group"
                   >
                     <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
-                    <span>Solve</span>
+                    <span>{currentMode === ExplorationMode.INNOVATION ? 'Solve' : 'Resolve'}</span>
                   </button>
                 )}
 
@@ -1754,7 +1941,7 @@ function App() {
                   e.stopPropagation();
                   setAddingNodeParent(contextMenuNode);
                   setNewNodeType(NodeType.CONCEPT);
-                  setNewNodeRelation("enables");
+                  setNewNodeRelation(currentMode === ExplorationMode.INNOVATION ? "enables" : "related to");
                   setNewNodeLabel("");
                   setNewNodeDescription("");
                   setIsAddingNode(true);
@@ -1778,28 +1965,28 @@ function App() {
                   <span>Quick Expand</span>
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'reveals problem', 1); setContextMenuNode(null); }}
+                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, currentMode === ExplorationMode.INNOVATION ? 'reveals problem' : 'leads to event', 1, currentMode === ExplorationMode.INNOVATION ? NodeType.PROBLEM : NodeType.EVENT); setContextMenuNode(null); }}
                   className="px-3 py-2 hover:bg-red-500/10 rounded-xl text-red-400 hover:text-red-300 transition-all flex items-center gap-3 text-xs font-semibold group"
                 >
                   <AlertCircle size={16} />
-                  <span>Identify Problem</span>
+                  <span>{currentMode === ExplorationMode.INNOVATION ? 'Identify Problem' : 'Identify Event'}</span>
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'triggers pain point', 1); setContextMenuNode(null); }}
+                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, currentMode === ExplorationMode.INNOVATION ? 'triggers pain point' : 'involves person', 1, currentMode === ExplorationMode.INNOVATION ? NodeType.PAIN_POINT : NodeType.PERSON); setContextMenuNode(null); }}
                   className="px-3 py-2 hover:bg-rose-500/10 rounded-xl text-rose-400 hover:text-rose-300 transition-all flex items-center gap-3 text-xs font-semibold group"
                 >
                   <Heart size={16} />
-                  <span>Identify Pain Point</span>
+                  <span>{currentMode === ExplorationMode.INNOVATION ? 'Identify Pain Point' : 'Find People'}</span>
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'leverages technology', 1); setContextMenuNode(null); }}
+                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, currentMode === ExplorationMode.INNOVATION ? 'leverages technology' : 'related location', 1, currentMode === ExplorationMode.INNOVATION ? NodeType.TECHNOLOGY : NodeType.PLACE); setContextMenuNode(null); }}
                   className="px-3 py-2 hover:bg-emerald-500/10 rounded-xl text-emerald-400 hover:text-emerald-300 transition-all flex items-center gap-3 text-xs font-semibold group"
                 >
                   <Cpu size={16} />
-                  <span>Explore Tech</span>
+                  <span>{currentMode === ExplorationMode.INNOVATION ? 'Explore Tech' : 'Explore Places'}</span>
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'questions', 1); setContextMenuNode(null); }}
+                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'questions', 1, NodeType.QUESTION); setContextMenuNode(null); }}
                   className="px-3 py-2 hover:bg-amber-500/10 rounded-xl text-amber-400 hover:text-amber-300 transition-all flex items-center gap-3 text-xs font-semibold group"
                 >
                   <MessageCircle size={16} />
@@ -1862,7 +2049,7 @@ function App() {
               </div>
               <h3 className="text-2xl font-light text-white mb-2 tracking-tight">The canvas is empty</h3>
               <p className="text-base text-slate-400 max-w-xs mb-8">
-                Innovation starts with a single seed.
+                {currentMode === ExplorationMode.INNOVATION ? "Innovation starts with a single seed." : "Knowledge starts with a single seed."}
               </p>
               <div className="flex gap-4 pointer-events-auto">
                 <button
@@ -1917,6 +2104,11 @@ function App() {
         onSave={handleSaveSettings}
       />
 
+      {/* Welcome Screen */}
+      {showWelcome && (
+        <WelcomeScreen onSelectMode={handleWelcomeModeSelect} />
+      )}
+
       {
         showDashboard && (
           <SeedsDashboard
@@ -1925,6 +2117,7 @@ function App() {
             onClose={() => setShowDashboard(false)}
             currentSeedId={currentSeedFileId}
             askConfirm={askConfirm}
+            onSelectMode={handleWelcomeModeSelect}
           />
         )
       }
@@ -1944,12 +2137,18 @@ function App() {
         onKeepLucky={handleKeepLucky}
         onTryAgainLucky={handleTryAgainLucky}
         onInnovate={handleInnovateNode}
+        onOptimize={handleOptimizeNode}
+        onStressTest={handleStressTestNode}
+        onImplement={handleImplementNode}
         onSolve={handleSolveProblem}
         onAnswer={handleAnswerQuestion}
         isProcessing={isProcessing || isGeneratingSeed}
         onAssimilate={handleAssimilateNode}
         onPrune={handlePruneNode}
         allLinks={data.links}
+        relationOptions={RELATION_OPTIONS}
+        expansionBlueprints={EXPANSION_BLUEPRINTS}
+        mode={currentMode}
       />
 
       {/* Nexus Research Assistant */}
@@ -1987,8 +2186,8 @@ function App() {
                   <BrainCircuit className="text-sky-400 relative z-10" size={20} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-sky-500/70 leading-none">Autonomous Gardener</span>
-                  <span className="text-xs text-white font-medium">Scanning Innovation Fog...</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-sky-500/70 leading-none">{currentMode === ExplorationMode.INNOVATION ? 'Autonomous Gardener' : 'Knowledge Curator'}</span>
+                  <span className="text-xs text-white font-medium">{currentMode === ExplorationMode.INNOVATION ? 'Scanning Innovation Fog...' : 'Exploring Knowledge Horizon...'}</span>
                 </div>
               </div>
 
@@ -2036,7 +2235,7 @@ function App() {
                     onChange={(e) => setNewNodeType(e.target.value as NodeType)}
                     className="w-full appearance-none bg-slate-950/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all cursor-pointer"
                   >
-                    {Object.values(NodeType)
+                    {modeConfig.nodeTypes
                       .filter(t => t !== NodeType.TRACE)
                       .map(t => (
                         <option
@@ -2060,16 +2259,31 @@ function App() {
                   autoFocus
                   type="text"
                   placeholder={
-                    newNodeType === NodeType.PROBLEM ? "Short description of the bottleneck..." :
-                      newNodeType === NodeType.PAIN_POINT ? "Describe the user frustration..." :
-                        newNodeType === NodeType.TECHNOLOGY ? "Name of the tech or framework..." :
-                          newNodeType === NodeType.QUESTION ? "What do we need to know...?" :
-                            newNodeType === NodeType.ENTITY ? "Name of organization or role..." :
-                              newNodeType === NodeType.INNOVATION ? "The name of the breakthrough..." :
-                                newNodeType === NodeType.CONSTRAINT ? "Boundary or technical limitation..." :
-                                  newNodeType === NodeType.FRICTION ? "The specific drag in the process..." :
-                                    newNodeType === NodeType.CONCEPT ? "The abstract idea or mental model..." :
-                                      "What is this seed called...?"
+                    currentMode === ExplorationMode.INNOVATION ? (
+                      newNodeType === NodeType.PROBLEM ? "Short description of the bottleneck..." :
+                        newNodeType === NodeType.PAIN_POINT ? "Describe the user frustration..." :
+                          newNodeType === NodeType.TECHNOLOGY ? "Name of the tech or framework..." :
+                            newNodeType === NodeType.QUESTION ? "What do we need to know...?" :
+                              newNodeType === NodeType.ENTITY ? "Name of organization or role..." :
+                                newNodeType === NodeType.INNOVATION ? "The name of the breakthrough..." :
+                                  newNodeType === NodeType.CONSTRAINT ? "Boundary or technical limitation..." :
+                                    newNodeType === NodeType.FRICTION ? "The specific drag in the process..." :
+                                      newNodeType === NodeType.CONCEPT ? "The abstract idea or mental model..." :
+                                        "What is this seed called...?"
+                    ) : (
+                      newNodeType === NodeType.EVENT ? "Name of the historical event..." :
+                        newNodeType === NodeType.PERSON ? "Name of the person..." :
+                          newNodeType === NodeType.PLACE ? "Name of the location or civilization..." :
+                            newNodeType === NodeType.THEORY ? "Name of the theory or idea..." :
+                              newNodeType === NodeType.ARTIFACT ? "Name of the object or creation..." :
+                                newNodeType === NodeType.MOVEMENT ? "Name of the movement..." :
+                                  newNodeType === NodeType.DISCOVERY ? "What was discovered..." :
+                                    newNodeType === NodeType.RELATIONSHIP ? "Nature of the connection..." :
+                                      newNodeType === NodeType.CONCEPT ? "The abstract idea or concept..." :
+                                        newNodeType === NodeType.ENTITY ? "Name of the entity..." :
+                                          newNodeType === NodeType.QUESTION ? "What do you want to explore...?" :
+                                            "What is this about...?"
+                    )
                   }
                   className="w-full bg-slate-950/60 border border-white/10 rounded-xl p-3 text-white placeholder-slate-600 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all"
                   value={newNodeLabel}
@@ -2082,16 +2296,31 @@ function App() {
                 <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2">Description</label>
                 <textarea
                   placeholder={
-                    newNodeType === NodeType.PROBLEM ? "Explain the technical friction or blocker in detail..." :
-                      newNodeType === NodeType.PAIN_POINT ? "What is the emotional or functional impact on the user?" :
-                        newNodeType === NodeType.QUESTION ? "Specify the exact uncertainty we are trying to clear..." :
-                          newNodeType === NodeType.TECHNOLOGY ? "What are the core capabilities and limitations?" :
-                            newNodeType === NodeType.FRICTION ? "Where exactly is the cognitive or system load happening?" :
-                              newNodeType === NodeType.INNOVATION ? "How does this fundamentally move the state of the art forward?" :
-                                newNodeType === NodeType.CONSTRAINT ? "What are the physical, systemic, or legal boundaries?" :
-                                  newNodeType === NodeType.ENTITY ? "Provide details on the role, history, or scale of this entity..." :
-                                    newNodeType === NodeType.CONCEPT ? "Define the core principles and boundaries of this idea..." :
-                                      "Provide more context and significance for this seed..."
+                    currentMode === ExplorationMode.INNOVATION ? (
+                      newNodeType === NodeType.PROBLEM ? "Explain the technical friction or blocker in detail..." :
+                        newNodeType === NodeType.PAIN_POINT ? "What is the emotional or functional impact on the user?" :
+                          newNodeType === NodeType.QUESTION ? "Specify the exact uncertainty we are trying to clear..." :
+                            newNodeType === NodeType.TECHNOLOGY ? "What are the core capabilities and limitations?" :
+                              newNodeType === NodeType.FRICTION ? "Where exactly is the cognitive or system load happening?" :
+                                newNodeType === NodeType.INNOVATION ? "How does this fundamentally move the state of the art forward?" :
+                                  newNodeType === NodeType.CONSTRAINT ? "What are the physical, systemic, or legal boundaries?" :
+                                    newNodeType === NodeType.ENTITY ? "Provide details on the role, history, or scale of this entity..." :
+                                      newNodeType === NodeType.CONCEPT ? "Define the core principles and boundaries of this idea..." :
+                                        "Provide more context and significance for this seed..."
+                    ) : (
+                      newNodeType === NodeType.EVENT ? "When did it happen? What were the key outcomes?" :
+                        newNodeType === NodeType.PERSON ? "Who were they? What were their key contributions?" :
+                          newNodeType === NodeType.PLACE ? "Where is it? What is its historical or cultural significance?" :
+                            newNodeType === NodeType.THEORY ? "What are the core principles? Who developed it?" :
+                              newNodeType === NodeType.ARTIFACT ? "What is it? When was it created? What is its significance?" :
+                                newNodeType === NodeType.MOVEMENT ? "What were the goals? Who were the key figures?" :
+                                  newNodeType === NodeType.DISCOVERY ? "What was discovered? When and by whom?" :
+                                    newNodeType === NodeType.RELATIONSHIP ? "How are these entities connected?" :
+                                      newNodeType === NodeType.CONCEPT ? "What are the key ideas and principles?" :
+                                        newNodeType === NodeType.ENTITY ? "Provide details about this entity..." :
+                                          newNodeType === NodeType.QUESTION ? "What are you trying to understand?" :
+                                            "Provide more context..."
+                    )
                   }
                   className="w-full bg-slate-950/60 border border-white/10 rounded-xl p-3 text-white placeholder-slate-600 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all h-24 text-sm resize-none"
                   value={newNodeDescription}
@@ -2144,6 +2373,7 @@ function App() {
         onClose={() => setIsWormholeSelectorOpen(false)}
         onSelect={handleSelectWormholeTarget}
         currentSeedId={currentSeedFileId}
+        relationOptions={RELATION_OPTIONS}
       />
 
       {notification && (
