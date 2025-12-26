@@ -22,6 +22,7 @@ function createWindow() {
             contextIsolation: true, // Enable isolation
             webSecurity: true // Enable CORS protection
         },
+        icon: path.join(__dirname, 'assets/icon.png')
     });
 
     // Remove the default menu bar
