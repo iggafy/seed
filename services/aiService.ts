@@ -357,21 +357,22 @@ export const researchAssistantChat = async (
 
     const content = response.content;
     let mainContent = content;
-    let suggestedNode: AISuggestion | undefined;
+    const suggestedNodes: AISuggestion[] = [];
 
-    // Parse Suggestion if present
-    const suggestionMatch = content.match(/\[SUGGESTION\]\s*(\{[\s\S]*\})/);
-    if (suggestionMatch) {
+    // Parse Suggestions if present (supports multiple)
+    const suggestionMatches = Array.from(content.matchAll(/\[SUGGESTION\]\s*(\{[\s\S]*?\})/g));
+
+    for (const match of suggestionMatches) {
         try {
-            const parsed = JSON.parse(suggestionMatch[1]);
-            suggestedNode = {
+            const parsed = JSON.parse(match[1]);
+            suggestedNodes.push({
                 label: parsed.label || "New Seed",
                 type: (parsed.type?.toUpperCase() as NodeType) || NodeType.CONCEPT,
                 description: parsed.description || "",
                 relationToParent: parsed.relationToParent || "related"
-            };
-            // Strip the suggestion block from the display text
-            mainContent = content.split('[SUGGESTION]')[0].trim();
+            });
+            // Remove this suggestion block from the main content
+            mainContent = mainContent.replace(match[0], '');
         } catch (e) {
             console.error("Failed to parse AI suggestion from chat:", e);
         }
@@ -380,9 +381,10 @@ export const researchAssistantChat = async (
     return {
         id: Date.now().toString(),
         role: 'assistant',
-        content: mainContent,
+        content: mainContent.trim(),
         timestamp: Date.now(),
-        suggestedNode
+        suggestedNode: suggestedNodes[0], // Backward compatibility
+        suggestedNodes: suggestedNodes
     };
 };
 

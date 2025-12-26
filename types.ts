@@ -101,6 +101,7 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   suggestedNode?: AISuggestion; // Proactive seed suggestion
+  suggestedNodes?: AISuggestion[]; // Support for multiple suggestions
 }
 
 export interface ChatContext {

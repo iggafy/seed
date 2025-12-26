@@ -138,24 +138,24 @@ const NexusAssistant: React.FC<NexusAssistantProps> = ({
                             </div>
 
                             {/* Proactive Suggestion Block */}
-                            {m.suggestedNode && (
-                                <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-3 flex flex-col gap-3 animate-in zoom-in-95 duration-300">
+                            {(m.suggestedNodes || (m.suggestedNode ? [m.suggestedNode] : [])).map((node, idx) => (
+                                <div key={idx} className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-3 flex flex-col gap-3 animate-in zoom-in-95 duration-300">
                                     <div className="flex items-center gap-2 text-emerald-400">
                                         <Sparkles size={14} />
                                         <span className="text-[10px] font-bold uppercase tracking-wider">Research Insight</span>
                                     </div>
                                     <div>
-                                        <h4 className="text-xs font-bold text-white mb-1">{m.suggestedNode.label}</h4>
-                                        <p className="text-[10px] text-slate-400 leading-normal">{m.suggestedNode.description}</p>
+                                        <h4 className="text-xs font-bold text-white mb-1">{node.label}</h4>
+                                        <p className="text-[10px] text-slate-400 leading-normal">{node.description}</p>
                                     </div>
                                     <button
-                                        onClick={() => onProposeSeed(m.suggestedNode!)}
+                                        onClick={() => onProposeSeed(node)}
                                         className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-2"
                                     >
                                         <Plus size={12} /> Add as Seed
                                     </button>
                                 </div>
-                            )}
+                            ))}
 
                             <span className="text-[9px] text-slate-600 font-medium tracking-tighter self-end">
                                 {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
