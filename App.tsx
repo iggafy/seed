@@ -553,7 +553,7 @@ function App() {
     }
   };
 
-  const handleExpandNodeSingle = async (node: GraphNode, relation: string, count: number = 1) => {
+  const handleExpandNodeSingle = async (node: GraphNode, relation: string, count: number = 1, targetType?: NodeType) => {
     setIsProcessing(true);
 
     let contextString = undefined;
@@ -563,14 +563,14 @@ function App() {
     }
 
     try {
-      const suggestions = await expandConceptTargeted(aiSettings, node.label, node.description || "", relation, count, contextString);
+      const suggestions = await expandConceptTargeted(aiSettings, node.label, node.description || "", relation, count, contextString, targetType);
 
       if (suggestions && suggestions.length > 0) {
         setData(prevData => {
           const newNodes = suggestions.map(suggestion => ({
             id: generateId(),
             label: suggestion.label,
-            type: suggestion.type,
+            type: targetType || suggestion.type,
             description: suggestion.description,
             x: (node.x || 0) + (Math.random() - 0.5) * 100,
             y: (node.y || 0) + (Math.random() - 0.5) * 100
@@ -579,7 +579,7 @@ function App() {
           const newLinks = newNodes.map((newNode, index) => ({
             source: node.id,
             target: newNode.id,
-            relation: suggestions[index].relationToParent
+            relation: suggestions[index].relationToParent || relation
           }));
 
           return {
@@ -838,6 +838,18 @@ function App() {
   };
 
   const handleDeleteNode = (nodeId: string) => {
+    const nodeToDelete = data.nodes.find(n => n.id === nodeId);
+    if (!nodeToDelete) return;
+
+    const hasInternalNodes = nodeToDelete.subGraphData && nodeToDelete.subGraphData.nodes.length > 0;
+    const confirmMsg = hasInternalNodes
+      ? `Node "${nodeToDelete.label}" contains internal seeds. Deleting it will eliminate its entire internal space. Proceed?`
+      : `Permanently delete "${nodeToDelete.label}"?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    const remainingNodes = data.nodes.filter(n => n.id !== nodeId);
+
     setData(prev => {
       // Filter links connected to this node
       const newLinks = prev.links.filter(l => {
@@ -848,12 +860,18 @@ function App() {
       });
 
       return {
-        nodes: prev.nodes.filter(n => n.id !== nodeId),
+        nodes: remainingNodes,
         links: newLinks
       };
     });
+
     // Remove from selection if present
     setSelectedNodeIds(prev => prev.filter(id => id !== nodeId));
+
+    // Auto-exit if we just emptied a nested session
+    if (remainingNodes.length === 0 && sessionStack.length > 0) {
+      handleNavigateToSession(sessionStack.length - 1);
+    }
   };
 
 
@@ -873,10 +891,8 @@ function App() {
     e.stopPropagation();
 
     if (contextMenuNode) {
-      if (window.confirm(`Permanently delete "${contextMenuNode.label}"?`)) {
-        handleDeleteNode(contextMenuNode.id);
-        setContextMenuNode(null);
-      }
+      handleDeleteNode(contextMenuNode.id);
+      setContextMenuNode(null);
     }
   };
 

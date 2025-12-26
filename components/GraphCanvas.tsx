@@ -211,7 +211,12 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     const nodes = data.nodes.map(n => {
       const existing = nodeMap.get(n.id);
       if (existing) {
-        return Object.assign(existing, n);
+        // Explicitly handle properties that might be stripped via JSON.stringify (like undefined)
+        const merged = Object.assign(existing, n);
+        if (!n.hasOwnProperty('subGraphData')) {
+          merged.subGraphData = undefined;
+        }
+        return merged;
       }
       return { ...n };
     });
@@ -326,6 +331,37 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("class", "node-icon")
       .style("pointer-events", "none")
       .attr("opacity", 0.9);
+
+    // Tesseract Indicator (for nodes with internal spaces)
+    const tesseract = nodeEnter.append("g")
+      .attr("class", "tesseract-indicator")
+      .style("cursor", "pointer")
+      .on("click", (event, d) => {
+        event.stopPropagation();
+        onNodeDoubleClick(d); // Trigger "Seed In" logic
+      })
+      .on("mouseenter", function () {
+        d3.select(this).select("circle").transition().duration(200).attr("fill", "#3b82f6").attr("r", 14);
+      })
+      .on("mouseleave", function () {
+        d3.select(this).select("circle").transition().duration(200).attr("fill", "#0f172a").attr("r", 12);
+      });
+
+    tesseract.append("circle")
+      .attr("r", 12)
+      .attr("fill", "#0f172a")
+      .attr("stroke", "rgba(255,255,255,0.4)")
+      .attr("stroke-width", 1)
+      .attr("opacity", 0.9)
+      .style("filter", "url(#glow)");
+
+    // The Tesseract Geometry (Cube within a Cube)
+    tesseract.append("path")
+      .attr("d", "M-5,-5 L5,-5 L5,5 L-5,5 Z M-2.5,-2.5 L2.5,-2.5 L2.5,2.5 L-2.5,2.5 Z M-5,-5 L-2.5,-2.5 M5,-5 L2.5,-2.5 M5,5 L2.5,2.5 M-5,5 L-2.5,2.5")
+      .attr("stroke", "white")
+      .attr("stroke-width", 1.25)
+      .attr("fill", "none")
+      .style("pointer-events", "none");
 
     // Root Indicator Badge
     const rootBadge = nodeEnter.append("g")
@@ -475,6 +511,15 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       })
       .attr("d", d => NODE_ICONS[d.type])
       .attr("fill", "#ffffff");
+
+    // Update Tesseract Indicator
+    allNodes.select("g.tesseract-indicator")
+      .attr("transform", d => {
+        const offset = d.type === NodeType.TRACE ? (d.isRoot ? 18 : 16) : (d.isRoot ? 38 : 34);
+        return `translate(${offset}, -${offset})`;
+      })
+      .style("opacity", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 1 : 0)
+      .style("pointer-events", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? "auto" : "none");
 
     // Update Root Badge
     allNodes.select("g.root-badge")

@@ -7,7 +7,7 @@ interface SidebarProps {
   nodes: GraphNode[];
   onClose: () => void;
   onExpand: (node: GraphNode) => void;
-  onExpandSingle: (node: GraphNode, relation: string, count: number) => void;
+  onExpandSingle: (node: GraphNode, relation: string, count: number, targetType?: NodeType) => void;
   onAnalyzeSynergy: (nodeA: GraphNode, nodeB: GraphNode) => void;
   onConnectNodes: (nodeA: GraphNode, nodeB: GraphNode, relation: string) => void;
   onUpdateNode: (node: GraphNode) => void;
@@ -53,11 +53,16 @@ const Sidebar: React.FC<SidebarProps> = ({
     type: NodeType.CONCEPT
   });
 
-  // Reset edit state when selection changes
+  // Reset edit state and pick appropriate default blueprint when selection changes
   useEffect(() => {
     setIsEditing(false);
     setIsConnecting(false);
     setTargetCount(1);
+
+    if (nodes.length === 1) {
+      const validIndex = EXPANSION_BLUEPRINTS.findIndex(bp => bp.sourceTypes.includes(nodes[0].type));
+      if (validIndex !== -1) setExpandBlueprintIndex(validIndex);
+    }
   }, [nodes]);
 
   const handleStartEdit = (node: GraphNode) => {
@@ -341,9 +346,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                     onChange={(e) => setExpandBlueprintIndex(parseInt(e.target.value))}
                     className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500/50 focus:outline-none appearance-none cursor-pointer hover:bg-slate-900 transition-colors"
                   >
-                    {EXPANSION_BLUEPRINTS.map((bp, idx) => (
-                      <option key={bp.label} value={idx}>{bp.label}</option>
-                    ))}
+                    {EXPANSION_BLUEPRINTS
+                      .map((bp, idx) => ({ ...bp, originalIndex: idx }))
+                      .filter(bp => bp.sourceTypes.includes(node.type))
+                      .map((bp) => (
+                        <option key={bp.label} value={bp.originalIndex}>{bp.label}</option>
+                      ))}
                   </select>
                 </div>
 
@@ -369,7 +377,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     onClick={() => {
                       const bp = EXPANSION_BLUEPRINTS[expandBlueprintIndex];
-                      onExpandSingle(node, bp.relation, targetCount);
+                      onExpandSingle(node, bp.relation, targetCount, bp.targetType);
                     }}
                     disabled={isProcessing}
                     className={`h-11 px-6 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 mt-auto

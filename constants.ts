@@ -55,13 +55,60 @@ export const RELATION_OPTIONS = [
 ];
 
 export const EXPANSION_BLUEPRINTS = [
-  { label: "What technology enables this?", relation: "leverages technology", targetType: NodeType.TECHNOLOGY },
-  { label: "What problem does this solve?", relation: "solves problem", targetType: NodeType.PROBLEM },
-  { label: "What is a critical question here?", relation: "questions", targetType: NodeType.QUESTION },
-  { label: "What is a potential innovation?", relation: "enables innovation", targetType: NodeType.INNOVATION },
-  { label: "What creates systemic friction?", relation: "creates friction for", targetType: NodeType.FRICTION },
-  { label: "What is a physical constraint?", relation: "is limited by", targetType: NodeType.CONSTRAINT },
-  { label: "Who are the key entities?", relation: "involves entity", targetType: NodeType.ENTITY },
+  {
+    label: "What technology enables this?",
+    relation: "leverages",
+    targetType: NodeType.TECHNOLOGY,
+    sourceTypes: [NodeType.CONCEPT, NodeType.INNOVATION, NodeType.PROBLEM, NodeType.PAIN_POINT]
+  },
+  {
+    label: "What problem does this solve?",
+    relation: "solves",
+    targetType: NodeType.PROBLEM,
+    sourceTypes: [NodeType.TECHNOLOGY, NodeType.INNOVATION, NodeType.CONCEPT]
+  },
+  {
+    label: "What is the core technical challenge?",
+    relation: "addresses",
+    targetType: NodeType.PROBLEM,
+    sourceTypes: [NodeType.INNOVATION, NodeType.TECHNOLOGY]
+  },
+  {
+    label: "What is a critical question here?",
+    relation: "questions",
+    targetType: NodeType.QUESTION,
+    sourceTypes: Object.values(NodeType)
+  },
+  {
+    label: "What is a potential innovation?",
+    relation: "enables",
+    targetType: NodeType.INNOVATION,
+    sourceTypes: [NodeType.PROBLEM, NodeType.PAIN_POINT, NodeType.TECHNOLOGY, NodeType.CONCEPT, NodeType.FRICTION, NodeType.CONSTRAINT]
+  },
+  {
+    label: "What creates systemic friction?",
+    relation: "is limited by",
+    targetType: NodeType.FRICTION,
+    sourceTypes: [NodeType.INNOVATION, NodeType.TECHNOLOGY, NodeType.CONCEPT]
+  },
+  {
+    label: "What is the primary user pain point?",
+    relation: "causes",
+    targetType: NodeType.PAIN_POINT,
+    sourceTypes: [NodeType.PROBLEM, NodeType.FRICTION, NodeType.CONSTRAINT]
+  },
+  {
+    label: "What is a physical or legal constraint?",
+    relation: "constrained by",
+    targetType: NodeType.CONSTRAINT,
+    sourceTypes: [NodeType.INNOVATION, NodeType.TECHNOLOGY, NodeType.CONCEPT, NodeType.PROBLEM]
+  },
+  {
+    label: "Who are the key industry entities?",
+    relation: "involves",
+    targetType: NodeType.ENTITY,
+    sourceTypes: Object.values(NodeType)
+  },
 ];
 
 export const INITIAL_DATA = {

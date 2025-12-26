@@ -49,12 +49,14 @@ export const expandConceptTargeted = async (
     nodeDescription: string,
     relationType: string,
     count: number = 1,
-    contextLineage?: string
+    contextLineage?: string,
+    targetType?: NodeType
 ): Promise<AISuggestion[]> => {
     if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
-    const prompt = `You are an innovation engine. Given the node "${nodeLabel}" (${nodeDescription}), generate exactly ${count} distinct node(s) that satisfy this relationship: --[${relationType}]--> [New Node].
-${contextLineage ? `CONTEXT LINEAGE: [ ${contextLineage} ].` : ''}
+    const prompt = `You are an innovation engine. Given the source node "${nodeLabel}" (${nodeDescription}), generate exactly ${count} distinct node(s) that satisfy this relationship: --[${relationType}]--> [New Node].
+${targetType ? `TARGET NODE TYPE: ${targetType}. Ensure every generated node is strictly of this type.` : ''}
+${contextLineage ? `CONTEXT LINEAGE: [ ${contextLineage} ]. Use this to maintain conceptual continuity.` : ''}
 Be technically specific.`;
 
     return await runIPCRequest(settings, prompt, count > 1);
