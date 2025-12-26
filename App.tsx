@@ -1063,6 +1063,31 @@ function App() {
     }));
   };
 
+  const handleUpdateLink = (sourceId: string, targetId: string, relation: string) => {
+    setData(prev => ({
+      ...prev,
+      links: prev.links.map(l => {
+        const sId = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
+        const tId = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
+        if (sId === sourceId && tId === targetId) {
+          return { ...l, relation };
+        }
+        return l;
+      })
+    }));
+  };
+
+  const handleDeleteLink = (sourceId: string, targetId: string) => {
+    setData(prev => ({
+      ...prev,
+      links: prev.links.filter(l => {
+        const sId = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
+        const tId = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
+        return !(sId === sourceId && tId === targetId);
+      })
+    }));
+  };
+
   const handleUpdateNode = (updatedNode: GraphNode) => {
     setData(prev => ({
       ...prev,
@@ -1834,6 +1859,8 @@ function App() {
         onExpandSingle={handleExpandNodeSingle}
         onAnalyzeSynergy={handleAnalyzeSynergy}
         onConnectNodes={handleConnectNodes}
+        onUpdateLink={handleUpdateLink}
+        onDeleteLink={handleDeleteLink}
         onUpdateNode={handleUpdateNode}
         onDeleteNode={handleDeleteNode}
         onKeepLucky={handleKeepLucky}
@@ -1844,6 +1871,7 @@ function App() {
         isProcessing={isProcessing || isGeneratingSeed}
         onAssimilate={handleAssimilateNode}
         onPrune={handlePruneNode}
+        allLinks={data.links}
       />
 
       {/* Nexus Research Assistant */}

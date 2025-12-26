@@ -10,6 +10,8 @@ interface SidebarProps {
   onExpandSingle: (node: GraphNode, relation: string, count: number, targetType?: NodeType) => void;
   onAnalyzeSynergy: (nodeA: GraphNode, nodeB: GraphNode) => void;
   onConnectNodes: (nodeA: GraphNode, nodeB: GraphNode, relation: string) => void;
+  onUpdateLink: (sourceId: string, targetId: string, relation: string) => void;
+  onDeleteLink: (sourceId: string, targetId: string) => void;
   onUpdateNode: (node: GraphNode) => void;
   onDeleteNode: (nodeId: string) => void;
   onKeepLucky: (nodeId: string) => void;
@@ -20,6 +22,7 @@ interface SidebarProps {
   onAssimilate: (nodeId: string) => void;
   onPrune: (nodeId: string) => void;
   isProcessing: boolean;
+  allLinks: any[];
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -38,7 +41,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAnswer,
   onAssimilate,
   onPrune,
-  isProcessing
+  isProcessing,
+  allLinks
 }) => {
   const [relationInput, setRelationInput] = useState(RELATION_OPTIONS[0]);
   const [expandBlueprintIndex, setExpandBlueprintIndex] = useState(0);
@@ -437,49 +441,94 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-          {/* Action: Manual Connect */}
+          {/* Action: Manual Connect / Edit */}
           <div className="bg-slate-800/30 rounded-2xl p-5 border border-white/5">
-            <h3 className="text-xs font-bold uppercase text-emerald-500 mb-3 tracking-wider">Define Relationship</h3>
-            {isConnecting ? (
-              <div className="space-y-3">
-                <select
-                  className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
-                  value={relationInput}
-                  onChange={(e) => setRelationInput(e.target.value)}
-                >
-                  {RELATION_OPTIONS.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
+            {(() => {
+              // Find if there's an existing link
+              const existingLink = allLinks.find(l => {
+                const sId = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
+                const tId = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
+                return (sId === nodeA.id && tId === nodeB.id) || (sId === nodeB.id && tId === nodeA.id);
+              });
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setIsConnecting(false)}
-                    className="flex-1 py-2 text-xs text-slate-400 hover:text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (relationInput) {
-                        onConnectNodes(nodeA, nodeB, relationInput);
-                        setIsConnecting(false);
-                      }
-                    }}
-                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-900/20"
-                  >
-                    Connect
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setIsConnecting(true)}
-                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600/50 text-slate-200 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
-              >
-                <PlusCircle size={14} /> Add Edge
-              </button>
-            )}
+              const isReversed = existingLink && (typeof existingLink.source === 'object' ? (existingLink.source as GraphNode).id : existingLink.source) === nodeB.id;
+
+              return (
+                <>
+                  <h3 className="text-xs font-bold uppercase text-emerald-500 mb-3 tracking-wider">
+                    {existingLink ? "Edit Relationship" : "Define Relationship"}
+                  </h3>
+
+                  {isConnecting ? (
+                    <div className="space-y-3">
+                      <select
+                        className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                        value={relationInput}
+                        onChange={(e) => setRelationInput(e.target.value)}
+                      >
+                        {RELATION_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setIsConnecting(false)}
+                          className="flex-1 py-2 text-xs text-slate-400 hover:text-white"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (relationInput) {
+                              if (existingLink) {
+                                onUpdateLink(
+                                  isReversed ? nodeB.id : nodeA.id,
+                                  isReversed ? nodeA.id : nodeB.id,
+                                  relationInput
+                                );
+                              } else {
+                                onConnectNodes(nodeA, nodeB, relationInput);
+                              }
+                              setIsConnecting(false);
+                            }
+                          }}
+                          className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-900/20"
+                        >
+                          {existingLink ? "Update" : "Connect"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          if (existingLink) setRelationInput(existingLink.relation);
+                          setIsConnecting(true);
+                        }}
+                        className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600/50 text-slate-200 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                      >
+                        {existingLink ? <Edit2 size={14} /> : <PlusCircle size={14} />}
+                        {existingLink ? "Change Relation" : "Add Edge"}
+                      </button>
+
+                      {existingLink && (
+                        <button
+                          onClick={() => {
+                            const sId = typeof existingLink.source === 'object' ? (existingLink.source as GraphNode).id : existingLink.source;
+                            const tId = typeof existingLink.target === 'object' ? (existingLink.target as GraphNode).id : existingLink.target;
+                            onDeleteLink(sId, tId);
+                          }}
+                          className="w-full py-2 text-[10px] uppercase font-bold tracking-widest text-red-500/60 hover:text-red-400 transition-colors"
+                        >
+                          Remove Connection
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* Action: AI Analyze */}
