@@ -1,9 +1,6 @@
 import { ipcMain } from 'electron';
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
-
-// types definitions locally since we can't easily import from ../types.ts in commonjs/esm mix easily without build step involvement sometimes
-// But for this handler, we just need to handle the request execution.
 
 const getGeminiClient = (apiKey) => new GoogleGenAI({ apiKey });
 const getOpenAIClient = (apiKey, baseURL) => new OpenAI({ apiKey, baseURL });
@@ -14,88 +11,78 @@ export function setupIpcHandlers() {
             console.log(`[Main] AI Request: ${provider} - ${model}`);
 
             if (provider === 'GEMINI') {
-                return await handleGemini(apiKey, model, messages, jsonSchema);
+                return await handleGemini(apiKey, model, messages, jsonSchema, systemPrompt);
             } else {
-                // OpenAI or DeepSeek
                 return await handleOpenAI(provider, apiKey, model, messages, jsonSchema, systemPrompt);
             }
         } catch (error) {
             console.error("[Main] AI Request Failed:", error);
-            // Return serializable error
             return { error: error.message || "Unknown Error", details: error.response ? error.response.data : null };
         }
     });
 }
 
-async function handleGemini(apiKey, model, messages, jsonSchema) {
+async function handleGemini(apiKey, model, messages, jsonSchema, systemPrompt) {
     const client = getGeminiClient(apiKey);
-    // Messages from frontend are usually [{role, content}]. 
-    // Gemini 1.5/2.0 generic usage often takes a simple prompt or array.
-    // For this specific app, aiService.ts sends a prompt string mostly.
-    // Let's adapt. If 'messages' is an array, we grab user content.
+    const modelId = model || "gemini-1.5-flash";
 
-    // In our aiService, we pass a prompt string. Let's assume the frontend sends the prompt or messages properly.
-    // Looking at aiService.ts, it calls runGeminiRequest with a prompt string.
-    // We should genericize the IPC payload to accept 'prompt' or 'messages'.
-
-    // Actually, to make it clean, let's keep the logic close to the SDKs.
-    // Re-reading aiService.ts... it uses client.models.generateContent({ contents: prompt ... })
-
-    // Let's expect 'contents' field for Gemini for flexibility, or just 'prompt'.
-    // Let's go with 'prompt' since that's what aiService uses.
-
-    const prompt = messages.find(m => m.role === 'user')?.content || "";
-    const responseSchema = jsonSchema ? jsonSchema : undefined; // Schema should be passed in compatible format
-
-    // Note: The schema passed from frontend might need conversion if complex, 
-    // but the Google GenAI SDK Type.OBJECT stuff is simpler if we construct it here or pass raw JSON schema.
-    // The current aiService uses Type.OBJECT etc helper enums. 
-    // We should probably accept the raw JSON schema object from the frontend.
+    let prompt = messages.find(m => m.role === 'user')?.content || "";
+    if (systemPrompt) {
+        prompt = `${systemPrompt}\n\nUSER REQUEST: ${prompt}`;
+    }
 
     const config = {
         responseMimeType: "application/json",
     };
-    if (responseSchema) {
-        config.responseSchema = responseSchema;
+    if (jsonSchema) {
+        config.responseSchema = jsonSchema;
     }
 
-    const response = await client.models.generateContent({
-        model: model,
-        contents: prompt,
-        config: config
+    const genModel = client.getGenerativeModel({ model: modelId });
+    const result = await genModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: config
     });
 
-    if (response.textAsString) {
-        // handle older sdk
-        return { content: response.textAsString };
-    }
+    const response = await result.response;
     return { content: response.text() };
 }
 
 async function handleOpenAI(provider, apiKey, model, messages, jsonSchema, systemPrompt) {
     const isDeepSeek = provider === 'DEEPSEEK';
     const baseURL = isDeepSeek ? "https://api.deepseek.com/v1" : undefined;
+    const defaultModel = isDeepSeek ? "deepseek-chat" : "gpt-4o";
+    const modelId = model || defaultModel;
 
     const client = getOpenAIClient(apiKey, baseURL);
 
-    // Construct response format
     let response_format;
     if (isDeepSeek) {
         response_format = { type: "json_object" };
     } else if (jsonSchema) {
         response_format = {
             type: "json_schema",
-            json_schema: jsonSchema
+            json_schema: {
+                name: "innovation_response",
+                strict: true,
+                schema: jsonSchema
+            }
         };
+    } else {
+        // Default to json_object if any hint of JSON is needed
+        response_format = { type: "json_object" };
     }
 
-    // Construct messages
-    // The frontend aiService passes a system prompt + user prompt usually.
-    // We can just accept the full 'messages' array from the frontend.
+    const finalMessages = [...messages];
+    if (systemPrompt) {
+        finalMessages.unshift({ role: "system", content: systemPrompt });
+    } else if (response_format?.type === "json_object") {
+        finalMessages.unshift({ role: "system", content: "You are a helpful assistant designed to output JSON." });
+    }
 
     const response = await client.chat.completions.create({
-        model: model,
-        messages: messages, // Array of {role, content}
+        model: modelId,
+        messages: finalMessages,
         response_format: response_format
     });
 

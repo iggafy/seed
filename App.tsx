@@ -1,13 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile } from './types';
 import GraphCanvas from './components/GraphCanvas';
 import Sidebar from './components/Sidebar';
 import Toolbar from './components/Toolbar';
 import SettingsModal from './components/SettingsModal';
 import SeedsDashboard from './components/SeedsDashboard';
-import { INITIAL_DATA, NOVEL_SEEDS, NODE_ICONS, NODE_COLORS, RELATION_OPTIONS } from './constants';
+import { INITIAL_DATA, NOVEL_SEEDS, NODE_ICONS, NODE_COLORS, RELATION_OPTIONS, EXPANSION_BLUEPRINTS } from './constants';
 import { expandConcept, expandConceptTargeted, generateSynergyNode, generateRandomSeedNode, generateInnovationOpportunity, solveProblem, answerQuestion, performDiscoveryPulse, traceLineageAnalysis } from './services/aiService';
-import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit } from 'lucide-react';
+import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick } from 'lucide-react';
 
 // Utility to generate UUIDs locally
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -26,6 +26,7 @@ function App() {
   // Persistence State
   const [currentSeedFileId, setCurrentSeedFileId] = useState<string | undefined>(undefined);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [notification, setNotification] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null);
 
   // Filtering & Info
   const [hiddenTypes, setHiddenTypes] = useState<NodeType[]>([]);
@@ -55,6 +56,8 @@ function App() {
     history: []
   });
 
+  const [discardedLuckySeeds, setDiscardedLuckySeeds] = useState<string[]>([]);
+
   // Load Settings from LocalStorage
   useEffect(() => {
     const stored = localStorage.getItem('seed_ai_settings');
@@ -72,6 +75,13 @@ function App() {
   const handleSaveSettings = (newSettings: AISettings) => {
     setAiSettings(newSettings);
     localStorage.setItem('seed_ai_settings', JSON.stringify(newSettings));
+    setNotification({ message: "Settings saved", type: 'success' });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const popError = (msg: string) => {
+    setNotification({ message: msg, type: 'error' });
+    setTimeout(() => setNotification(null), 6000);
   };
 
   // --- KEYBOARD SHORTCUTS ---
@@ -194,6 +204,7 @@ function App() {
       setCurrentSessionId('root');
       setCurrentSessionName('Root');
       setShowDashboard(false);
+      setDiscardedLuckySeeds([]); // Reset AI memory for new session
     }
   };
 
@@ -206,73 +217,91 @@ function App() {
   const [newNodeRelation, setNewNodeRelation] = useState(RELATION_OPTIONS[0]);
 
   // --- DISCOVERY AGENT LOOP ---
+  const isActiveRef = useRef(discoveryState.isActive);
+  const dataRef = useRef(data);
+  const settingsRef = useRef(aiSettings);
+
+  useEffect(() => { isActiveRef.current = discoveryState.isActive; }, [discoveryState.isActive]);
+  useEffect(() => { dataRef.current = data; }, [data]);
+  useEffect(() => { settingsRef.current = aiSettings; }, [aiSettings]);
+
   useEffect(() => {
     if (!discoveryState.isActive) return;
 
     let timer: any;
     const runPulse = async () => {
-      // Pick a random node to "scan"
-      const nodes = data.nodes.filter(n => !n.isGhost);
-      if (nodes.length === 0) return;
-      const target = nodes[Math.floor(Math.random() * nodes.length)];
+      // LOYAL STOP: Exit immediately if inactive
+      if (!isActiveRef.current) return;
 
+      const currentNodes = dataRef.current.nodes.filter(n => !n.isGhost);
+      if (currentNodes.length === 0) return;
+
+      const target = currentNodes[Math.floor(Math.random() * currentNodes.length)];
       setDiscoveryState(prev => ({ ...prev, activeNodeId: target.id }));
 
-      const nodesString = data.nodes.map(n => `- ${n.label} (${n.type})`).join('\n');
-      const linksString = data.links.map(l => {
-        const sourceLabel = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as any).id : l.source))?.label;
-        const targetLabel = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as any).id : l.target))?.label;
+      const nodesString = dataRef.current.nodes.map(n => `- ${n.label} (${n.type})`).join('\n');
+      const linksString = dataRef.current.links.map(l => {
+        const sourceLabel = dataRef.current.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as any).id : l.source))?.label;
+        const targetLabel = dataRef.current.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as any).id : l.target))?.label;
         return `- ${sourceLabel} --[${l.relation}]--> ${targetLabel}`;
       }).join('\n');
       const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
 
-      // AI Thinking delay simulation
-      await new Promise(r => setTimeout(r, 2000));
+      try {
+        // AI Thinking delay simulation
+        await new Promise(r => setTimeout(r, 2000));
 
-      const suggestion = await performDiscoveryPulse(aiSettings, fullGraphContext, data.nodes);
+        // LOYAL STOP: Check again before AI call
+        if (!isActiveRef.current) return;
 
-      if (suggestion && discoveryState.isActive) {
-        const newNodeId = generateId();
-        const newNode: GraphNode = {
-          id: newNodeId,
-          label: suggestion.label,
-          type: suggestion.type,
-          description: suggestion.description,
-          isGhost: true, // Mark as hypothetical
-          isNew: true,
-          x: (target.x || 0) + (Math.random() - 0.5) * 300,
-          y: (target.y || 0) + (Math.random() - 0.5) * 300
-        };
+        const suggestion = await performDiscoveryPulse(settingsRef.current, fullGraphContext, dataRef.current.nodes);
 
-        const newLink = {
-          source: target.id,
-          target: newNodeId,
-          relation: suggestion.relationToParent || "hypothesized",
-          isGhost: true
-        };
+        // LOYAL STOP: Discard result if user clicked stop while AI was thinking
+        if (suggestion && isActiveRef.current) {
+          const newNodeId = generateId();
+          const newNode: GraphNode = {
+            id: newNodeId,
+            label: suggestion.label,
+            type: suggestion.type,
+            description: suggestion.description,
+            isGhost: true,
+            isNew: true,
+            x: (target.x || 0) + (Math.random() - 0.5) * 300,
+            y: (target.y || 0) + (Math.random() - 0.5) * 300
+          };
 
-        setData(prev => ({
-          nodes: [...prev.nodes, newNode],
-          links: [...prev.links, newLink]
-        }));
+          const newLink = {
+            source: target.id,
+            target: newNodeId,
+            relation: suggestion.relationToParent || "hypothesized",
+            isGhost: true
+          };
 
-        setDiscoveryState(prev => ({
-          ...prev,
-          history: [`Discovered: ${suggestion.label} (${suggestion.type})`, ...prev.history].slice(0, 10)
-        }));
-      }
+          setData(prev => ({
+            nodes: [...prev.nodes, newNode],
+            links: [...prev.links, newLink]
+          }));
 
-      setDiscoveryState(prev => ({ ...prev, activeNodeId: null }));
-
-      // Delay before next pulse
-      if (discoveryState.isActive) {
-        timer = setTimeout(runPulse, 5000);
+          setDiscoveryState(prev => ({
+            ...prev,
+            history: [`Discovered: ${suggestion.label} (${suggestion.type})`, ...prev.history].slice(0, 10)
+          }));
+        }
+      } catch (e) {
+        console.error("Discovery Pulse Error:", e);
+      } finally {
+        setDiscoveryState(prev => ({ ...prev, activeNodeId: null }));
+        if (isActiveRef.current) {
+          timer = setTimeout(runPulse, 6000);
+        }
       }
     };
 
-    timer = setTimeout(runPulse, 2000);
-    return () => clearTimeout(timer);
-  }, [discoveryState.isActive, data, aiSettings]);
+    timer = setTimeout(runPulse, 1500);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [discoveryState.isActive]);
 
   const handleAssimilateNode = (nodeId: string) => {
     setData(prev => ({
@@ -491,32 +520,37 @@ function App() {
       contextString = ancestry ? `${ancestry} -> ${node.label}` : node.label;
     }
 
-    const suggestions = await expandConcept(aiSettings, node.label, node.description || "", contextString);
+    try {
+      const suggestions = await expandConcept(aiSettings, node.label, node.description || "", contextString);
 
-    if (suggestions.length > 0) {
-      setData(prevData => {
-        const newNodes: GraphNode[] = suggestions.map(s => ({
-          id: generateId(),
-          label: s.label,
-          type: s.type,
-          description: s.description,
-          x: (node.x || 0) + (Math.random() - 0.5) * 100,
-          y: (node.y || 0) + (Math.random() - 0.5) * 100
-        }));
+      if (suggestions.length > 0) {
+        setData(prevData => {
+          const newNodes: GraphNode[] = suggestions.map(s => ({
+            id: generateId(),
+            label: s.label,
+            type: s.type,
+            description: s.description,
+            x: (node.x || 0) + (Math.random() - 0.5) * 100,
+            y: (node.y || 0) + (Math.random() - 0.5) * 100
+          }));
 
-        const newLinks = newNodes.map((n, index) => ({
-          source: node.id,
-          target: n.id,
-          relation: suggestions[index].relationToParent
-        }));
+          const newLinks = newNodes.map((n, index) => ({
+            source: node.id,
+            target: n.id,
+            relation: suggestions[index].relationToParent
+          }));
 
-        return {
-          nodes: [...prevData.nodes, ...newNodes],
-          links: [...prevData.links, ...newLinks]
-        };
-      });
+          return {
+            nodes: [...prevData.nodes, ...newNodes],
+            links: [...prevData.links, ...newLinks]
+          };
+        });
+      }
+    } catch (e: any) {
+      popError(e.message || "Expansion failed");
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
 
   const handleExpandNodeSingle = async (node: GraphNode, relation: string, count: number = 1) => {
@@ -528,32 +562,37 @@ function App() {
       contextString = ancestry ? `${ancestry} -> ${node.label}` : node.label;
     }
 
-    const suggestions = await expandConceptTargeted(aiSettings, node.label, node.description || "", relation, count, contextString);
+    try {
+      const suggestions = await expandConceptTargeted(aiSettings, node.label, node.description || "", relation, count, contextString);
 
-    if (suggestions && suggestions.length > 0) {
-      setData(prevData => {
-        const newNodes = suggestions.map(suggestion => ({
-          id: generateId(),
-          label: suggestion.label,
-          type: suggestion.type,
-          description: suggestion.description,
-          x: (node.x || 0) + (Math.random() - 0.5) * 100,
-          y: (node.y || 0) + (Math.random() - 0.5) * 100
-        }));
+      if (suggestions && suggestions.length > 0) {
+        setData(prevData => {
+          const newNodes = suggestions.map(suggestion => ({
+            id: generateId(),
+            label: suggestion.label,
+            type: suggestion.type,
+            description: suggestion.description,
+            x: (node.x || 0) + (Math.random() - 0.5) * 100,
+            y: (node.y || 0) + (Math.random() - 0.5) * 100
+          }));
 
-        const newLinks = newNodes.map((newNode, index) => ({
-          source: node.id,
-          target: newNode.id,
-          relation: suggestions[index].relationToParent
-        }));
+          const newLinks = newNodes.map((newNode, index) => ({
+            source: node.id,
+            target: newNode.id,
+            relation: suggestions[index].relationToParent
+          }));
 
-        return {
-          nodes: [...prevData.nodes, ...newNodes],
-          links: [...prevData.links, ...newLinks]
-        };
-      });
+          return {
+            nodes: [...prevData.nodes, ...newNodes],
+            links: [...prevData.links, ...newLinks]
+          };
+        });
+      }
+    } catch (e: any) {
+      popError(e.message || "Targeted expansion failed");
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
 
   const handleTraceLineage = async (node: GraphNode) => {
@@ -561,29 +600,34 @@ function App() {
     const ancestry = getNodeLineage(node.id);
     const fullPath = ancestry ? `${ancestry} -> ${node.label}` : node.label;
 
-    const analysis = await traceLineageAnalysis(aiSettings, node.label, node.description || "", fullPath);
+    try {
+      const analysis = await traceLineageAnalysis(aiSettings, node.label, node.description || "", fullPath);
 
-    if (analysis) {
-      const newNodeId = generateId();
-      const newNode: GraphNode = {
-        id: newNodeId,
-        label: analysis.label,
-        type: analysis.type,
-        description: analysis.description,
-        x: (node.x || 0) + 50,
-        y: (node.y || 0) + 50
-      };
+      if (analysis) {
+        const newNodeId = generateId();
+        const newNode: GraphNode = {
+          id: newNodeId,
+          label: analysis.label,
+          type: analysis.type,
+          description: analysis.description,
+          x: (node.x || 0) + 50,
+          y: (node.y || 0) + 50
+        };
 
-      const newLink = { source: node.id, target: newNodeId, relation: "analyzed by" };
+        const newLink = { source: node.id, target: newNodeId, relation: "analyzed by" };
 
-      setData(prev => ({
-        nodes: [...prev.nodes, newNode],
-        links: [...prev.links, newLink]
-      }));
+        setData(prev => ({
+          nodes: [...prev.nodes, newNode],
+          links: [...prev.links, newLink]
+        }));
 
-      setSelectedNodeIds([newNodeId]);
+        setSelectedNodeIds([newNodeId]);
+      }
+    } catch (e: any) {
+      popError(e.message || "Lineage analysis failed");
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
 
   const handleInnovateNode = async (node: GraphNode) => {
@@ -599,35 +643,40 @@ function App() {
 
     const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
 
-    const innovation = await generateInnovationOpportunity(
-      aiSettings,
-      node.label,
-      node.description || "",
-      node.type,
-      fullGraphContext
-    );
+    try {
+      const innovation = await generateInnovationOpportunity(
+        aiSettings,
+        node.label,
+        node.description || "",
+        node.type,
+        fullGraphContext
+      );
 
-    if (innovation) {
-      const newNodeId = generateId();
-      const newNode: GraphNode = {
-        id: newNodeId,
-        label: innovation.label,
-        type: innovation.type,
-        description: innovation.description,
-        x: (node.x || 0) + 120, // Slightly further away for distinction
-        y: (node.y || 0) + 120
-      };
+      if (innovation) {
+        const newNodeId = generateId();
+        const newNode: GraphNode = {
+          id: newNodeId,
+          label: innovation.label,
+          type: innovation.type,
+          description: innovation.description,
+          x: (node.x || 0) + 120, // Slightly further away for distinction
+          y: (node.y || 0) + 120
+        };
 
-      const newLink = { source: node.id, target: newNodeId, relation: "facilitates" };
+        const newLink = { source: node.id, target: newNodeId, relation: "facilitates" };
 
-      setData(prev => ({
-        nodes: [...prev.nodes, newNode],
-        links: [...prev.links, newLink]
-      }));
+        setData(prev => ({
+          nodes: [...prev.nodes, newNode],
+          links: [...prev.links, newLink]
+        }));
 
-      setSelectedNodeIds([newNodeId]);
+        setSelectedNodeIds([newNodeId]);
+      }
+    } catch (e: any) {
+      popError(e.message || "Innovation request failed");
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
 
   const handleSolveProblem = async (node: GraphNode) => {
@@ -642,35 +691,40 @@ function App() {
 
     const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
 
-    const solution = await solveProblem(
-      aiSettings,
-      node.label,
-      node.description || "",
-      node.type,
-      fullGraphContext
-    );
+    try {
+      const solution = await solveProblem(
+        aiSettings,
+        node.label,
+        node.description || "",
+        node.type,
+        fullGraphContext
+      );
 
-    if (solution) {
-      const newNodeId = generateId();
-      const newNode: GraphNode = {
-        id: newNodeId,
-        label: solution.label,
-        type: solution.type,
-        description: solution.description,
-        x: (node.x || 0) + 120,
-        y: (node.y || 0) + 120
-      };
+      if (solution) {
+        const newNodeId = generateId();
+        const newNode: GraphNode = {
+          id: newNodeId,
+          label: solution.label,
+          type: solution.type,
+          description: solution.description,
+          x: (node.x || 0) + 120,
+          y: (node.y || 0) + 120
+        };
 
-      const newLink = { source: node.id, target: newNodeId, relation: "solved by" };
+        const newLink = { source: node.id, target: newNodeId, relation: "solved by" };
 
-      setData(prev => ({
-        nodes: [...prev.nodes, newNode],
-        links: [...prev.links, newLink]
-      }));
+        setData(prev => ({
+          nodes: [...prev.nodes, newNode],
+          links: [...prev.links, newLink]
+        }));
 
-      setSelectedNodeIds([newNodeId]);
+        setSelectedNodeIds([newNodeId]);
+      }
+    } catch (e: any) {
+      popError(e.message || "Problem solving failed");
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
 
   const handleAnswerQuestion = async (node: GraphNode) => {
@@ -685,35 +739,40 @@ function App() {
 
     const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
 
-    const answer = await answerQuestion(
-      aiSettings,
-      node.label,
-      node.description || "",
-      node.type,
-      fullGraphContext
-    );
+    try {
+      const answer = await answerQuestion(
+        aiSettings,
+        node.label,
+        node.description || "",
+        node.type,
+        fullGraphContext
+      );
 
-    if (answer) {
-      const newNodeId = generateId();
-      const newNode: GraphNode = {
-        id: newNodeId,
-        label: answer.label,
-        type: answer.type,
-        description: answer.description,
-        x: (node.x || 0) + 120,
-        y: (node.y || 0) + 120
-      };
+      if (answer) {
+        const newNodeId = generateId();
+        const newNode: GraphNode = {
+          id: newNodeId,
+          label: answer.label,
+          type: answer.type,
+          description: answer.description,
+          x: (node.x || 0) + 120,
+          y: (node.y || 0) + 120
+        };
 
-      const newLink = { source: node.id, target: newNodeId, relation: "answered by" };
+        const newLink = { source: node.id, target: newNodeId, relation: "answered by" };
 
-      setData(prev => ({
-        nodes: [...prev.nodes, newNode],
-        links: [...prev.links, newLink]
-      }));
+        setData(prev => ({
+          nodes: [...prev.nodes, newNode],
+          links: [...prev.links, newLink]
+        }));
 
-      setSelectedNodeIds([newNodeId]);
+        setSelectedNodeIds([newNodeId]);
+      }
+    } catch (e: any) {
+      popError(e.message || "Answer request failed");
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
 
   const handleAnalyzeSynergy = async (nodeA: GraphNode, nodeB: GraphNode) => {
@@ -797,26 +856,6 @@ function App() {
     setSelectedNodeIds(prev => prev.filter(id => id !== nodeId));
   };
 
-  const handleRegenerateNode = async (node: GraphNode) => {
-    setIsProcessing(true);
-    // Use the smart generator for regeneration too
-    const newSeed = await generateRandomSeedNode(aiSettings);
-
-    if (newSeed) {
-      setData(prev => ({
-        ...prev,
-        nodes: prev.nodes.map(n => n.id === node.id ? { ...n, label: newSeed.label, type: newSeed.type, description: newSeed.description } : n)
-      }));
-    } else {
-      // Fallback
-      const seed = NOVEL_SEEDS[Math.floor(Math.random() * NOVEL_SEEDS.length)];
-      setData(prev => ({
-        ...prev,
-        nodes: prev.nodes.map(n => n.id === node.id ? { ...n, label: seed.label, type: seed.type, description: seed.description } : n)
-      }));
-    }
-    setIsProcessing(false);
-  };
 
   const handleDeleteInternalSpace = (node: GraphNode) => {
     if (window.confirm(`Permanently eliminate internal space of "${node.label}"? All nodes and associations inside it and other nested internal spaces will be eliminated.`)) {
@@ -902,17 +941,17 @@ function App() {
     }
   };
 
-  const handleImFeelingLucky = async () => {
+  const handleImFeelingLucky = async (isRetry: boolean = false) => {
     setIsGeneratingSeed(true);
 
     try {
-      const seed = await generateRandomSeedNode(aiSettings);
+      const entropy = Date.now().toString();
+      const seed = await generateRandomSeedNode(aiSettings, entropy, isRetry ? discardedLuckySeeds : []);
 
       let nodeData;
       if (seed) {
         nodeData = seed;
       } else {
-        // Fallback to static list if API fails
         nodeData = NOVEL_SEEDS[Math.floor(Math.random() * NOVEL_SEEDS.length)];
       }
 
@@ -922,30 +961,31 @@ function App() {
         type: nodeData.type,
         description: nodeData.description,
         isRoot: true,
+        isLuckyResult: true, // Tag for curation UI
         x: 0,
         y: 0
       };
       setData({ nodes: [newNode], links: [] });
       setSelectedNodeIds([newNode.id]);
 
-    } catch (e) {
-      console.error("Failed to generate seed", e);
-      // Fallback
-      const seed = NOVEL_SEEDS[Math.floor(Math.random() * NOVEL_SEEDS.length)];
-      const newNode: GraphNode = {
-        id: generateId(),
-        label: seed.label,
-        type: seed.type,
-        description: seed.description,
-        isRoot: true,
-        x: 0,
-        y: 0
-      };
-      setData({ nodes: [newNode], links: [] });
-      setSelectedNodeIds([newNode.id]);
+    } catch (e: any) {
+      popError(e.message || "Failed to generate seed");
     } finally {
       setIsGeneratingSeed(false);
     }
+  };
+
+  const handleKeepLucky = (nodeId: string) => {
+    setData(prev => ({
+      ...prev,
+      nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, isLuckyResult: false } : n)
+    }));
+    setDiscardedLuckySeeds([]); // Reset cycle
+  };
+
+  const handleTryAgainLucky = (node: GraphNode) => {
+    setDiscardedLuckySeeds(prev => [...prev, node.label]);
+    handleImFeelingLucky(true); // Trigger retry with memory
   };
 
   const toggleFilter = (type: NodeType) => {
@@ -1203,82 +1243,64 @@ function App() {
           </div>
         )}
 
-        {/* Context Menu Overlay - Glass Style */}
         {contextMenuNode && (
           <div
             className="absolute z-50 animate-in fade-in zoom-in duration-200 origin-top-left"
             style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
-            onContextMenu={(e) => e.preventDefault()} // Prevent native context menu on overlay
+            onContextMenu={(e) => e.preventDefault()}
           >
-            <div className="flex flex-col bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-2 gap-1 w-56 overflow-hidden ring-1 ring-white/5">
-              <div className="px-3 py-2 border-b border-white/5 mb-1 flex justify-between items-center">
-                <span className="text-xs font-bold text-white truncate max-w-[120px]">{contextMenuNode.label}</span>
-                <button onClick={() => setContextMenuNode(null)} className="text-slate-500 hover:text-white"><X size={12} /></button>
+            <div className="flex flex-col bg-slate-950/90 backdrop-blur-3xl rounded-[28px] shadow-2xl border border-white/10 p-2 gap-1 w-[250px] overflow-hidden ring-1 ring-white/10 select-none">
+
+              {/* Core Actions Group */}
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleEnterNestedSession(contextMenuNode); }}
+                  className="px-3 py-1.5 hover:bg-sky-500/20 rounded-xl text-slate-300 hover:text-sky-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                >
+                  <Layers size={18} className="text-sky-500 group-hover:scale-110 transition-transform shrink-0" />
+                  <span>Seed In</span>
+                </button>
+
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleTraceLineage(contextMenuNode); setContextMenuNode(null); }}
+                  className="px-3 py-1.5 hover:bg-fuchsia-500/20 rounded-xl text-slate-300 hover:text-fuchsia-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                >
+                  <Search size={18} className="text-fuchsia-500 group-hover:rotate-12 transition-transform shrink-0" />
+                  <span>Analyze</span>
+                </button>
+
+                {(contextMenuNode.type === NodeType.TECHNOLOGY || contextMenuNode.type === NodeType.INNOVATION) && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleInnovateNode(contextMenuNode); setContextMenuNode(null); }}
+                    className="px-3 py-1.5 hover:bg-violet-500/20 rounded-xl text-slate-300 hover:text-violet-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                  >
+                    <Cpu size={18} className="text-violet-500 group-hover:animate-pulse shrink-0" />
+                    <span>Innovate</span>
+                  </button>
+                )}
+
+                {(contextMenuNode.type === NodeType.PROBLEM || contextMenuNode.type === NodeType.PAIN_POINT) && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleSolveProblem(contextMenuNode); setContextMenuNode(null); }}
+                    className="px-3 py-1.5 hover:bg-emerald-500/20 rounded-xl text-slate-300 hover:text-emerald-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                  >
+                    <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+                    <span>Solve</span>
+                  </button>
+                )}
+
+                {contextMenuNode.type === NodeType.QUESTION && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleAnswerQuestion(contextMenuNode); setContextMenuNode(null); }}
+                    className="px-3 py-1.5 hover:bg-amber-500/20 rounded-xl text-slate-300 hover:text-amber-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                  >
+                    <Zap size={18} className="text-amber-500 shrink-0" />
+                    <span>Answer</span>
+                  </button>
+                )}
               </div>
 
-              {/* Nested Session Action */}
-              <button
-                onClick={(e) => { e.stopPropagation(); handleEnterNestedSession(contextMenuNode); }}
-                className="p-2 hover:bg-sky-500/20 hover:text-sky-200 rounded-xl text-slate-300 transition-all flex items-center gap-3 text-sm text-left group"
-              >
-                <Layers size={16} className="text-sky-500 group-hover:text-sky-300" />
-                <div className="flex flex-col leading-none gap-1">
-                  <span>Seed In</span>
-                  <span className="text-[9px] text-slate-500 group-hover:text-sky-200/70">Enter internal space</span>
-                </div>
-              </button>
-
-              <button
-                onClick={(e) => { e.stopPropagation(); handleTraceLineage(contextMenuNode); setContextMenuNode(null); }}
-                className="p-2 hover:bg-fuchsia-500/20 hover:text-fuchsia-200 rounded-xl text-slate-300 transition-all flex items-center gap-3 text-sm text-left group"
-              >
-                <Search size={16} className="text-fuchsia-500 group-hover:text-fuchsia-300" />
-                <div className="flex flex-col leading-none gap-1">
-                  <span>Trace Lineage</span>
-                  <span className="text-[9px] text-slate-500 group-hover:text-fuchsia-200/70">Analyze origin path</span>
-                </div>
-              </button>
-
-              {(contextMenuNode.type === NodeType.TECHNOLOGY || contextMenuNode.type === NodeType.INNOVATION) && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleInnovateNode(contextMenuNode); setContextMenuNode(null); }}
-                  className="p-2 hover:bg-violet-500/20 hover:text-violet-200 rounded-xl text-slate-300 transition-all flex items-center gap-3 text-sm text-left group"
-                >
-                  <Cpu size={16} className="text-violet-500 group-hover:text-violet-300" />
-                  <div className="flex flex-col leading-none gap-1">
-                    <span>Innovate</span>
-                    <span className="text-[9px] text-slate-500 group-hover:text-violet-200/70">Structural breakthrough</span>
-                  </div>
-                </button>
-              )}
-
-              {(contextMenuNode.type === NodeType.PROBLEM || contextMenuNode.type === NodeType.PAIN_POINT) && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleSolveProblem(contextMenuNode); setContextMenuNode(null); }}
-                  className="p-2 hover:bg-emerald-500/20 hover:text-emerald-200 rounded-xl text-slate-300 transition-all flex items-center gap-3 text-sm text-left group"
-                >
-                  <CheckCircle2 size={16} className="text-emerald-500 group-hover:text-emerald-300" />
-                  <div className="flex flex-col leading-none gap-1">
-                    <span>Solve</span>
-                    <span className="text-[9px] text-slate-500 group-hover:text-emerald-200/70">Propose solution</span>
-                  </div>
-                </button>
-              )}
-
-              {contextMenuNode.type === NodeType.QUESTION && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleAnswerQuestion(contextMenuNode); setContextMenuNode(null); }}
-                  className="p-2 hover:bg-amber-500/20 hover:text-amber-200 rounded-xl text-slate-300 transition-all flex items-center gap-3 text-sm text-left group"
-                >
-                  <Zap size={16} className="text-amber-500 group-hover:text-amber-300" />
-                  <div className="flex flex-col leading-none gap-1">
-                    <span>Answer</span>
-                    <span className="text-[9px] text-slate-500 group-hover:text-amber-200/70">Functional breakthrough</span>
-                  </div>
-                </button>
-              )}
-
-              <div className="h-px bg-white/5 my-1 mx-2"></div>
+              <div className="h-px bg-white/5 mx-2 my-0.5"></div>
 
               <button
                 onClick={(e) => {
@@ -1291,90 +1313,83 @@ function App() {
                   setIsAddingNode(true);
                   setContextMenuNode(null);
                 }}
-                className="p-2 hover:bg-violet-500/20 hover:text-violet-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
+                className="px-3 py-2.5 hover:bg-white/5 rounded-2xl text-slate-300 hover:text-white transition-all flex items-center gap-3 text-xs font-semibold group"
               >
-                <PlusCircle size={16} className="text-violet-500 group-hover:text-violet-300" />
+                <PlusCircle size={18} className="text-slate-400 group-hover:text-white" />
                 <span>Add Custom...</span>
               </button>
-              {/* Persistence Actions */}
-              <div className="flex gap-1 border-t border-white/5 pt-2 mt-1">
+
+              <div className="h-px bg-white/5 mx-2 my-0.5"></div>
+
+              {/* Expanders Group */}
+              <div className="flex flex-col gap-0.5">
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleDeleteNode(contextMenuNode.id); setContextMenuNode(null); }}
-                  className="flex-1 p-2 hover:bg-red-500/20 hover:text-red-300 rounded-xl text-slate-400 transition-all flex items-center justify-center gap-2 text-xs"
+                  onClick={(e) => { e.stopPropagation(); handleExpandNode(contextMenuNode); setContextMenuNode(null); }}
+                  className="px-3 py-2 hover:bg-sky-500/10 rounded-xl text-sky-400 hover:text-sky-300 transition-all flex items-center gap-3 text-xs font-semibold group"
                 >
-                  <Trash2 size={14} /> Delete
+                  <Sparkles size={16} className="group-hover:scale-110 transition-transform" />
+                  <span>Quick Expand</span>
                 </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'reveals problem', 1); setContextMenuNode(null); }}
+                  className="px-3 py-2 hover:bg-red-500/10 rounded-xl text-red-400 hover:text-red-300 transition-all flex items-center gap-3 text-xs font-semibold group"
+                >
+                  <AlertCircle size={16} />
+                  <span>Identify Problem</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'triggers pain point', 1); setContextMenuNode(null); }}
+                  className="px-3 py-2 hover:bg-rose-500/10 rounded-xl text-rose-400 hover:text-rose-300 transition-all flex items-center gap-3 text-xs font-semibold group"
+                >
+                  <Heart size={16} />
+                  <span>Identify Pain Point</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'leverages technology', 1); setContextMenuNode(null); }}
+                  className="px-3 py-2 hover:bg-emerald-500/10 rounded-xl text-emerald-400 hover:text-emerald-300 transition-all flex items-center gap-3 text-xs font-semibold group"
+                >
+                  <Cpu size={16} />
+                  <span>Explore Tech</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'questions', 1); setContextMenuNode(null); }}
+                  className="px-3 py-2 hover:bg-amber-500/10 rounded-xl text-amber-400 hover:text-amber-300 transition-all flex items-center gap-3 text-xs font-semibold group"
+                >
+                  <MessageCircle size={16} />
+                  <span>Ask Question</span>
+                </button>
+              </div>
+
+              <div className="h-px bg-white/5 mx-2 my-0.5"></div>
+
+              {/* Utility Footer */}
+              <div className="flex flex-col gap-0.5">
                 {contextMenuNode.isGhost && (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleAssimilateNode(contextMenuNode.id); setContextMenuNode(null); }}
-                    className="flex-1 p-2 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 rounded-xl transition-all flex items-center justify-center gap-2 text-xs"
+                    className="px-3 py-2 hover:bg-emerald-500/20 rounded-xl text-emerald-400 transition-all flex items-center gap-3 text-xs font-bold"
                   >
-                    <CheckCircle2 size={14} /> Assimilate
+                    <CheckCircle2 size={16} />
+                    <span>Assimilate</span>
                   </button>
                 )}
-              </div>
-
-              <div className="h-px bg-white/5 my-1 mx-2"></div>
-
-              <button
-                onClick={(e) => { e.stopPropagation(); handleExpandNode(contextMenuNode); setContextMenuNode(null); }}
-                className="p-2 hover:bg-sky-500/20 hover:text-sky-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
-              >
-                <Sparkles size={16} className="text-sky-500 group-hover:text-sky-300" />
-                <span>Quick Expand</span>
-              </button>
-
-              <button
-                onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'reveals problem', 1); setContextMenuNode(null); }}
-                className="p-2 hover:bg-red-500/20 hover:text-red-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
-              >
-                <AlertCircle size={16} className="text-red-500 group-hover:text-red-300" />
-                <span>Identify Problem</span>
-              </button>
-
-              <button
-                onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'triggers pain point', 1); setContextMenuNode(null); }}
-                className="p-2 hover:bg-rose-500/20 hover:text-rose-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
-              >
-                <Heart size={16} className="text-rose-500 group-hover:text-rose-300" />
-                <span>Identify Pain Point</span>
-              </button>
-
-              <button
-                onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'leverages technology', 1); setContextMenuNode(null); }}
-                className="p-2 hover:bg-emerald-500/20 hover:text-emerald-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
-              >
-                <Cpu size={16} className="text-emerald-500 group-hover:text-emerald-300" />
-                <span>Explore Tech</span>
-              </button>
-
-              <button
-                onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'questions', 1); setContextMenuNode(null); }}
-                className="p-2 hover:bg-amber-500/20 hover:text-amber-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
-              >
-                <MessageCircle size={16} className="text-amber-500 group-hover:text-amber-300" />
-                <span>Ask Question</span>
-              </button>
-
-              <div className="h-px bg-white/5 my-1 mx-2"></div>
-
-              {contextMenuNode.subGraphData && contextMenuNode.subGraphData.nodes.length > 0 && (
+                {contextMenuNode.subGraphData && contextMenuNode.subGraphData.nodes.length > 0 && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteInternalSpace(contextMenuNode); }}
+                    className="px-3 py-2 hover:bg-amber-500/20 rounded-xl text-amber-500 transition-all flex items-center gap-3 text-xs font-bold"
+                  >
+                    <Minimize2 size={16} />
+                    <span>Seed Out</span>
+                  </button>
+                )}
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleDeleteInternalSpace(contextMenuNode); }}
-                  className="p-2 hover:bg-amber-500/20 hover:text-amber-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
+                  onClick={handleDeleteFromContextMenu}
+                  className="px-3 py-2.5 hover:bg-red-500/20 rounded-2xl text-red-500 hover:text-red-400 transition-all flex items-center gap-3 text-xs font-bold group"
                 >
-                  <Minimize2 size={16} className="text-amber-500 group-hover:text-amber-300" />
-                  <span>Seed Out</span>
+                  <Trash2 size={16} className="group-hover:scale-110 transition-transform" />
+                  <span>Delete</span>
                 </button>
-              )}
-
-              <button
-                onClick={handleDeleteFromContextMenu}
-                className="p-2 hover:bg-red-900/40 hover:text-red-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group cursor-pointer"
-              >
-                <Trash2 size={16} className="text-red-500 group-hover:text-red-300" />
-                <span>Delete</span>
-              </button>
+              </div>
             </div>
           </div>
         )}
@@ -1398,7 +1413,7 @@ function App() {
                   Add First Seed
                 </button>
                 <button
-                  onClick={handleImFeelingLucky}
+                  onClick={() => handleImFeelingLucky(false)}
                   disabled={isGeneratingSeed}
                   className={`px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-violet-900/20 hover:shadow-violet-500/40 flex items-center gap-2 hover:-translate-y-1 ${isGeneratingSeed ? 'opacity-80 cursor-wait' : ''}`}
                 >
@@ -1436,15 +1451,17 @@ function App() {
         onSave={handleSaveSettings}
       />
 
-      {showDashboard && (
-        <SeedsDashboard
-          onLoadSeed={handleLoadSeed}
-          onSave={handleSaveSeed}
-          onNewSeed={handleNewSeed}
-          onClose={() => setShowDashboard(false)}
-          currentSeedId={currentSeedFileId}
-        />
-      )}
+      {
+        showDashboard && (
+          <SeedsDashboard
+            onLoadSeed={handleLoadSeed}
+            onSave={handleSaveSeed}
+            onNewSeed={handleNewSeed}
+            onClose={() => setShowDashboard(false)}
+            currentSeedId={currentSeedFileId}
+          />
+        )
+      }
 
       {/* Sidebar - Now a floating element */}
       <Sidebar
@@ -1456,144 +1473,206 @@ function App() {
         onConnectNodes={handleConnectNodes}
         onUpdateNode={handleUpdateNode}
         onDeleteNode={handleDeleteNode}
-        onRegenerateNode={handleRegenerateNode}
+        onKeepLucky={handleKeepLucky}
+        onTryAgainLucky={handleTryAgainLucky}
         onInnovate={handleInnovateNode}
         onSolve={handleSolveProblem}
         onAnswer={handleAnswerQuestion}
-        isProcessing={isProcessing}
+        isProcessing={isProcessing || isGeneratingSeed}
         onAssimilate={handleAssimilateNode}
         onPrune={handlePruneNode}
       />
 
       {/* Discovery Console Overlay */}
-      {discoveryState.isActive && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-top-4 duration-500">
-          <div className="bg-slate-900/60 backdrop-blur-xl border border-sky-500/30 rounded-full px-6 py-2.5 shadow-[0_0_30px_rgba(14,165,233,0.2)] flex items-center gap-6 ring-1 ring-white/10">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-sky-500 rounded-full animate-ping opacity-20"></div>
-                <BrainCircuit className="text-sky-400 relative z-10" size={20} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-sky-500/70 leading-none">Autonomous Gardener</span>
-                <span className="text-xs text-white font-medium">Scanning Innovation Fog...</span>
-              </div>
-            </div>
-
-            <div className="h-6 w-px bg-white/10" />
-
-            <div className="flex items-center gap-2">
-              {discoveryState.history.slice(0, 1).map((item, i) => (
-                <span key={i} className="text-xs text-slate-400 animate-in fade-in slide-in-from-right-2 line-clamp-1 max-w-[200px]">
-                  {item}
-                </span>
-              ))}
-            </div>
-
-            <button
-              onClick={() => setDiscoveryState(prev => ({ ...prev, isActive: false }))}
-              className="ml-2 p-1.5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-full transition-colors"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Add Node Modal Overlay - Glass Style */}
-      {isAddingNode && (
-        <div className="absolute inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-96 animate-in fade-in zoom-in duration-300 ring-1 ring-white/10">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-light text-white flex items-center gap-3">
-                <div className="p-2 bg-sky-500/20 rounded-lg border border-sky-500/30">
-                  <PlusCircle size={20} className="text-sky-400" />
+      {
+        discoveryState.isActive && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-top-4 duration-500">
+            <div className="bg-slate-900/60 backdrop-blur-xl border border-sky-500/30 rounded-full px-6 py-2.5 shadow-[0_0_30px_rgba(14,165,233,0.2)] flex items-center gap-6 ring-1 ring-white/10">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-sky-500 rounded-full animate-ping opacity-20"></div>
+                  <BrainCircuit className="text-sky-400 relative z-10" size={20} />
                 </div>
-                {addingNodeParent ? `Add Linked Seed` : `Add New Seed`}
-              </h3>
-              <button onClick={() => { setIsAddingNode(false); setAddingNodeParent(null); }} className="text-slate-500 hover:text-white transition-colors"><X size={24} /></button>
-            </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-sky-500/70 leading-none">Autonomous Gardener</span>
+                  <span className="text-xs text-white font-medium">Scanning Innovation Fog...</span>
+                </div>
+              </div>
 
-            <div className="mb-5">
-              <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2">Seed Type</label>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.values(NodeType).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setNewNodeType(t)}
-                    className={`px-3 py-2.5 rounded-lg border text-xs font-semibold transition-all duration-200
-                       ${newNodeType === t
-                        ? 'bg-slate-700/80 border-sky-500/50 text-white shadow-[0_0_15px_rgba(14,165,233,0.2)]'
-                        : 'bg-slate-950/50 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-white/10'}`}
-                  >
-                    {t}
-                  </button>
+              <div className="h-6 w-px bg-white/10" />
+
+              <div className="flex items-center gap-2">
+                {discoveryState.history.slice(0, 1).map((item, i) => (
+                  <span key={i} className="text-xs text-slate-400 animate-in fade-in slide-in-from-right-2 line-clamp-1 max-w-[200px]">
+                    {item}
+                  </span>
                 ))}
               </div>
-            </div>
 
-            <div className="mb-5">
-              <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2">Label</label>
-              <input
-                autoFocus
-                type="text"
-                placeholder={`e.g., "${newNodeType === NodeType.QUESTION ? 'How do we...?' : 'Quantum Computing'}"`}
-                className="w-full bg-slate-950/60 border border-white/10 rounded-xl p-3 text-white placeholder-slate-600 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all"
-                value={newNodeLabel}
-                onChange={(e) => setNewNodeLabel(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && submitCustomNode()}
-              />
+              <button
+                onClick={() => setDiscoveryState(prev => ({ ...prev, isActive: false }))}
+                className="ml-2 p-1.5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-full transition-colors"
+              >
+                <X size={16} />
+              </button>
             </div>
+          </div>
+        )
+      }
 
-            <div className="mb-5">
-              <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2">Description</label>
-              <textarea
-                placeholder="Briefly describe context, constraints, or significance..."
-                className="w-full bg-slate-950/60 border border-white/10 rounded-xl p-3 text-white placeholder-slate-600 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all h-24 text-sm resize-none"
-                value={newNodeDescription}
-                onChange={(e) => setNewNodeDescription(e.target.value)}
-                onKeyDown={(e) => (e.ctrlKey || e.metaKey) && e.key === 'Enter' && submitCustomNode()}
-              />
-            </div>
+      {/* Add Node Modal Overlay - Glass Style */}
+      {
+        isAddingNode && (
+          <div className="absolute inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center">
+            <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-96 animate-in fade-in zoom-in duration-300 ring-1 ring-white/10">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-light text-white flex items-center gap-3">
+                  <div className="p-2 bg-sky-500/20 rounded-lg border border-sky-500/30">
+                    <PlusCircle size={20} className="text-sky-400" />
+                  </div>
+                  {addingNodeParent ? `Add Linked Seed` : `Add New Seed`}
+                </h3>
+                <button onClick={() => { setIsAddingNode(false); setAddingNodeParent(null); }} className="text-slate-500 hover:text-white transition-colors"><X size={24} /></button>
+              </div>
 
-            {addingNodeParent && (
-              <div className="mb-6 animate-in fade-in slide-in-from-top-2">
-                <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2">
-                  Relationship from <span className="text-white">{addingNodeParent.label}</span>
-                </label>
+              <div className="mb-5">
+                <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2">Seed Type</label>
                 <div className="relative">
                   <select
-                    value={newNodeRelation}
-                    onChange={e => setNewNodeRelation(e.target.value)}
-                    className="w-full appearance-none bg-slate-950/60 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all cursor-pointer"
+                    value={newNodeType}
+                    onChange={(e) => setNewNodeType(e.target.value as NodeType)}
+                    className="w-full appearance-none bg-slate-950/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all cursor-pointer"
                   >
-                    {RELATION_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    {Object.values(NodeType)
+                      .filter(t => t !== NodeType.TRACE)
+                      .map(t => (
+                        <option
+                          key={t}
+                          value={t}
+                          className="bg-slate-900 hover:bg-slate-800 border-none py-2"
+                        >
+                          {t.charAt(0) + t.slice(1).toLowerCase().replace(/_/g, ' ')}
+                        </option>
+                      ))}
                   </select>
-                  <div className="absolute right-3 top-3.5 pointer-events-none text-slate-500">
+                  <div className="absolute right-4 top-3.5 pointer-events-none text-slate-500">
                     <ChevronRight size={14} className="rotate-90" />
                   </div>
                 </div>
               </div>
-            )}
 
-            <div className="flex justify-end gap-3 mt-8">
+              <div className="mb-5">
+                <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2">Label</label>
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder={
+                    newNodeType === NodeType.PROBLEM ? "Short description of the bottleneck..." :
+                      newNodeType === NodeType.PAIN_POINT ? "Describe the user frustration..." :
+                        newNodeType === NodeType.TECHNOLOGY ? "Name of the tech or framework..." :
+                          newNodeType === NodeType.QUESTION ? "What do we need to know...?" :
+                            newNodeType === NodeType.ENTITY ? "Name of organization or role..." :
+                              newNodeType === NodeType.INNOVATION ? "The name of the breakthrough..." :
+                                newNodeType === NodeType.CONSTRAINT ? "Boundary or technical limitation..." :
+                                  newNodeType === NodeType.FRICTION ? "The specific drag in the process..." :
+                                    newNodeType === NodeType.CONCEPT ? "The abstract idea or mental model..." :
+                                      "What is this seed called...?"
+                  }
+                  className="w-full bg-slate-950/60 border border-white/10 rounded-xl p-3 text-white placeholder-slate-600 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all"
+                  value={newNodeLabel}
+                  onChange={(e) => setNewNodeLabel(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && submitCustomNode()}
+                />
+              </div>
+
+              <div className="mb-5">
+                <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2">Description</label>
+                <textarea
+                  placeholder={
+                    newNodeType === NodeType.PROBLEM ? "Explain the technical friction or blocker in detail..." :
+                      newNodeType === NodeType.PAIN_POINT ? "What is the emotional or functional impact on the user?" :
+                        newNodeType === NodeType.QUESTION ? "Specify the exact uncertainty we are trying to clear..." :
+                          newNodeType === NodeType.TECHNOLOGY ? "What are the core capabilities and limitations?" :
+                            newNodeType === NodeType.FRICTION ? "Where exactly is the cognitive or system load happening?" :
+                              newNodeType === NodeType.INNOVATION ? "How does this fundamentally move the state of the art forward?" :
+                                newNodeType === NodeType.CONSTRAINT ? "What are the physical, systemic, or legal boundaries?" :
+                                  newNodeType === NodeType.ENTITY ? "Provide details on the role, history, or scale of this entity..." :
+                                    newNodeType === NodeType.CONCEPT ? "Define the core principles and boundaries of this idea..." :
+                                      "Provide more context and significance for this seed..."
+                  }
+                  className="w-full bg-slate-950/60 border border-white/10 rounded-xl p-3 text-white placeholder-slate-600 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all h-24 text-sm resize-none"
+                  value={newNodeDescription}
+                  onChange={(e) => setNewNodeDescription(e.target.value)}
+                  onKeyDown={(e) => (e.ctrlKey || e.metaKey) && e.key === 'Enter' && submitCustomNode()}
+                />
+              </div>
+
+              {addingNodeParent && (
+                <div className="mb-6 animate-in fade-in slide-in-from-top-2">
+                  <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2">
+                    Relationship from <span className="text-white">{addingNodeParent.label}</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={newNodeRelation}
+                      onChange={e => setNewNodeRelation(e.target.value)}
+                      className="w-full appearance-none bg-slate-950/60 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 transition-all cursor-pointer"
+                    >
+                      {RELATION_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    <div className="absolute right-3 top-3.5 pointer-events-none text-slate-500">
+                      <ChevronRight size={14} className="rotate-90" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 mt-8">
+                <button
+                  onClick={() => { setIsAddingNode(false); setAddingNodeParent(null); }}
+                  className="px-4 py-2 text-slate-400 hover:text-white text-sm font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitCustomNode}
+                  className="px-6 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-sky-900/20 hover:shadow-sky-500/30 transition-all hover:-translate-y-0.5"
+                >
+                  Create Seed
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+      {/* Notification Toast */}
+      {
+        notification && (
+          <div className="fixed bottom-24 right-6 z-50 animate-in slide-in-from-right-4 duration-300">
+            <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10 ring-1 ring-black/20 ${notification.type === 'error' ? 'bg-red-500/20 text-red-200 border-red-500/30' :
+              notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/30' :
+                'bg-slate-800/80 text-white'
+              }`}>
+              {notification.type === 'error' ? <AlertCircle size={20} className="text-red-400" /> :
+                notification.type === 'success' ? <CheckCircle2 size={20} className="text-emerald-400" /> :
+                  <Info size={20} className="text-sky-400" />}
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-widest font-bold opacity-60 mb-0.5">
+                  {notification.type === 'error' ? "System Failure" : "Notification"}
+                </span>
+                <p className="text-sm font-medium">{notification.message}</p>
+              </div>
               <button
-                onClick={() => { setIsAddingNode(false); setAddingNodeParent(null); }}
-                className="px-4 py-2 text-slate-400 hover:text-white text-sm font-medium transition-colors"
+                onClick={() => setNotification(null)}
+                className="ml-4 p-1 hover:bg-white/10 rounded-lg transition-colors"
               >
-                Cancel
-              </button>
-              <button
-                onClick={submitCustomNode}
-                className="px-6 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-sky-900/20 hover:shadow-sky-500/30 transition-all hover:-translate-y-0.5"
-              >
-                Create Seed
+                <X size={16} />
               </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }
 

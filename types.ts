@@ -11,6 +11,7 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   subGraphData?: GraphData;
   isGhost?: boolean; // Hypothetical node from Discovery Mode
   isNew?: boolean;   // Animation flag
+  isLuckyResult?: boolean; // Result of "I'm feeling lucky" flow
   // D3 optional properties
   x?: number;
   y?: number;

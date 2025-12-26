@@ -54,6 +54,16 @@ export const RELATION_OPTIONS = [
   "explores"
 ];
 
+export const EXPANSION_BLUEPRINTS = [
+  { label: "What technology enables this?", relation: "leverages technology", targetType: NodeType.TECHNOLOGY },
+  { label: "What problem does this solve?", relation: "solves problem", targetType: NodeType.PROBLEM },
+  { label: "What is a critical question here?", relation: "questions", targetType: NodeType.QUESTION },
+  { label: "What is a potential innovation?", relation: "enables innovation", targetType: NodeType.INNOVATION },
+  { label: "What creates systemic friction?", relation: "creates friction for", targetType: NodeType.FRICTION },
+  { label: "What is a physical constraint?", relation: "is limited by", targetType: NodeType.CONSTRAINT },
+  { label: "Who are the key entities?", relation: "involves entity", targetType: NodeType.ENTITY },
+];
+
 export const INITIAL_DATA = {
   nodes: [],
   links: []

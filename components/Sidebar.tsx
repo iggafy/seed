@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GraphNode, NodeType } from '../types';
-import { RELATION_OPTIONS } from '../constants';
-import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle } from 'lucide-react';
+import { RELATION_OPTIONS, EXPANSION_BLUEPRINTS } from '../constants';
+import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle, ChevronRight, Binary, Sparkles } from 'lucide-react';
 
 interface SidebarProps {
   nodes: GraphNode[];
@@ -12,7 +12,8 @@ interface SidebarProps {
   onConnectNodes: (nodeA: GraphNode, nodeB: GraphNode, relation: string) => void;
   onUpdateNode: (node: GraphNode) => void;
   onDeleteNode: (nodeId: string) => void;
-  onRegenerateNode: (node: GraphNode) => void;
+  onKeepLucky: (nodeId: string) => void;
+  onTryAgainLucky: (node: GraphNode) => void;
   onInnovate: (node: GraphNode) => void;
   onSolve: (node: GraphNode) => void;
   onAnswer: (node: GraphNode) => void;
@@ -30,7 +31,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onConnectNodes,
   onUpdateNode,
   onDeleteNode,
-  onRegenerateNode,
+  onKeepLucky,
+  onTryAgainLucky,
   onInnovate,
   onSolve,
   onAnswer,
@@ -39,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   isProcessing
 }) => {
   const [relationInput, setRelationInput] = useState(RELATION_OPTIONS[0]);
-  const [expandRelationInput, setExpandRelationInput] = useState("enables");
+  const [expandBlueprintIndex, setExpandBlueprintIndex] = useState(0);
   const [targetCount, setTargetCount] = useState(1);
   const [isConnecting, setIsConnecting] = useState(false);
 
@@ -145,9 +147,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               </>
             ) : (
               <>
-                <button onClick={() => onRegenerateNode(node)} className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-violet-400 transition-colors" title="Regenerate Seed">
-                  <Dices size={18} />
-                </button>
                 <button onClick={() => handleStartEdit(node)} className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-sky-400 transition-colors" title="Edit Seed">
                   <Edit2 size={18} />
                 </button>
@@ -185,6 +184,36 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className="flex-1 py-2.5 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
                 >
                   <Trash2 size={14} /> Prune Path
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Lucky Result Curation */}
+          {node.isLuckyResult && (
+            <div className="mb-2 bg-violet-500/10 border border-violet-400/30 rounded-2xl p-5 shadow-lg shadow-violet-500/5">
+              <div className="flex items-center gap-3 text-violet-400 mb-3">
+                <Sparkles size={18} />
+                <h3 className="font-bold text-sm uppercase tracking-wider text-violet-300">Curation Mode</h3>
+              </div>
+              <p className="text-xs text-slate-400 mb-5 leading-relaxed">
+                Does this technical challenge spark an innovation path?
+                Choose to <span className="text-violet-400 font-semibold">Keep</span> it as your foundation or <span className="text-violet-400 font-semibold">Try Again</span> for a different perspective.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onKeepLucky(node.id)}
+                  className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-900/20"
+                >
+                  <CheckCircle2 size={14} /> Keep Seed
+                </button>
+                <button
+                  onClick={() => onTryAgainLucky(node)}
+                  disabled={isProcessing}
+                  className="flex-1 py-2.5 bg-slate-800 hover:bg-violet-500/20 text-slate-400 hover:text-violet-400 border border-white/5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                >
+                  {isProcessing ? <RefreshCw size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                  Try Again
                 </button>
               </div>
             </div>
@@ -298,36 +327,57 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
 
               {/* Directed Discovery */}
-              <div className="bg-slate-800/20 rounded-2xl p-5 border border-white/5">
-                <h3 className="flex items-center gap-2 text-sm font-bold text-emerald-400 mb-3">
+              {/* Directed Discovery with Blueprints */}
+              <div className="bg-slate-800/20 rounded-2xl p-5 border border-white/5 space-y-4">
+                <h3 className="flex items-center gap-2 text-sm font-bold text-emerald-400">
                   <MousePointerClick size={16} />
                   Directed Discovery
                 </h3>
-                <div className="flex gap-2">
+
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Inquire Adjacent Possibility</label>
                   <select
-                    value={expandRelationInput}
-                    onChange={(e) => setExpandRelationInput(e.target.value)}
-                    className="flex-1 bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:border-emerald-500/50 focus:outline-none"
+                    value={expandBlueprintIndex}
+                    onChange={(e) => setExpandBlueprintIndex(parseInt(e.target.value))}
+                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500/50 focus:outline-none appearance-none cursor-pointer hover:bg-slate-900 transition-colors"
                   >
-                    {RELATION_OPTIONS.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
+                    {EXPANSION_BLUEPRINTS.map((bp, idx) => (
+                      <option key={bp.label} value={idx}>{bp.label}</option>
                     ))}
                   </select>
-                  <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={targetCount}
-                    onChange={(e) => setTargetCount(Math.max(1, Math.min(5, parseInt(e.target.value) || 1)))}
-                    className="w-12 bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:border-emerald-500/50 focus:outline-none text-center"
-                    title="Number of seeds to generate"
-                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold text-slate-500">Node Density</label>
+                    <div className="flex items-center gap-2">
+                      {[1, 2, 3].map(val => (
+                        <button
+                          key={val}
+                          onClick={() => setTargetCount(val)}
+                          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${targetCount === val
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-lg shadow-emerald-500/10'
+                            : 'bg-slate-900/50 text-slate-500 border-white/5 hover:border-white/10'
+                            }`}
+                        >
+                          {val}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <button
-                    onClick={() => onExpandSingle(node, expandRelationInput, targetCount)}
+                    onClick={() => {
+                      const bp = EXPANSION_BLUEPRINTS[expandBlueprintIndex];
+                      onExpandSingle(node, bp.relation, targetCount);
+                    }}
                     disabled={isProcessing}
-                    className="px-3 py-1.5 bg-slate-700 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors border border-white/5 hover:border-emerald-500/50"
+                    className={`h-11 px-6 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 mt-auto
+                      ${isProcessing
+                        ? 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/40 hover:-translate-y-0.5'}`}
                   >
-                    Go
+                    {isProcessing ? <RefreshCw size={16} className="animate-spin" /> : <><Zap size={16} /> Explore</>}
                   </button>
                 </div>
               </div>
@@ -347,7 +397,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <Trash2 size={12} className="group-hover:scale-110 transition-transform" /> Delete
           </button>
         </div>
-      </div>
+      </div >
     );
   }
 
