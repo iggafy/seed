@@ -85,3 +85,16 @@ export interface SeedFile {
   sessionStack: SessionSnapshot[]; // Navigation history
   viewport: { x: number, y: number, zoom: number }; // Camera state
 }
+
+// Chat System Types
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+  suggestedNode?: AISuggestion; // Proactive seed suggestion
+}
+
+export interface ChatContext {
+  activeNodeIds: string[]; // IDs of nodes currently being discussed
+}

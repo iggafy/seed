@@ -1,4 +1,4 @@
-import { AISuggestion, NodeType, AIProvider, AISettings, GraphNode } from '../types';
+import { AISuggestion, NodeType, AIProvider, AISettings, GraphNode, ChatMessage, GraphLink } from '../types';
 
 // Defined schemas via imported constants
 const NODE_SCHEMA_OPENAI = {
@@ -85,27 +85,22 @@ export const traceLineageAnalysis = async (
     settings: AISettings,
     nodeLabel: string,
     nodeDescription: string,
-    lineage: string
+    fullPathContext: string
 ): Promise<AISuggestion | null> => {
     if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
-    const prompt = `Perform an exhaustive multi-dimensional analysis of: "${nodeLabel}" (${nodeDescription}).
-    Context Path from Root: ${lineage}.
+    const prompt = `You are a forensic innovation analyst. 
+    Analyze this discovery path: [ ${fullPathContext} ].
+    Current node: "${nodeLabel}" (${nodeDescription}).
     
-    Generate a TRACE node that functions as a structural synthesis of the entire lineage.
-    Label: "Trace: ${nodeLabel}".
-    Description: An insightful, comprehensive narrative (150-200 words). 
-    The logical necessity of why this node emerged from its predecessors.
-    The structural tensions or architectural shifts this path represents.
-    A synthesis of the hidden themes and connecting the root to this specific point.
-    The potential future trajectory this path implies for the system.
-    Be profound, technical and analytical. No fluff.`;
+    Objective: Extract the most critical underlying challenge or breakthrough opportunity hidden within this specific lineage.
+    Response schema: single node.`;
 
-    const result = await runIPCRequest(settings, prompt, false, 0.4);
+    const result = await runIPCRequest(settings, prompt, false);
     return result[0] || null;
 };
 
-export const generateInnovationOpportunity = async (
+export const innovateConcept = async (
     settings: AISettings,
     nodeLabel: string,
     nodeDescription: string,
@@ -170,33 +165,50 @@ export const answerQuestion = async (
 ): Promise<AISuggestion | null> => {
     if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
-    const prompt = `You are a research scientist and systems engineer. 
-    Target Question: "${nodeLabel}" (Type: ${nodeType}, Description: ${nodeDescription}).
+    const prompt = `You are a research scientist. 
+    Question: "${nodeLabel}" (${nodeDescription}).
     
     FULL GRAPH CONTEXT:
     ${fullGraphContext}
     
     Your Task:
-    Critically address this question using the context of the entire graph. 
-    Propose a TECHNOLOGY, INNOVATION, or CONCEPT that provides a functional answer or exploratory path.
+    Provide a technically synthesized answer to this question by drawing evidence from the current graph relationships. 
+    Explain 'The How' and 'The Why' behind your conclusion.
     
-    Label: "Answer: ${nodeLabel}".
-    Description: A rigorous, evidence-based answer (150-200 words). 
-    Explain the technical mechanism, the theoretical basis, and how this answer advances the overall project goal.`;
+    Label: "Synthesis: ${nodeLabel}".
+    Description: A robust technical response (150-200 words).`;
 
     const result = await runIPCRequest(settings, prompt, false);
     return result[0] || null;
 };
 
-export const performDiscoveryPulse = async (
+export const quickExpand = async (
     settings: AISettings,
-    fullGraphContext: string,
-    existingNodes: GraphNode[]
-): Promise<AISuggestion | null> => {
+    nodeLabel: string,
+    nodeDescription: string,
+    nodeType: string,
+    fullGraphContext: string
+): Promise<AISuggestion[]> => {
     if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
-    // Choose between finding a connection or growing a new node
-    const dieToGrow = Math.random() > 0.4; // 60% chance to grow, 40% to connect
+    const prompt = `You are an innovation engine. 
+    Current node: "${nodeLabel}" (Type: ${nodeType}, Description: ${nodeDescription}).
+    
+    FULL GRAPH CONTEXT:
+    ${fullGraphContext}
+    
+    Suggest 3 distinct discovery arcs. 
+    Response schema: array of suggestions.`;
+
+    return await runIPCRequest(settings, prompt, true);
+};
+
+export const autonomousDiscovery = async (
+    settings: AISettings,
+    fullGraphContext: string,
+    dieToGrow: boolean = true
+): Promise<AISuggestion | null> => {
+    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const prompt = dieToGrow
         ? `You are an Autonomous Gardener in an innovation graph. 
@@ -269,6 +281,108 @@ export const generateRandomSeedNode = async (settings: AISettings, entropy?: str
 
     const result = await runIPCRequest(settings, prompt, false, 0.95);
     return result[0] || null;
+};
+
+export const researchAssistantChat = async (
+    settings: AISettings,
+    chatHistory: ChatMessage[],
+    selectedNodes: GraphNode[],
+    allLinks: GraphLink[]
+): Promise<ChatMessage> => {
+    if (!settings.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+
+    // 1. Construct Contextual Brief
+    let contextBrief = "NO NODES SELECTED.";
+    if (selectedNodes.length > 0) {
+        const nodeDescriptions = selectedNodes.map(n => `- ${n.label} (${n.type}): ${n.description || "No description"}`).join('\n');
+
+        // Find links involving these nodes
+        const relevantLinks = allLinks.filter(l => {
+            const sid = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
+            const tid = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
+            return selectedNodes.some(n => n.id === sid || n.id === tid);
+        });
+
+        const linkDescriptions = relevantLinks.map(l => {
+            const sid = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
+            const tid = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
+            const sNode = (typeof l.source === 'object' ? l.source : { label: "External Node" }) as any;
+            const tNode = (typeof l.target === 'object' ? l.target : { label: "External Node" }) as any;
+            return `- ${sNode.label} --[${l.relation}]--> ${tNode.label}`;
+        }).join('\n');
+
+        contextBrief = `SELECTED NODES:\n${nodeDescriptions}\n\nRELEVANT RELATIONSHIPS:\n${linkDescriptions}`;
+    }
+
+    const systemPrompt = `You are the Nexus Research Assistant, a high-level innovation partner for a product architect.
+    
+    CURRENT GRAPH CONTEXT:
+    ${contextBrief}
+
+    YOUR GOAL:
+    Provide deep technical insights, definitions, and strategic analysis based on the selected nodes and their relationships.
+    Be concise but technically rigorous. Avoid fluff.
+
+    DYNAMISM:
+    If you identify a new concept, problem, or technology that belongs on the graph, you MUST propose it using this EXACT format at the END of your message:
+    [SUGGESTION]
+    {
+      "label": "Name",
+      "type": "NodeType",
+      "description": "Short justification",
+      "relationToParent": "verb"
+    }
+
+    NodeType must be one of: CONCEPT, TECHNOLOGY, PROBLEM, PAIN_POINT, INNOVATION, CONSTRAINT, FRICTION, ENTITY, QUESTION.
+    The relationToParent should describe how it connects to the primary node in the current selection.`;
+
+    const formattedMessages = chatHistory.map(m => ({
+        role: m.role,
+        content: m.content
+    }));
+
+    // @ts-ignore
+    const response = await window.api.aiRequest({
+        provider: settings.provider,
+        apiKey: settings.apiKey,
+        model: settings.model || undefined,
+        messages: formattedMessages,
+        systemPrompt: systemPrompt
+    });
+
+    if (response.error) {
+        throw new Error(response.error);
+    }
+
+    const content = response.content;
+    let mainContent = content;
+    let suggestedNode: AISuggestion | undefined;
+
+    // Parse Suggestion if present
+    const suggestionMatch = content.match(/\[SUGGESTION\]\s*(\{[\s\S]*\})/);
+    if (suggestionMatch) {
+        try {
+            const parsed = JSON.parse(suggestionMatch[1]);
+            suggestedNode = {
+                label: parsed.label || "New Seed",
+                type: (parsed.type?.toUpperCase() as NodeType) || NodeType.CONCEPT,
+                description: parsed.description || "",
+                relationToParent: parsed.relationToParent || "related"
+            };
+            // Strip the suggestion block from the display text
+            mainContent = content.split('[SUGGESTION]')[0].trim();
+        } catch (e) {
+            console.error("Failed to parse AI suggestion from chat:", e);
+        }
+    }
+
+    return {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: mainContent,
+        timestamp: Date.now(),
+        suggestedNode
+    };
 };
 
 /**

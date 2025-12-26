@@ -31,10 +31,9 @@ async function handleGemini(apiKey, model, messages, jsonSchema, systemPrompt) {
         prompt = `${systemPrompt}\n\nUSER REQUEST: ${prompt}`;
     }
 
-    const config = {
-        responseMimeType: "application/json",
-    };
+    const config = {};
     if (jsonSchema) {
+        config.responseMimeType = "application/json";
         config.responseSchema = jsonSchema;
     }
 
@@ -57,9 +56,7 @@ async function handleOpenAI(provider, apiKey, model, messages, jsonSchema, syste
     const client = getOpenAIClient(apiKey, baseURL);
 
     let response_format;
-    if (isDeepSeek) {
-        response_format = { type: "json_object" };
-    } else if (jsonSchema) {
+    if (jsonSchema && !isDeepSeek) {
         response_format = {
             type: "json_schema",
             json_schema: {
@@ -68,16 +65,13 @@ async function handleOpenAI(provider, apiKey, model, messages, jsonSchema, syste
                 schema: jsonSchema
             }
         };
-    } else {
-        // Default to json_object if any hint of JSON is needed
+    } else if (jsonSchema || systemPrompt?.toLowerCase().includes("json")) {
         response_format = { type: "json_object" };
     }
 
     const finalMessages = [...messages];
     if (systemPrompt) {
         finalMessages.unshift({ role: "system", content: systemPrompt });
-    } else if (response_format?.type === "json_object") {
-        finalMessages.unshift({ role: "system", content: "You are a helpful assistant designed to output JSON." });
     }
 
     const response = await client.chat.completions.create({

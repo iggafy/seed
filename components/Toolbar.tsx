@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Network, Filter, Info, GitMerge, Cpu, LayoutGrid, Save, BrainCircuit } from 'lucide-react';
+import { Plus, Network, Filter, Info, GitMerge, Cpu, LayoutGrid, Save, BrainCircuit, MessageSquare } from 'lucide-react';
 
 interface ToolbarProps {
   onAddNode: () => void;
@@ -11,10 +11,12 @@ interface ToolbarProps {
   onDashboard: () => void;
   onSave: () => void;
   onToggleDiscovery: () => void;
+  onToggleChat: () => void;
   isFilterActive: boolean;
   isInfoOpen: boolean;
   isContextMode: boolean;
   isDiscoveryActive: boolean;
+  isChatOpen: boolean;
   isProcessing: boolean;
   activeTypeCount: number;
 }
@@ -29,10 +31,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onDashboard,
   onSave,
   onToggleDiscovery,
+  onToggleChat,
   isFilterActive,
   isInfoOpen,
   isContextMode,
   isDiscoveryActive,
+  isChatOpen,
   isProcessing
 }) => {
   return (
@@ -142,6 +146,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
           {isDiscoveryActive && (
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-red-500 animate-bounce" />
           )}
+        </button>
+
+        <div className="w-px h-6 bg-white/10 mx-1" />
+
+        {/* Nexus Assistant Toggle */}
+        <button
+          onClick={onToggleChat}
+          className={`p-3.5 rounded-full transition-all group/nexus ${isChatOpen
+            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          title="Nexus Research Assistant"
+        >
+          <MessageSquare className={isChatOpen ? 'animate-pulse' : ''} size={20} />
         </button>
       </div>
 

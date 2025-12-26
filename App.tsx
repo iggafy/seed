@@ -1,13 +1,15 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile } from './types';
 import GraphCanvas from './components/GraphCanvas';
 import Sidebar from './components/Sidebar';
 import Toolbar from './components/Toolbar';
 import SettingsModal from './components/SettingsModal';
 import SeedsDashboard from './components/SeedsDashboard';
 import { INITIAL_DATA, NOVEL_SEEDS, NODE_ICONS, NODE_COLORS, RELATION_OPTIONS, EXPANSION_BLUEPRINTS } from './constants';
-import { expandConcept, expandConceptTargeted, generateSynergyNode, generateRandomSeedNode, generateInnovationOpportunity, solveProblem, answerQuestion, performDiscoveryPulse, traceLineageAnalysis } from './services/aiService';
-import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick } from 'lucide-react';
+import { expandConcept, expandConceptTargeted, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat } from './services/aiService';
+import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare } from 'lucide-react';
+import NexusAssistant from './components/NexusAssistant';
+import NexusConfirmDialog from './components/NexusConfirmDialog';
+import { ChatMessage, AISuggestion, DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile, GraphLink } from './types';
 
 // Utility to generate UUIDs locally
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -57,6 +59,12 @@ function App() {
   });
 
   const [discardedLuckySeeds, setDiscardedLuckySeeds] = useState<string[]>([]);
+
+  // Assistant / Chat State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [proposingSeed, setProposingSeed] = useState<AISuggestion | null>(null);
+  const [isChatProcessing, setIsChatProcessing] = useState(false);
 
   // Load Settings from LocalStorage
   useEffect(() => {
@@ -125,10 +133,12 @@ function App() {
         }
       }
 
-      // 'Escape' to clear selection
+      if (e.key === 'k' || e.key === 'K') setIsChatOpen(prev => !prev);
       if (e.key === 'Escape') {
         setSelectedNodeIds([]);
         setContextMenuNode(null);
+        setIsChatOpen(false);
+        setShowFilterMenu(false);
       }
     };
 
@@ -254,7 +264,8 @@ function App() {
         // LOYAL STOP: Check again before AI call
         if (!isActiveRef.current) return;
 
-        const suggestion = await performDiscoveryPulse(settingsRef.current, fullGraphContext, dataRef.current.nodes);
+        const target = currentNodes[Math.floor(Math.random() * currentNodes.length)];
+        const suggestion = await agenticDiscovery(settingsRef.current, fullGraphContext, target);
 
         // LOYAL STOP: Discard result if user clicked stop while AI was thinking
         if (suggestion && isActiveRef.current) {
@@ -644,7 +655,7 @@ function App() {
     const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
 
     try {
-      const innovation = await generateInnovationOpportunity(
+      const innovation = await innovateConcept(
         aiSettings,
         node.label,
         node.description || "",
@@ -894,6 +905,62 @@ function App() {
       handleDeleteNode(contextMenuNode.id);
       setContextMenuNode(null);
     }
+  };
+
+  const handleChatSendMessage = async (content: string) => {
+    if (!content.trim() || isChatProcessing) return;
+
+    const userMsg: ChatMessage = {
+      id: generateId(),
+      role: 'user',
+      content,
+      timestamp: Date.now()
+    };
+
+    const newMessages = [...chatMessages, userMsg];
+    setChatMessages(newMessages);
+    setIsChatProcessing(true);
+
+    try {
+      const selectedNodes = data.nodes.filter(n => selectedNodeIds.includes(n.id));
+      const response = await researchAssistantChat(aiSettings, newMessages, selectedNodes, data.links);
+      setChatMessages(prev => [...prev, response]);
+    } catch (e: any) {
+      popError(e.message || "Nexus chat failed");
+    } finally {
+      setIsChatProcessing(false);
+    }
+  };
+
+  const handleConfirmNexusSeed = (suggestion: AISuggestion, parentId: string) => {
+    const parentNode = data.nodes.find(n => n.id === parentId);
+
+    const newNodeId = generateId();
+    const newNode: GraphNode = {
+      id: newNodeId,
+      label: suggestion.label,
+      type: suggestion.type,
+      description: suggestion.description,
+      x: parentNode ? (parentNode.x || 0) + 100 : 0,
+      y: parentNode ? (parentNode.y || 0) + 100 : 0,
+      isNew: true
+    };
+
+    const newLink = {
+      source: parentId,
+      target: newNodeId,
+      relation: suggestion.relationToParent
+    };
+
+    setData(prev => ({
+      nodes: [...prev.nodes, newNode],
+      links: [...prev.links, newLink]
+    }));
+
+    setSelectedNodeIds([newNodeId]);
+    setProposingSeed(null);
+    setNotification({ message: "Seed assimilated successfully", type: 'success' });
+    setTimeout(() => setNotification(null), 3000);
   };
 
   const handleAddCustomNode = () => {
@@ -1452,10 +1519,12 @@ function App() {
         onDashboard={() => setShowDashboard(true)}
         onSave={handleSaveSeed}
         onToggleDiscovery={() => setDiscoveryState(prev => ({ ...prev, isActive: !prev.isActive }))}
+        onToggleChat={() => setIsChatOpen(!isChatOpen)}
         isFilterActive={hiddenTypes.length > 0}
         isInfoOpen={showInfo}
         isContextMode={isContextMode}
         isDiscoveryActive={discoveryState.isActive}
+        isChatOpen={isChatOpen}
         isProcessing={isProcessing}
         activeTypeCount={0}
       />
@@ -1498,6 +1567,28 @@ function App() {
         onAssimilate={handleAssimilateNode}
         onPrune={handlePruneNode}
       />
+
+      {/* Nexus Research Assistant */}
+      <NexusAssistant
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        messages={chatMessages}
+        onSendMessage={handleChatSendMessage}
+        isProcessing={isChatProcessing}
+        selectedNodes={getSelectedNodes()}
+        onProposeSeed={(suggestion) => setProposingSeed(suggestion)}
+        onClearChat={() => setChatMessages([])}
+      />
+
+      {/* Seed Proposal Confirmation */}
+      {proposingSeed && (
+        <NexusConfirmDialog
+          suggestion={proposingSeed}
+          parentNodes={getSelectedNodes().length > 0 ? getSelectedNodes() : [data.nodes[0]]}
+          onConfirm={handleConfirmNexusSeed}
+          onCancel={() => setProposingSeed(null)}
+        />
+      )}
 
       {/* Discovery Console Overlay */}
       {
