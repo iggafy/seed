@@ -51,7 +51,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <button
           onClick={onDashboard}
           className="p-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all"
-          title="Seeds Dashboard"
+          title="Seed Spaces"
         >
           <LayoutGrid size={18} />
         </button>

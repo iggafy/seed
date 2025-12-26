@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GraphNode, NodeType } from '../types';
 import { RELATION_OPTIONS, EXPANSION_BLUEPRINTS } from '../constants';
-import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle, ChevronRight, Binary, Sparkles } from 'lucide-react';
+import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle, ChevronRight, Binary, Sparkles, Orbit } from 'lucide-react';
 
 interface SidebarProps {
   nodes: GraphNode[];
@@ -309,6 +309,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 </div>
               )}
+
 
               {/* Discovery Tools */}
               <div className="bg-slate-800/40 rounded-2xl p-5 border border-white/5 relative overflow-hidden group">

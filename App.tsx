@@ -6,9 +6,11 @@ import SettingsModal from './components/SettingsModal';
 import SeedsDashboard from './components/SeedsDashboard';
 import { INITIAL_DATA, NOVEL_SEEDS, NODE_ICONS, NODE_COLORS, RELATION_OPTIONS, EXPANSION_BLUEPRINTS } from './constants';
 import { expandConcept, expandConceptTargeted, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat } from './services/aiService';
-import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare } from 'lucide-react';
+import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit } from 'lucide-react';
 import NexusAssistant from './components/NexusAssistant';
 import NexusConfirmDialog from './components/NexusConfirmDialog';
+import ConfirmDialog from './components/ConfirmDialog';
+import WormholeSelector from './components/WormholeSelector';
 import { ChatMessage, AISuggestion, DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile, GraphLink } from './types';
 
 // Utility to generate UUIDs locally
@@ -28,7 +30,41 @@ function App() {
   // Persistence State
   const [currentSeedFileId, setCurrentSeedFileId] = useState<string | undefined>(undefined);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [isWormholeSelectorOpen, setIsWormholeSelectorOpen] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null);
+
+  // Custom Confirmation Dialog State
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type: 'danger' | 'warning' | 'info';
+    confirmText?: string;
+    cancelText?: string;
+  } | null>(null);
+
+  const askConfirm = (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+    type: 'danger' | 'warning' | 'info' = 'warning',
+    confirmText?: string,
+    cancelText?: string
+  ) => {
+    setConfirmState({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmState(null);
+      },
+      type,
+      confirmText,
+      cancelText
+    });
+  };
 
   // Filtering & Info
   const [hiddenTypes, setHiddenTypes] = useState<NodeType[]>([]);
@@ -126,10 +162,16 @@ function App() {
       // 'Delete' or 'Backspace' to delete selected nodes
       if (e.key === 'Delete' || (e.key === 'Backspace' && (e.metaKey || e.ctrlKey))) {
         if (selectedNodeIds.length > 0) {
-          if (confirm(`Delete ${selectedNodeIds.length} selected seed(s)?`)) {
-            selectedNodeIds.forEach(id => handleDeleteNode(id));
-            setSelectedNodeIds([]);
-          }
+          askConfirm(
+            "Eliminate Seeds",
+            `Are you sure you want to eliminate ${selectedNodeIds.length} selected seed(s)? This will permanently remove them and all their associations.`,
+            () => {
+              selectedNodeIds.forEach(id => handleDeleteNode(id, true));
+              setSelectedNodeIds([]);
+            },
+            'danger',
+            "Eliminate"
+          );
         }
       }
 
@@ -148,42 +190,62 @@ function App() {
 
   // --- PERSISTENCE HANDLERS ---
 
-  const handleSaveSeed = async () => {
-    if (!currentSeedFileId) {
-      // If no ID (unsaved new seed), verify with user or just save as new
-      if (!window.confirm("Save this as a new Seed?")) return;
-    }
-
+  const handleSaveSeed = async (silent: boolean = false) => {
     const id = currentSeedFileId || generateId();
-    // Use first node label or custom name? Let's default to "Root Session" or specific node count
-    const name = data.nodes.length > 0 ? data.nodes[0].label : "Empty Seed";
-
-    // Electron renderer prompt() is often disabled.
-    // For now, auto-name it. We can add a "Rename" feature in dashboard later.
+    const name = data.nodes.length > 0 ? data.nodes[0].label : "Untitled Space";
     const finalName = name;
 
-    const seedFile: SeedFile = {
-      id: id,
-      name: finalName,
-      lastModified: Date.now(),
-      data: data,
-      sessionStack: sessionStack,
-      viewport: { x: 0, y: 0, zoom: 1 } // TODO: Capture actual viewport from canvas if possible or ignore
+    const performSave = async () => {
+      const seedFile: SeedFile = {
+        id: id,
+        name: finalName,
+        lastModified: Date.now(),
+        data: data,
+        sessionStack: sessionStack,
+        viewport: { x: 0, y: 0, zoom: 1 }
+      };
+
+      try {
+        // @ts-ignore
+        const result = await window.api.db.saveSeed(seedFile);
+        if (result.error) {
+          console.error("Save failed:", result.error);
+          if (!silent) popError(`Failed to save: ${result.error}`);
+          return;
+        }
+
+        setCurrentSeedFileId(id);
+        if (!silent) {
+          setNotification({ message: "Seed Space saved", type: 'success' });
+          setTimeout(() => setNotification(null), 3000);
+        } else {
+          setNotification({ message: `Progress auto-saved in ${finalName}`, type: 'success' });
+          setTimeout(() => setNotification(null), 3000);
+        }
+      } catch (e) {
+        console.error("Save error:", e);
+        if (!silent) popError("Critical failure during save");
+      }
     };
 
-    // @ts-ignore
-    const result = await window.api.db.saveSeed(seedFile);
-    if (result.error) {
-      console.error("Save failed:", result.error);
-      alert(`Failed to save: ${result.error}`);
+    if (!currentSeedFileId && !silent) {
+      askConfirm(
+        "Save New Seed Space",
+        "Would you like to save this exploration as a new Seed Space for future access?",
+        performSave,
+        'info',
+        "Save Space"
+      );
       return;
     }
 
-    setCurrentSeedFileId(id);
-    alert("Saved successfully!");
+    await performSave();
   };
 
   const handleLoadSeed = async (id: string) => {
+    // Auto-save current session before switching
+    await handleSaveSeed(true);
+
     // @ts-ignore
     const seed: SeedFile = await window.api.db.loadSeed(id);
     if (seed) {
@@ -197,8 +259,7 @@ function App() {
       setCurrentSessionId(generateId()); // Force re-render
       if (seed.sessionStack && seed.sessionStack.length > 0) {
         // Restore deep session name
-        // Logic to find current label... simplified:
-        setCurrentSessionName("Restored Session");
+        setCurrentSessionName(seed.name || "Seed Space");
       } else {
         setCurrentSessionName("Root");
       }
@@ -206,16 +267,17 @@ function App() {
     }
   };
 
-  const handleNewSeed = () => {
-    if (confirm("Start a new empty Seed? Unsaved changes will be lost.")) {
-      setData({ nodes: [], links: [] });
-      setSessionStack([]);
-      setCurrentSeedFileId(undefined);
-      setCurrentSessionId('root');
-      setCurrentSessionName('Root');
-      setShowDashboard(false);
-      setDiscardedLuckySeeds([]); // Reset AI memory for new session
-    }
+  const handleNewSeed = async () => {
+    // Auto-save current before starting new
+    await handleSaveSeed(true);
+
+    setData({ nodes: [], links: [] });
+    setSessionStack([]);
+    setCurrentSeedFileId(undefined);
+    setCurrentSessionId('root');
+    setCurrentSessionName('Root');
+    setShowDashboard(false);
+    setDiscardedLuckySeeds([]); // Reset AI memory for new session
   };
 
   // Handling Adding Manual Nodes
@@ -379,7 +441,13 @@ function App() {
     setSelectedNodeIds([]);
   };
 
-  const handleEnterNestedSession = (node: GraphNode) => {
+  const handleEnterNestedSession = async (node: GraphNode) => {
+    // If it's a wormhole, we teleport instead of seeding in locally
+    if (node.isWormhole && node.targetSessionId) {
+      handleWormholeTeleport(node.targetSessionId, node.targetNodeId);
+      return;
+    }
+
     // 1. Push current state to stack with the triggerNodeId
     const snapshot: SessionSnapshot = {
       id: currentSessionId,
@@ -422,21 +490,155 @@ function App() {
     setContextMenuNode(null);
   };
 
+  const handleWormholeTeleport = async (sessionId: string, targetNodeId?: string) => {
+    const performTeleport = async () => {
+      // Auto-save before teleport
+      await handleSaveSeed(true);
+
+      // @ts-ignore
+      const seed: SeedFile = await window.api.db.loadSeed(sessionId);
+      if (seed) {
+        setData(seed.data);
+        setSessionStack(seed.sessionStack || []);
+        setCurrentSeedFileId(seed.id);
+        setCurrentSessionId(generateId());
+        setCurrentSessionName(seed.name);
+
+        if (targetNodeId) {
+          setSelectedNodeIds([targetNodeId]);
+        } else {
+          setSelectedNodeIds([]);
+        }
+
+        setNotification({ message: `Teleported to ${seed.name}`, type: 'success' });
+        setTimeout(() => setNotification(null), 3000);
+      }
+    };
+
+    askConfirm(
+      "Engage Wormhole",
+      "You are about to teleport to a different Seed Space. Current progress will be auto-saved. Proceed?",
+      performTeleport,
+      'info',
+      "Engage"
+    );
+  };
+
+  const handleSelectWormholeTarget = async (targetSessionId: string, targetSessionName: string, targetNodeId: string, targetNodeLabel: string, relation: string) => {
+    if (!contextMenuNode) return;
+
+    const sourceSeed = contextMenuNode;
+    const currentSpaceId = currentSeedFileId;
+
+    // We need the name of the current space for the inverse link description
+    let currentSpaceName = "Current Space";
+    try {
+      // @ts-ignore
+      const seeds = await window.api.db.listSeeds();
+      const current = seeds.find((s: any) => s.id === currentSpaceId);
+      if (current) currentSpaceName = current.name;
+    } catch (e) { }
+
+    // 1. Create Wormhole in CURRENT session
+    const wormholeId = generateId();
+    const newWormholeSeed: GraphNode = {
+      id: wormholeId,
+      label: `${targetNodeLabel} (Wormhole)`,
+      type: NodeType.CONCEPT,
+      description: `Persistent link to Seed [${targetNodeLabel}] in Seed Space [${targetSessionName}]`,
+      isWormhole: true,
+      targetSessionId: targetSessionId,
+      targetNodeId: targetNodeId,
+      x: sourceSeed.x ? sourceSeed.x + 80 : 80,
+      y: sourceSeed.y ? sourceSeed.y + 40 : 40,
+      isNew: true
+    };
+
+    const newLink: GraphLink = {
+      source: sourceSeed.id,
+      target: wormholeId,
+      relation: relation
+    };
+
+    setData(prev => ({
+      ...prev,
+      nodes: [...prev.nodes, newWormholeSeed],
+      links: [...prev.links, newLink]
+    }));
+
+    setIsWormholeSelectorOpen(false);
+    setContextMenuNode(null);
+    setNotification({ message: "Wormhole established", type: 'success' });
+    setTimeout(() => setNotification(null), 3000);
+
+    // 2. RECIPROCITY: Create Reverse Wormhole in TARGET session
+    if (currentSpaceId) {
+      try {
+        // @ts-ignore
+        const targetSeedFile: SeedFile = await window.api.db.loadSeed(targetSessionId);
+        if (targetSeedFile && targetSeedFile.data) {
+          const reverseWormholeId = generateId();
+          const reverseWormholeSeed: GraphNode = {
+            id: reverseWormholeId,
+            label: `${sourceSeed.label} (Wormhole)`,
+            type: NodeType.CONCEPT,
+            description: `Automatic reverse link to Seed [${sourceSeed.label}] in Seed Space [${currentSpaceName}]`,
+            isWormhole: true,
+            targetSessionId: currentSpaceId,
+            targetNodeId: sourceSeed.id,
+            x: (Math.random() - 0.5) * 200,
+            y: (Math.random() - 0.5) * 200,
+            isNew: true
+          };
+
+          const REVERSE_RELATIONS: Record<string, string> = {
+            "solves": "is solved by",
+            "addresses": "is addressed by",
+            "innovates": "is innovated by",
+            "questions": "is questioned by",
+            "answers": "is answered for",
+            "enables": "is enabled by",
+            "integrates with": "integrates with",
+            "leverages": "is leveraged by",
+            "conflicts with": "conflicts with",
+            "blocks": "is blocked by",
+            "creates friction for": "experiences friction from",
+            "is limited by": "limits",
+            "imposes": "is imposed by",
+            "requires": "is required by",
+            "explores": "is explored by"
+          };
+
+          const reverseRelation = REVERSE_RELATIONS[relation] || `linked by ${relation}`;
+
+          const reverseLink: GraphLink = {
+            source: reverseWormholeId,
+            target: targetNodeId,
+            relation: reverseRelation
+          };
+
+          targetSeedFile.data.nodes.push(reverseWormholeSeed);
+          targetSeedFile.data.links.push(reverseLink);
+          targetSeedFile.lastModified = Date.now();
+
+          // @ts-ignore
+          await window.api.db.saveSeed(targetSeedFile);
+        }
+      } catch (err) {
+        console.error("Failed to create reciprocal wormhole:", err);
+      }
+    }
+  };
+
   // Logic to roll up changes from current session to parents
   const saveSessionUpwards = (
     currentLevelData: GraphData,
     stack: SessionSnapshot[],
     targetIndex: number
   ): SessionSnapshot[] => {
-    // We need to propagate changes from the active session back up to the target index.
-    // We start with current data, save it to the trigger node of the top-most snapshot,
-    // then take that snapshot's data (now modified) and save it to the next one down, etc.
-
-    let dataToSave = currentLevelData;
-
-    // Iterate backwards from the top of the stack down to (but not including) the target snapshot
-    // We are updating the snapshots IN PLACE in a copy of the stack
-    const newStack = [...stack];
+    // Deep clone to ensure we aren't modifying state directly and React detects changes
+    const newStack = JSON.parse(JSON.stringify(stack)) as SessionSnapshot[];
+    let dataToSave = JSON.parse(JSON.stringify(currentLevelData)) as GraphData;
 
     for (let i = newStack.length - 1; i >= targetIndex; i--) {
       const snapshot = newStack[i];
@@ -445,23 +647,28 @@ function App() {
         // Find the node in this snapshot that holds the subgraph
         const nodeIndex = snapshot.data.nodes.findIndex(n => n.id === snapshot.triggerNodeId);
         if (nodeIndex !== -1) {
-          snapshot.data.nodes[nodeIndex].subGraphData = dataToSave;
+          // If the child space is empty, remove the subGraphData completely
+          if (dataToSave.nodes.length === 0) {
+            snapshot.data.nodes[nodeIndex].subGraphData = undefined;
+          } else {
+            snapshot.data.nodes[nodeIndex].subGraphData = dataToSave;
+          }
         }
-        // The data of THIS snapshot becomes the dataToSave for the next level up (which is index i-1)
-        dataToSave = snapshot.data;
+        // The data of THIS snapshot becomes the dataToSave for the next level up
+        dataToSave = JSON.parse(JSON.stringify(snapshot.data));
       }
     }
 
     return newStack;
   };
 
-  const handleNavigateToSession = (index: number) => {
+  const handleNavigateToSession = (index: number, overrideData?: GraphData) => {
     if (index < 0 || index >= sessionStack.length) {
       return;
     }
 
-    // 1. Save current state upwards
-    const updatedStack = saveSessionUpwards(data, sessionStack, index);
+    // First, roll up current data (or override) into the snapshots
+    const updatedStack = saveSessionUpwards(overrideData || data, sessionStack, index);
 
     // 2. The target snapshot is now updated in our temp stack
     const targetSnapshot = updatedStack[index];
@@ -848,17 +1055,7 @@ function App() {
     }));
   };
 
-  const handleDeleteNode = (nodeId: string) => {
-    const nodeToDelete = data.nodes.find(n => n.id === nodeId);
-    if (!nodeToDelete) return;
-
-    const hasInternalNodes = nodeToDelete.subGraphData && nodeToDelete.subGraphData.nodes.length > 0;
-    const confirmMsg = hasInternalNodes
-      ? `Node "${nodeToDelete.label}" contains internal seeds. Deleting it will eliminate its entire internal space. Proceed?`
-      : `Permanently delete "${nodeToDelete.label}"?`;
-
-    if (!window.confirm(confirmMsg)) return;
-
+  const performDeleteNode = (nodeId: string) => {
     const remainingNodes = data.nodes.filter(n => n.id !== nodeId);
 
     setData(prev => {
@@ -881,19 +1078,48 @@ function App() {
 
     // Auto-exit if we just emptied a nested session
     if (remainingNodes.length === 0 && sessionStack.length > 0) {
-      handleNavigateToSession(sessionStack.length - 1);
+      handleNavigateToSession(sessionStack.length - 1, { nodes: [], links: [] });
     }
+  };
+
+  const handleDeleteNode = (nodeId: string, skipConfirm = false) => {
+    const nodeToDelete = data.nodes.find(n => n.id === nodeId);
+    if (!nodeToDelete) return;
+
+    if (skipConfirm) {
+      performDeleteNode(nodeId);
+      return;
+    }
+
+    const hasInternalNodes = nodeToDelete.subGraphData && nodeToDelete.subGraphData.nodes.length > 0;
+    const confirmMsg = hasInternalNodes
+      ? `Node "${nodeToDelete.label}" contains internal seeds. Deleting it will eliminate its entire internal space. Proceed?`
+      : `Permanently eliminate "${nodeToDelete.label}" and all its research associations?`;
+
+    askConfirm(
+      "Eliminate Seed",
+      confirmMsg,
+      () => performDeleteNode(nodeId),
+      'danger',
+      "Eliminate"
+    );
   };
 
 
   const handleDeleteInternalSpace = (node: GraphNode) => {
-    if (window.confirm(`Permanently eliminate internal space of "${node.label}"? All nodes and associations inside it and other nested internal spaces will be eliminated.`)) {
-      setData(prev => ({
-        ...prev,
-        nodes: prev.nodes.map(n => n.id === node.id ? { ...n, subGraphData: undefined } : n)
-      }));
-      setContextMenuNode(null);
-    }
+    askConfirm(
+      "Eliminate Internal Space",
+      `Permanently eliminate the internal research space of "${node.label}"? All seeds and associations inside it will be lost.`,
+      () => {
+        setData(prev => ({
+          ...prev,
+          nodes: prev.nodes.map(n => n.id === node.id ? { ...n, subGraphData: undefined } : n)
+        }));
+        setContextMenuNode(null);
+      },
+      'danger',
+      "Eliminate"
+    );
   };
 
   // Helper for context menu delete to ensure event propagation is handled
@@ -992,7 +1218,7 @@ function App() {
       id: generateId(),
       label: newNodeLabel,
       type: newNodeType,
-      description: newNodeDescription.trim() || "User defined node.",
+      description: newNodeDescription.trim() || "User defined seed.",
       isRoot: data.nodes.length === 0,
       x,
       y
@@ -1018,10 +1244,16 @@ function App() {
 
   const handleClearGraph = () => {
     if (data.nodes.length === 0) return;
-    if (window.confirm("Start fresh? This will clear all nodes and connections from the graph.")) {
-      setData({ nodes: [], links: [] });
-      setSelectedNodeIds([]);
-    }
+    askConfirm(
+      "Reset Exploration",
+      "Start fresh? This will clear all seeds and connections from the current workspace. This action cannot be undone.",
+      () => {
+        setData({ nodes: [], links: [] });
+        setSelectedNodeIds([]);
+      },
+      'danger',
+      "Reset Workspace"
+    );
   };
 
   const handleImFeelingLucky = async (isRetry: boolean = false) => {
@@ -1445,6 +1677,19 @@ function App() {
 
               <div className="h-px bg-white/5 mx-2 my-0.5"></div>
 
+              {/* Advanced / Meta Tools */}
+              <div className="flex flex-col gap-0.5 px-1 py-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setIsWormholeSelectorOpen(true); setContextMenuNode(contextMenuNode); }}
+                  className="px-3 py-2 hover:bg-indigo-500/10 rounded-xl text-indigo-400 hover:text-indigo-300 transition-all flex items-center gap-3 text-xs font-semibold group active:scale-95"
+                >
+                  <Orbit size={16} className="group-hover:rotate-45 transition-transform" />
+                  <span>Establish Wormhole</span>
+                </button>
+              </div>
+
+              <div className="h-px bg-white/5 mx-2 my-0.5"></div>
+
               {/* Utility Footer */}
               <div className="flex flex-col gap-0.5">
                 {contextMenuNode.isGhost && (
@@ -1540,10 +1785,10 @@ function App() {
         showDashboard && (
           <SeedsDashboard
             onLoadSeed={handleLoadSeed}
-            onSave={handleSaveSeed}
             onNewSeed={handleNewSeed}
             onClose={() => setShowDashboard(false)}
             currentSeedId={currentSeedFileId}
+            askConfirm={askConfirm}
           />
         )
       }
@@ -1581,14 +1826,16 @@ function App() {
       />
 
       {/* Seed Proposal Confirmation */}
-      {proposingSeed && (
-        <NexusConfirmDialog
-          suggestion={proposingSeed}
-          parentNodes={getSelectedNodes().length > 0 ? getSelectedNodes() : [data.nodes[0]]}
-          onConfirm={handleConfirmNexusSeed}
-          onCancel={() => setProposingSeed(null)}
-        />
-      )}
+      {
+        proposingSeed && (
+          <NexusConfirmDialog
+            suggestion={proposingSeed}
+            parentNodes={getSelectedNodes().length > 0 ? getSelectedNodes() : [data.nodes[0]]}
+            onConfirm={handleConfirmNexusSeed}
+            onCancel={() => setProposingSeed(null)}
+          />
+        )
+      }
 
       {/* Discovery Console Overlay */}
       {
@@ -1753,33 +2000,51 @@ function App() {
         )
       }
       {/* Notification Toast */}
-      {
-        notification && (
-          <div className="fixed bottom-24 right-6 z-50 animate-in slide-in-from-right-4 duration-300">
-            <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10 ring-1 ring-black/20 ${notification.type === 'error' ? 'bg-red-500/20 text-red-200 border-red-500/30' :
-              notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/30' :
-                'bg-slate-800/80 text-white'
-              }`}>
-              {notification.type === 'error' ? <AlertCircle size={20} className="text-red-400" /> :
-                notification.type === 'success' ? <CheckCircle2 size={20} className="text-emerald-400" /> :
-                  <Info size={20} className="text-sky-400" />}
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-widest font-bold opacity-60 mb-0.5">
-                  {notification.type === 'error' ? "System Failure" : "Notification"}
-                </span>
-                <p className="text-sm font-medium">{notification.message}</p>
-              </div>
-              <button
-                onClick={() => setNotification(null)}
-                className="ml-4 p-1 hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <X size={16} />
-              </button>
+      <WormholeSelector
+        isOpen={isWormholeSelectorOpen}
+        onClose={() => setIsWormholeSelectorOpen(false)}
+        onSelect={handleSelectWormholeTarget}
+        currentSeedId={currentSeedFileId}
+      />
+
+      {notification && (
+        <div className="fixed bottom-24 right-6 z-50 animate-in slide-in-from-right-4 duration-300">
+          <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10 ring-1 ring-black/20 ${notification.type === 'error' ? 'bg-red-500/20 text-red-200 border-red-500/30' :
+            notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/30' :
+              'bg-slate-800/80 text-white'
+            }`}>
+            {notification.type === 'error' ? <AlertCircle size={20} className="text-red-400" /> :
+              notification.type === 'success' ? <CheckCircle2 size={20} className="text-emerald-400" /> :
+                <Info size={20} className="text-sky-400" />}
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-widest font-bold opacity-60 mb-0.5">
+                {notification.type === 'error' ? "System Failure" : "Notification"}
+              </span>
+              <p className="text-sm font-medium">{notification.message}</p>
             </div>
+            <button
+              onClick={() => setNotification(null)}
+              className="ml-4 p-1 hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <X size={16} />
+            </button>
           </div>
-        )
-      }
-    </div >
+        </div>
+      )}
+      {/* Custom Confirmation Dialog */}
+      {confirmState && (
+        <ConfirmDialog
+          isOpen={confirmState.isOpen}
+          title={confirmState.title}
+          message={confirmState.message}
+          onConfirm={confirmState.onConfirm}
+          onCancel={() => setConfirmState(null)}
+          type={confirmState.type}
+          confirmText={confirmState.confirmText}
+          cancelText={confirmState.cancelText}
+        />
+      )}
+    </div>
   );
 }
 

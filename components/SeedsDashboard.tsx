@@ -7,9 +7,10 @@ interface SeedsDashboardProps {
     onNewSeed: () => void;
     onClose: () => void;
     currentSeedId?: string;
+    askConfirm: (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info', confirmText?: string) => void;
 }
 
-const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, onClose, currentSeedId }) => {
+const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, onClose, currentSeedId, askConfirm }) => {
     const [seeds, setSeeds] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -32,26 +33,32 @@ const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, 
 
     const handleDelete = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        if (confirm("Are you sure you want to delete this seed?")) {
-            // @ts-ignore
-            await window.api.db.deleteSeed(id);
-            loadList();
-        }
+        askConfirm(
+            "Delete Seed Space",
+            "Are you sure you want to permanently delete this Seed Space? All research, connections, and metadata within it will be lost forever.",
+            async () => {
+                // @ts-ignore
+                await window.api.db.deleteSeed(id);
+                loadList();
+            },
+            'danger',
+            "Delete Permanently"
+        );
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-8">
-            <div className="bg-slate-900 border border-slate-700/50 rounded-2xl w-full max-w-5xl h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-700/50 rounded-[28px] w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
 
                 {/* Header */}
-                <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <div className="px-5 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/20 rounded-lg">
-                            <LayoutGrid size={24} className="text-indigo-400" />
+                        <div className="p-2 bg-indigo-500/20 rounded-xl">
+                            <LayoutGrid size={20} className="text-indigo-400" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-semibold text-slate-100">Seeds Dashboard</h2>
-                            <p className="text-sm text-slate-400">Manage your exploration graphs</p>
+                            <h2 className="text-lg font-bold text-slate-100 leading-tight">Seed Spaces</h2>
+                            <p className="text-[10px] text-slate-400 font-medium">Manage your explorations</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
@@ -71,12 +78,12 @@ const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, 
                             {/* New Seed Card */}
                             <button
                                 onClick={onNewSeed}
-                                className="group flex flex-col items-center justify-center h-48 rounded-xl border-2 border-dashed border-slate-700 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all gap-3"
+                                className="group flex flex-col items-center justify-center h-40 rounded-[20px] border-2 border-dashed border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all gap-2"
                             >
-                                <div className="p-3 rounded-full bg-slate-800 group-hover:scale-110 transition-transform">
-                                    <Plus size={24} className="text-indigo-400" />
+                                <div className="p-2.5 rounded-full bg-slate-800 group-hover:scale-110 transition-transform">
+                                    <Plus size={20} className="text-indigo-400" />
                                 </div>
-                                <span className="font-medium text-slate-300">Create New Seed</span>
+                                <span className="text-sm font-bold text-slate-300">Create New Seed Space</span>
                             </button>
 
                             {/* Seed Cards */}
@@ -85,32 +92,32 @@ const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, 
                                     key={seed.id}
                                     onClick={() => onLoadSeed(seed.id)}
                                     className={`
-                                relative group flex flex-col h-48 rounded-xl border p-5 cursor-pointer transition-all
+                                relative group flex flex-col h-40 rounded-[20px] border p-4 cursor-pointer transition-all
                                 ${currentSeedId === seed.id ? 'bg-indigo-900/10 border-indigo-500/50 ring-1 ring-indigo-500/20' : 'bg-slate-800/50 border-slate-700 hover:border-slate-600 hover:bg-slate-800'}
                             `}
                                 >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="font-semibold text-lg text-slate-200 truncate pr-8">{seed.name}</h3>
+                                    <div className="flex justify-between items-start mb-1">
+                                        <h3 className="font-bold text-base text-slate-200 truncate pr-8 tracking-tight">{seed.name}</h3>
                                         {currentSeedId === seed.id && (
-                                            <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/20">Active</span>
+                                            <span className="text-[9px] font-bold bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/20 uppercase tracking-widest">Active</span>
                                         )}
                                     </div>
 
-                                    <p className="text-sm text-slate-500 mb-auto line-clamp-2">
-                                        {seed.nodeCount} node{seed.nodeCount !== 1 ? 's' : ''} in this graph.
+                                    <p className="text-[11px] text-slate-500 mb-auto line-clamp-2 leading-relaxed">
+                                        {seed.nodeCount} seed{seed.nodeCount !== 1 ? 's' : ''} in this space.
                                     </p>
 
-                                    <div className="mt-4 flex justify-between items-end pt-4 border-t border-slate-700/50">
-                                        <div className="text-xs text-slate-500 flex items-center gap-1.5">
-                                            <Clock size={12} />
+                                    <div className="mt-2 flex justify-between items-end pt-3 border-t border-slate-700/50">
+                                        <div className="text-[10px] text-slate-500 flex items-center gap-1.5">
+                                            <Clock size={10} />
                                             {new Date(seed.lastModified).toLocaleDateString()}
                                         </div>
                                         <button
                                             onClick={(e) => handleDelete(e, seed.id)}
                                             className="p-1.5 rounded-md text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-colors opacity-0 group-hover:opacity-100"
-                                            title="Delete Seed"
+                                            title="Delete Seed Space"
                                         >
-                                            <Trash2 size={16} />
+                                            <Trash2 size={14} />
                                         </button>
                                     </div>
                                 </div>

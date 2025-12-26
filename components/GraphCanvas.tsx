@@ -114,6 +114,16 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         .attr("stop-opacity", 0.4);
     });
 
+    // Wormhole Gradient
+    const wormholeGrad = defs.append("radialGradient")
+      .attr("id", "wormhole-grad")
+      .attr("cx", "50%")
+      .attr("cy", "50%")
+      .attr("r", "50%");
+    wormholeGrad.append("stop").attr("offset", "0%").attr("stop-color", "#8b5cf6").attr("stop-opacity", 0.9);
+    wormholeGrad.append("stop").attr("offset", "70%").attr("stop-color", "#4c1d95").attr("stop-opacity", 0.5);
+    wormholeGrad.append("stop").attr("offset", "100%").attr("stop-color", "#1e1b4b").attr("stop-opacity", 0);
+
     // Arrow Marker
     defs.append("marker")
       .attr("id", "arrow")
@@ -306,6 +316,14 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         .on("drag", dragged)
         .on("end", dragended));
 
+    // Wormhole Effect (Behind the node)
+    nodeEnter.append("circle")
+      .attr("class", "node-wormhole-vortex")
+      .attr("r", 0)
+      .attr("fill", "url(#wormhole-grad)")
+      .attr("opacity", 0)
+      .style("pointer-events", "none");
+
     // Nested Session Indicator (Outer Pulse)
     // We add this BEFORE the body so it sits behind
     nodeEnter.append("circle")
@@ -422,15 +440,32 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     const allNodes = nodeEnter.merge(nodeSelection);
 
+    // Update Wormhole Vortex
+    allNodes.select("circle.node-wormhole-vortex")
+      .attr("r", d => d.isWormhole ? (d.type === NodeType.TRACE ? 35 : 55) : 0)
+      .attr("opacity", d => d.isWormhole ? 0.8 : 0)
+      .each(function (d) {
+        if (d.isWormhole) {
+          d3.select(this)
+            .append("animateTransform")
+            .attr("attributeName", "transform")
+            .attr("type", "rotate")
+            .attr("from", "0 0 0")
+            .attr("to", "360 0 0")
+            .attr("dur", "4s")
+            .attr("repeatCount", "indefinite");
+        }
+      });
+
     // Update Nested Glow Indicator
     allNodes.select("circle.node-nested-glow")
       .attr("r", d => {
         const r = d.type === NodeType.TRACE ? 24 : 40;
         return d.isRoot ? r * 1.2 : r;
       })
-      .attr("opacity", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 0.7 : 0) // Increased base opacity
+      .attr("opacity", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 0.7 : 0)
       .attr("stroke", d => NODE_COLORS[d.type])
-      .attr("stroke-width", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 2.5 : 0) // Thicker stroke
+      .attr("stroke-width", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 2.5 : 0)
       .style("filter", "url(#nested-glow)");
 
     // Update Discovery Scanner

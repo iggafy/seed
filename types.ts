@@ -12,6 +12,10 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   isGhost?: boolean; // Hypothetical node from Discovery Mode
   isNew?: boolean;   // Animation flag
   isLuckyResult?: boolean; // Result of "I'm feeling lucky" flow
+  // Wormhole / Cross-Session Connectivity
+  isWormhole?: boolean;
+  targetSessionId?: string;
+  targetNodeId?: string;
   // D3 optional properties
   x?: number;
   y?: number;
