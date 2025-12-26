@@ -29,6 +29,7 @@ function App() {
 
   // Persistence State
   const [currentSeedFileId, setCurrentSeedFileId] = useState<string | undefined>(undefined);
+  const [currentSeedFileName, setCurrentSeedFileName] = useState<string | null>(null);
   const [showDashboard, setShowDashboard] = useState(false);
   const [isWormholeSelectorOpen, setIsWormholeSelectorOpen] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null);
@@ -215,6 +216,7 @@ function App() {
         }
 
         setCurrentSeedFileId(id);
+        setCurrentSeedFileName(finalName);
         if (!silent) {
           setNotification({ message: "Seed Space saved", type: 'success' });
           setTimeout(() => setNotification(null), 3000);
@@ -256,6 +258,7 @@ function App() {
       setData(seed.data);
       setSessionStack(seed.sessionStack || []);
       setCurrentSeedFileId(seed.id);
+      setCurrentSeedFileName(seed.name);
       setCurrentSessionId(generateId()); // Force re-render
       if (seed.sessionStack && seed.sessionStack.length > 0) {
         // Restore deep session name
@@ -274,6 +277,7 @@ function App() {
     setData({ nodes: [], links: [] });
     setSessionStack([]);
     setCurrentSeedFileId(undefined);
+    setCurrentSeedFileName(null);
     setCurrentSessionId('root');
     setCurrentSessionName('Root');
     setShowDashboard(false);
@@ -1376,8 +1380,22 @@ function App() {
                     <Share2 className="text-sky-400" size={20} />
                   </div>
                   <div>
-                    <h1 className="text-xl font-bold tracking-tight text-white leading-none">SEED</h1>
-                    <p className="text-[10px] text-sky-400 uppercase tracking-widest font-semibold mt-1">Shared Exploration & Emergent Discovery</p>
+                    {data.nodes.length === 0 && !currentSeedFileId ? (
+                      <>
+                        <h1 className="text-xl font-bold tracking-tight text-white leading-none">SEED</h1>
+                        <p className="text-[10px] text-sky-400 uppercase tracking-widest font-semibold mt-1">Shared Exploration & Emergent Discovery</p>
+                      </>
+                    ) : (
+                      <>
+                        <h1 className="text-xl font-bold tracking-tight text-white leading-none truncate max-w-[300px]">
+                          {currentSeedFileName || (data.nodes.length > 0 ? data.nodes[0].label : "Untethered Seed")}
+                        </h1>
+                        <p className="text-[10px] text-sky-400 uppercase tracking-widest font-semibold mt-1 inline-flex items-center gap-1.5">
+                          <Orbit size={10} className="animate-spin-slow" />
+                          Seed Space
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -1460,8 +1478,12 @@ function App() {
             <div className="bg-slate-900/95 border border-white/10 rounded-3xl p-8 max-w-2xl w-full shadow-2xl animate-in fade-in zoom-in duration-300 ring-1 ring-white/5" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-8">
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-1">SEED</h2>
-                  <p className="text-sky-400 text-sm font-semibold tracking-wider uppercase">Shared Exploration & Emergent Discovery</p>
+                  <h2 className="text-2xl font-bold text-white mb-1">
+                    {data.nodes.length === 0 && !currentSeedFileId ? "SEED" : (currentSeedFileName || (data.nodes.length > 0 ? data.nodes[0].label : "Untethered Seed"))}
+                  </h2>
+                  <p className="text-sky-400 text-sm font-semibold tracking-wider uppercase">
+                    {data.nodes.length === 0 && !currentSeedFileId ? "Shared Exploration & Emergent Discovery" : "Active Seed Space"}
+                  </p>
                 </div>
                 <button onClick={() => setShowInfo(false)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
                   <X size={20} />
