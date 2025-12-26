@@ -56,7 +56,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                     <div className="flex w-full gap-3">
                         <button
                             onClick={onCancel}
-                            className="px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-sm font-bold transition-all whitespace-nowrap"
+                            className="flex-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-sm font-bold transition-all whitespace-nowrap"
                         >
                             {cancelText}
                         </button>

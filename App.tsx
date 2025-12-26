@@ -30,7 +30,7 @@ function App() {
   // Persistence State
   const [currentSeedFileId, setCurrentSeedFileId] = useState<string | undefined>(undefined);
   const [currentSeedFileName, setCurrentSeedFileName] = useState<string | null>(null);
-  const [showDashboard, setShowDashboard] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(true);
   const [isWormholeSelectorOpen, setIsWormholeSelectorOpen] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null);
 
