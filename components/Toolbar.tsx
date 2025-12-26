@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Network, Filter, Info, GitMerge, Cpu, LayoutGrid, Save } from 'lucide-react';
+import { Plus, Network, Filter, Info, GitMerge, Cpu, LayoutGrid, Save, BrainCircuit } from 'lucide-react';
 
 interface ToolbarProps {
   onAddNode: () => void;
@@ -10,9 +10,11 @@ interface ToolbarProps {
   onToggleContextMode: () => void;
   onDashboard: () => void;
   onSave: () => void;
+  onToggleDiscovery: () => void;
   isFilterActive: boolean;
   isInfoOpen: boolean;
   isContextMode: boolean;
+  isDiscoveryActive: boolean;
   isProcessing: boolean;
   activeTypeCount: number;
 }
@@ -26,9 +28,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onToggleContextMode,
   onDashboard,
   onSave,
+  onToggleDiscovery,
   isFilterActive,
   isInfoOpen,
   isContextMode,
+  isDiscoveryActive,
   isProcessing
 }) => {
   return (
@@ -64,16 +68,32 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <div className="h-8 w-px bg-white/10 self-center mx-1" />
 
       {/* Mode Toggle */}
-      <button
-        onClick={onToggleContextMode}
-        className={`p-3.5 rounded-full shadow-lg border transition-all hover:scale-110 ${isContextMode
-          ? 'bg-violet-600/90 text-white border-violet-400/50 shadow-[0_0_20px_rgba(139,92,246,0.3)]'
-          : 'bg-slate-900/60 hover:bg-slate-800 backdrop-blur-md text-slate-400 border-white/10 hover:border-white/20'
-          }`}
-        title={`Contextual Lineage Mode: ${isContextMode ? 'ON' : 'OFF'}`}
-      >
-        <GitMerge size={20} className={isContextMode ? "" : "opacity-60"} />
-      </button>
+      <div className="flex bg-slate-900/60 backdrop-blur-md rounded-full shadow-lg border border-white/10 p-1 gap-2">
+        <button
+          onClick={onToggleContextMode}
+          className={`p-2.5 rounded-full transition-all ${isContextMode
+            ? 'bg-violet-600 text-white border-violet-400/50 shadow-[0_0_15px_rgba(139,92,246,0.3)]'
+            : 'text-slate-400 hover:text-slate-300'
+            }`}
+          title={`Contextual Lineage Mode: ${isContextMode ? 'ON' : 'OFF'}`}
+        >
+          <GitMerge size={20} />
+        </button>
+
+        <button
+          onClick={onToggleDiscovery}
+          className={`p-2.5 rounded-full transition-all ${isDiscoveryActive
+            ? 'bg-sky-500 text-white border-sky-400 shadow-[0_0_15px_rgba(14,165,233,0.4)]'
+            : 'text-slate-400 hover:text-slate-300'
+            }`}
+          title={`Autonomous Discovery Mode: ${isDiscoveryActive ? 'ON' : 'OFF'}`}
+        >
+          <div className="relative">
+            {isDiscoveryActive && <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-pulse" />}
+            <BrainCircuit size={20} />
+          </div>
+        </button>
+      </div>
 
       <div className="h-8 w-px bg-white/10 self-center mx-1" />
 
@@ -103,8 +123,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
       >
         <Info size={20} />
       </button>
-
-      <div className="h-8 w-px bg-white/10 self-center mx-1" />
 
       {/* Settings */}
       <button

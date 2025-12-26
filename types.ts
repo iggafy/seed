@@ -9,6 +9,8 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   isRoot?: boolean;
   // Nested Graph Persistence
   subGraphData?: GraphData;
+  isGhost?: boolean; // Hypothetical node from Discovery Mode
+  isNew?: boolean;   // Animation flag
   // D3 optional properties
   x?: number;
   y?: number;
@@ -20,6 +22,7 @@ export interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {
   source: string | GraphNode;
   target: string | GraphNode;
   relation: string; // e.g., "enables", "conflicts", "depends"
+  isGhost?: boolean; // Hypothetical link
   strength?: number;
 }
 
@@ -39,6 +42,10 @@ export enum NodeType {
   CONCEPT = 'CONCEPT',
   TECHNOLOGY = 'TECHNOLOGY',
   PROBLEM = 'PROBLEM',
+  PAIN_POINT = 'PAIN_POINT',
+  INNOVATION = 'INNOVATION',
+  CONSTRAINT = 'CONSTRAINT',
+  FRICTION = 'FRICTION',
   ENTITY = 'ENTITY', // Person, Company, etc.
   QUESTION = 'QUESTION',
   TRACE = 'TRACE' // New Analysis Node
@@ -49,6 +56,12 @@ export interface AISuggestion {
   type: NodeType;
   description: string;
   relationToParent: string;
+}
+
+export interface DiscoveryState {
+  isActive: boolean;
+  activeNodeId: string | null;
+  history: string[];
 }
 
 export enum AIProvider {

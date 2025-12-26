@@ -52,7 +52,7 @@
 
 ## Usage
 
-1.  **Start**: Click "I'm Feeling Unhinged" or "Add Custom Seed" to begin.
+1.  **Start**: Click "I'm feeling lucky" or "Add Custom Seed" to begin.
 2.  **Expand**: Right-click any node to Expand connections.
 3.  **Deepen**: Double-click a node to enter a focused "Nested Session".
 4.  **Save**: Use the Save icon in the toolbar to persist your work.

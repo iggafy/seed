@@ -10,10 +10,16 @@ interface GraphCanvasProps {
   onNodeContextMenu: (node: GraphNode | null, x: number, y: number) => void;
   selectedNodeIds: string[];
   sessionId: string; // Used to trigger reset on level change
+  activeDiscoveryNodeId?: string | null;
   layoutTrigger?: number;
 }
 
-const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoubleClick, onNodeContextMenu, selectedNodeIds, sessionId, layoutTrigger }) => {
+const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoubleClick, onNodeContextMenu,
+  selectedNodeIds,
+  sessionId,
+  activeDiscoveryNodeId,
+  layoutTrigger
+}) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -286,6 +292,16 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("stroke-width", 0)
       .attr("opacity", 0);
 
+    // Discovery Scanner (for active discovery node)
+    nodeEnter.append("circle")
+      .attr("class", "node-discovery-scanner")
+      .attr("r", 0)
+      .attr("fill", "none")
+      .attr("stroke", "#3b82f6") // Blue 500
+      .attr("stroke-width", 2)
+      .attr("opacity", 0)
+      .style("pointer-events", "none");
+
     // Node Body (The "Orb")
     // Use function for attributes to handle different node sizes immediately
     nodeEnter.append("circle")
@@ -362,29 +378,49 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("stroke-width", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 2.5 : 0) // Thicker stroke
       .style("filter", "url(#nested-glow)");
 
+    // Update Discovery Scanner
+    allNodes.select(".node-discovery-scanner")
+      .attr("opacity", d => (d.id === activeDiscoveryNodeId) ? 0.6 : 0)
+      .attr("r", d => (d.id === activeDiscoveryNodeId) ? 55 : 45);
+
+    // Dash ghost links
+    allLinks
+      .attr("stroke-dasharray", (l: any) => l.isGhost ? "5,5" : "none")
+      .attr("opacity", (l: any) => l.isGhost ? 0.4 : 1);
+
+    // Dash ghost nodes
+    allNodes.select("circle.node-body")
+      .attr("stroke-dasharray", d => d.isGhost ? "4,4" : "none")
+      .attr("stroke-width", d => d.isGhost ? 2 : 0) // Ghost nodes have a dashed stroke, normal nodes have 0
+      .attr("opacity", d => d.isGhost ? 0.7 : 1);
+
     // Add simple animation for the glow if it exists
     allNodes.each(function (d) {
       const glow = d3.select(this).select("circle.node-nested-glow");
-      const body = d3.select(this).select("circle.node-body");
+      const scanner = d3.select(this).select("circle.node-discovery-scanner");
 
-      // 1. Nested Pulse
+      // 1. Nested Pulse (Existing)
       if (d.subGraphData && d.subGraphData.nodes.length > 0) {
-        function pulse() {
-          glow.transition()
-            .duration(1500)
-            .attr("r", d => d.type === NodeType.TRACE ? (d.isRoot ? 28 * 1.2 : 28) : (d.isRoot ? 46 * 1.2 : 46))
-            .attr("opacity", 0.3)
-            .attr("stroke-width", 1.5)
-            .transition()
-            .duration(1500)
-            .attr("r", d => d.type === NodeType.TRACE ? (d.isRoot ? 24 * 1.2 : 24) : (d.isRoot ? 40 * 1.2 : 40))
-            .attr("opacity", 0.8)
-            .attr("stroke-width", 2.5)
-            .on("end", pulse);
+        if (glow.attr("data-pulsing") !== "true") {
+          glow.attr("data-pulsing", "true");
+          const pulse = () => {
+            glow.transition()
+              .duration(1500)
+              .attr("r", d => d.type === NodeType.TRACE ? (d.isRoot ? 28 * 1.2 : 28) : (d.isRoot ? 46 * 1.2 : 46))
+              .attr("opacity", 0.3)
+              .attr("stroke-width", 1.5)
+              .transition()
+              .duration(1500)
+              .attr("r", d => d.type === NodeType.TRACE ? (d.isRoot ? 24 * 1.2 : 24) : (d.isRoot ? 40 * 1.2 : 40))
+              .attr("opacity", 0.8)
+              .attr("stroke-width", 2.5)
+              .on("end", pulse);
+          };
+          pulse();
         }
-        pulse();
       } else {
         glow.interrupt();
+        glow.attr("data-pulsing", "false");
         glow.attr("opacity", 0);
       }
     });
@@ -485,11 +521,11 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     // 4. CONDITIONAL RESTART
     // Generate a fingerprint of the graph structure (IDs and connections)
     const structureFingerprint = JSON.stringify({
-      nodes: data.nodes.map(n => n.id),
+      nodes: data.nodes.map(n => ({ id: n.id, type: n.type })),
       links: data.links.map(l => {
         const s = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
         const t = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
-        return `${s}-${t}`;
+        return `${s}-${t}-${l.relation}`;
       })
     });
 
@@ -498,9 +534,6 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     if (isStructuralChange) {
       lastStructureRef.current = structureFingerprint;
       simulation.alpha(0.3).restart();
-    } else {
-      // Just update visual elements without boosting alpha
-      simulation.alpha(0.01).restart(); // Minimal nudge to ensure nodes align if they moved slightly
     }
 
     // Drag Handlers

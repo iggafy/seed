@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile } from './types';
+import { DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile } from './types';
 import GraphCanvas from './components/GraphCanvas';
 import Sidebar from './components/Sidebar';
 import Toolbar from './components/Toolbar';
 import SettingsModal from './components/SettingsModal';
 import SeedsDashboard from './components/SeedsDashboard';
 import { INITIAL_DATA, NOVEL_SEEDS, NODE_ICONS, NODE_COLORS, RELATION_OPTIONS } from './constants';
-import { expandConcept, expandConceptTargeted, generateSynergyNode, generateRandomSeedNode, analyzeNodeLineage, generateInnovationOpportunity } from './services/aiService';
-import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu } from 'lucide-react';
+import { expandConcept, expandConceptTargeted, generateSynergyNode, generateRandomSeedNode, generateInnovationOpportunity, solveProblem, answerQuestion, performDiscoveryPulse, traceLineageAnalysis } from './services/aiService';
+import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit } from 'lucide-react';
 
 // Utility to generate UUIDs locally
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -48,6 +48,13 @@ function App() {
     model: ''
   });
 
+  // Discovery Mode State
+  const [discoveryState, setDiscoveryState] = useState<DiscoveryState>({
+    isActive: false,
+    activeNodeId: null,
+    history: []
+  });
+
   // Load Settings from LocalStorage
   useEffect(() => {
     const stored = localStorage.getItem('seed_ai_settings');
@@ -66,6 +73,58 @@ function App() {
     setAiSettings(newSettings);
     localStorage.setItem('seed_ai_settings', JSON.stringify(newSettings));
   };
+
+  // --- KEYBOARD SHORTCUTS ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const selectedNodes = data.nodes.filter(n => selectedNodeIds.includes(n.id));
+
+      if (selectedNodes.length === 1) {
+        const node = selectedNodes[0];
+
+        // 'i' for Innovate
+        if (e.key.toLowerCase() === 'i' && (node.type === NodeType.TECHNOLOGY || node.type === NodeType.INNOVATION)) {
+          handleInnovateNode(node);
+        }
+        // 's' for Solve
+        else if (e.key.toLowerCase() === 's' && (node.type === NodeType.PROBLEM || node.type === NodeType.PAIN_POINT)) {
+          handleSolveProblem(node);
+        }
+        // 'a' for Answer
+        else if (e.key.toLowerCase() === 'a' && node.type === NodeType.QUESTION) {
+          handleAnswerQuestion(node);
+        }
+        // 'e' for Expand (Quick)
+        else if (e.key.toLowerCase() === 'e') {
+          handleExpandNode(node);
+        }
+      }
+
+      // 'Delete' or 'Backspace' to delete selected nodes
+      if (e.key === 'Delete' || (e.key === 'Backspace' && (e.metaKey || e.ctrlKey))) {
+        if (selectedNodeIds.length > 0) {
+          if (confirm(`Delete ${selectedNodeIds.length} selected seed(s)?`)) {
+            selectedNodeIds.forEach(id => handleDeleteNode(id));
+            setSelectedNodeIds([]);
+          }
+        }
+      }
+
+      // 'Escape' to clear selection
+      if (e.key === 'Escape') {
+        setSelectedNodeIds([]);
+        setContextMenuNode(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNodeIds, data, aiSettings, isProcessing]); // Dependencies to ensure handlers have latest state
 
   // --- PERSISTENCE HANDLERS ---
 
@@ -145,6 +204,97 @@ function App() {
   const [newNodeDescription, setNewNodeDescription] = useState("");
   const [newNodeType, setNewNodeType] = useState<NodeType>(NodeType.CONCEPT);
   const [newNodeRelation, setNewNodeRelation] = useState(RELATION_OPTIONS[0]);
+
+  // --- DISCOVERY AGENT LOOP ---
+  useEffect(() => {
+    if (!discoveryState.isActive) return;
+
+    let timer: any;
+    const runPulse = async () => {
+      // Pick a random node to "scan"
+      const nodes = data.nodes.filter(n => !n.isGhost);
+      if (nodes.length === 0) return;
+      const target = nodes[Math.floor(Math.random() * nodes.length)];
+
+      setDiscoveryState(prev => ({ ...prev, activeNodeId: target.id }));
+
+      const nodesString = data.nodes.map(n => `- ${n.label} (${n.type})`).join('\n');
+      const linksString = data.links.map(l => {
+        const sourceLabel = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as any).id : l.source))?.label;
+        const targetLabel = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as any).id : l.target))?.label;
+        return `- ${sourceLabel} --[${l.relation}]--> ${targetLabel}`;
+      }).join('\n');
+      const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+
+      // AI Thinking delay simulation
+      await new Promise(r => setTimeout(r, 2000));
+
+      const suggestion = await performDiscoveryPulse(aiSettings, fullGraphContext, data.nodes);
+
+      if (suggestion && discoveryState.isActive) {
+        const newNodeId = generateId();
+        const newNode: GraphNode = {
+          id: newNodeId,
+          label: suggestion.label,
+          type: suggestion.type,
+          description: suggestion.description,
+          isGhost: true, // Mark as hypothetical
+          isNew: true,
+          x: (target.x || 0) + (Math.random() - 0.5) * 300,
+          y: (target.y || 0) + (Math.random() - 0.5) * 300
+        };
+
+        const newLink = {
+          source: target.id,
+          target: newNodeId,
+          relation: suggestion.relationToParent || "hypothesized",
+          isGhost: true
+        };
+
+        setData(prev => ({
+          nodes: [...prev.nodes, newNode],
+          links: [...prev.links, newLink]
+        }));
+
+        setDiscoveryState(prev => ({
+          ...prev,
+          history: [`Discovered: ${suggestion.label} (${suggestion.type})`, ...prev.history].slice(0, 10)
+        }));
+      }
+
+      setDiscoveryState(prev => ({ ...prev, activeNodeId: null }));
+
+      // Delay before next pulse
+      if (discoveryState.isActive) {
+        timer = setTimeout(runPulse, 5000);
+      }
+    };
+
+    timer = setTimeout(runPulse, 2000);
+    return () => clearTimeout(timer);
+  }, [discoveryState.isActive, data, aiSettings]);
+
+  const handleAssimilateNode = (nodeId: string) => {
+    setData(prev => ({
+      ...prev,
+      nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, isGhost: false, isNew: false } : n),
+      links: prev.links.map(l => {
+        const targetId = typeof l.target === 'object' ? (l.target as any).id : l.target;
+        return targetId === nodeId ? { ...l, isGhost: false } : l;
+      })
+    }));
+  };
+
+  const handlePruneNode = (nodeId: string) => {
+    setData(prev => ({
+      nodes: prev.nodes.filter(n => n.id !== nodeId),
+      links: prev.links.filter(l => {
+        const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+        const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+        return s !== nodeId && t !== nodeId;
+      })
+    }));
+  };
 
   // Helpers
   const getSelectedNodes = () => {
@@ -411,7 +561,7 @@ function App() {
     const ancestry = getNodeLineage(node.id);
     const fullPath = ancestry ? `${ancestry} -> ${node.label}` : node.label;
 
-    const analysis = await analyzeNodeLineage(aiSettings, node.label, node.description || "", fullPath);
+    const analysis = await traceLineageAnalysis(aiSettings, node.label, node.description || "", fullPath);
 
     if (analysis) {
       const newNodeId = generateId();
@@ -469,6 +619,92 @@ function App() {
       };
 
       const newLink = { source: node.id, target: newNodeId, relation: "facilitates" };
+
+      setData(prev => ({
+        nodes: [...prev.nodes, newNode],
+        links: [...prev.links, newLink]
+      }));
+
+      setSelectedNodeIds([newNodeId]);
+    }
+    setIsProcessing(false);
+  };
+
+  const handleSolveProblem = async (node: GraphNode) => {
+    setIsProcessing(true);
+
+    const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
+    const linksString = data.links.map(l => {
+      const source = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
+      const target = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
+      return `- ${source} --[${l.relation}]--> ${target}`;
+    }).join('\n');
+
+    const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+
+    const solution = await solveProblem(
+      aiSettings,
+      node.label,
+      node.description || "",
+      node.type,
+      fullGraphContext
+    );
+
+    if (solution) {
+      const newNodeId = generateId();
+      const newNode: GraphNode = {
+        id: newNodeId,
+        label: solution.label,
+        type: solution.type,
+        description: solution.description,
+        x: (node.x || 0) + 120,
+        y: (node.y || 0) + 120
+      };
+
+      const newLink = { source: node.id, target: newNodeId, relation: "solved by" };
+
+      setData(prev => ({
+        nodes: [...prev.nodes, newNode],
+        links: [...prev.links, newLink]
+      }));
+
+      setSelectedNodeIds([newNodeId]);
+    }
+    setIsProcessing(false);
+  };
+
+  const handleAnswerQuestion = async (node: GraphNode) => {
+    setIsProcessing(true);
+
+    const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
+    const linksString = data.links.map(l => {
+      const source = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
+      const target = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
+      return `- ${source} --[${l.relation}]--> ${target}`;
+    }).join('\n');
+
+    const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+
+    const answer = await answerQuestion(
+      aiSettings,
+      node.label,
+      node.description || "",
+      node.type,
+      fullGraphContext
+    );
+
+    if (answer) {
+      const newNodeId = generateId();
+      const newNode: GraphNode = {
+        id: newNodeId,
+        label: answer.label,
+        type: answer.type,
+        description: answer.description,
+        x: (node.x || 0) + 120,
+        y: (node.y || 0) + 120
+      };
+
+      const newLink = { source: node.id, target: newNodeId, relation: "answered by" };
 
       setData(prev => ({
         nodes: [...prev.nodes, newNode],
@@ -826,6 +1062,7 @@ function App() {
           onNodeContextMenu={handleNodeContextMenu}
           selectedNodeIds={selectedNodeIds}
           sessionId={currentSessionId}
+          activeDiscoveryNodeId={discoveryState.activeNodeId}
           layoutTrigger={layoutTrigger}
         />
 
@@ -889,10 +1126,12 @@ function App() {
                           <div className="text-sm font-bold text-slate-200">{type}</div>
                           <div className="text-[10px] text-slate-500 leading-tight">
                             {type === NodeType.CONCEPT && "Abstract ideas & theories"}
-                            {type === NodeType.TECHNOLOGY && "Tools, methods, hardware"}
-                            {type === NodeType.PROBLEM && "Bottlenecks, risks, paradoxes"}
+                            {type === NodeType.TECHNOLOGY && "Existing tools & platforms"}
+                            {type === NodeType.PROBLEM && "Technical bottlenecks & risks"}
+                            {type === NodeType.PAIN_POINT && "Real-world friction & needs"}
+                            {type === NodeType.INNOVATION && "Breakthrough solutions"}
                             {type === NodeType.ENTITY && "People, companies, orgs"}
-                            {type === NodeType.QUESTION && "Research inquiries, unknowns"}
+                            {type === NodeType.QUESTION && "Research inquiries & unknowns"}
                             {type === NodeType.TRACE && "Historical analysis path"}
                           </div>
                         </div>
@@ -920,12 +1159,39 @@ function App() {
                     </ul>
                   </div>
 
-                  <div className="bg-slate-800/30 rounded-xl p-4 border border-white/5">
-                    <h4 className="text-xs font-bold text-white mb-2">About Context Mode</h4>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      When <span className="text-violet-400">Context Lineage</span> is active, the AI is aware of the path you took to reach a node.
-                      A node created from "Biology" -&gt; "Computing" is different from one created from "Mathematics" -&gt; "Computing".
-                    </p>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase text-slate-500 tracking-wider mb-3 border-b border-white/5 pb-2">Power Shortcuts</h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Innovate</span>
+                          <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-violet-400 font-mono">I</kbd>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Solve Problem</span>
+                          <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-emerald-400 font-mono">S</kbd>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Answer Question</span>
+                          <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-amber-400 font-mono">A</kbd>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Quick Expand</span>
+                          <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-sky-400 font-mono">E</kbd>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Delete Seed</span>
+                          <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-red-400 font-mono">DEL</kbd>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-800/30 rounded-xl p-4 border border-white/5">
+                      <h4 className="text-xs font-bold text-white mb-2">About Context Mode</h4>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        When <span className="text-violet-400">Context Lineage</span> is active, the AI is aware of the path you took to reach a node.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -973,16 +1239,44 @@ function App() {
                 </div>
               </button>
 
-              <button
-                onClick={(e) => { e.stopPropagation(); handleInnovateNode(contextMenuNode); setContextMenuNode(null); }}
-                className="p-2 hover:bg-violet-500/20 hover:text-violet-200 rounded-xl text-slate-300 transition-all flex items-center gap-3 text-sm text-left group"
-              >
-                <Cpu size={16} className="text-violet-500 group-hover:text-violet-300" />
-                <div className="flex flex-col leading-none gap-1">
-                  <span>Innovate</span>
-                  <span className="text-[9px] text-slate-500 group-hover:text-violet-200/70">Structural breakthrough</span>
-                </div>
-              </button>
+              {(contextMenuNode.type === NodeType.TECHNOLOGY || contextMenuNode.type === NodeType.INNOVATION) && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleInnovateNode(contextMenuNode); setContextMenuNode(null); }}
+                  className="p-2 hover:bg-violet-500/20 hover:text-violet-200 rounded-xl text-slate-300 transition-all flex items-center gap-3 text-sm text-left group"
+                >
+                  <Cpu size={16} className="text-violet-500 group-hover:text-violet-300" />
+                  <div className="flex flex-col leading-none gap-1">
+                    <span>Innovate</span>
+                    <span className="text-[9px] text-slate-500 group-hover:text-violet-200/70">Structural breakthrough</span>
+                  </div>
+                </button>
+              )}
+
+              {(contextMenuNode.type === NodeType.PROBLEM || contextMenuNode.type === NodeType.PAIN_POINT) && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleSolveProblem(contextMenuNode); setContextMenuNode(null); }}
+                  className="p-2 hover:bg-emerald-500/20 hover:text-emerald-200 rounded-xl text-slate-300 transition-all flex items-center gap-3 text-sm text-left group"
+                >
+                  <CheckCircle2 size={16} className="text-emerald-500 group-hover:text-emerald-300" />
+                  <div className="flex flex-col leading-none gap-1">
+                    <span>Solve</span>
+                    <span className="text-[9px] text-slate-500 group-hover:text-emerald-200/70">Propose solution</span>
+                  </div>
+                </button>
+              )}
+
+              {contextMenuNode.type === NodeType.QUESTION && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleAnswerQuestion(contextMenuNode); setContextMenuNode(null); }}
+                  className="p-2 hover:bg-amber-500/20 hover:text-amber-200 rounded-xl text-slate-300 transition-all flex items-center gap-3 text-sm text-left group"
+                >
+                  <Zap size={16} className="text-amber-500 group-hover:text-amber-300" />
+                  <div className="flex flex-col leading-none gap-1">
+                    <span>Answer</span>
+                    <span className="text-[9px] text-slate-500 group-hover:text-amber-200/70">Functional breakthrough</span>
+                  </div>
+                </button>
+              )}
 
               <div className="h-px bg-white/5 my-1 mx-2"></div>
 
@@ -1002,6 +1296,23 @@ function App() {
                 <PlusCircle size={16} className="text-violet-500 group-hover:text-violet-300" />
                 <span>Add Custom...</span>
               </button>
+              {/* Persistence Actions */}
+              <div className="flex gap-1 border-t border-white/5 pt-2 mt-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDeleteNode(contextMenuNode.id); setContextMenuNode(null); }}
+                  className="flex-1 p-2 hover:bg-red-500/20 hover:text-red-300 rounded-xl text-slate-400 transition-all flex items-center justify-center gap-2 text-xs"
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
+                {contextMenuNode.isGhost && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleAssimilateNode(contextMenuNode.id); setContextMenuNode(null); }}
+                    className="flex-1 p-2 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 rounded-xl transition-all flex items-center justify-center gap-2 text-xs"
+                  >
+                    <CheckCircle2 size={14} /> Assimilate
+                  </button>
+                )}
+              </div>
 
               <div className="h-px bg-white/5 my-1 mx-2"></div>
 
@@ -1010,29 +1321,39 @@ function App() {
                 className="p-2 hover:bg-sky-500/20 hover:text-sky-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
               >
                 <Sparkles size={16} className="text-sky-500 group-hover:text-sky-300" />
-                <span>Expand All</span>
+                <span>Quick Expand</span>
               </button>
 
               <button
-                onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'enables', 1); setContextMenuNode(null); }}
-                className="p-2 hover:bg-emerald-500/20 hover:text-emerald-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
-              >
-                <Zap size={16} className="text-emerald-500 group-hover:text-emerald-300" />
-                <span>Enable...</span>
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'conflicts with', 1); setContextMenuNode(null); }}
+                onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'reveals problem', 1); setContextMenuNode(null); }}
                 className="p-2 hover:bg-red-500/20 hover:text-red-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
               >
-                <GitBranch size={16} className="text-red-500 group-hover:text-red-300" />
-                <span>Conflict...</span>
+                <AlertCircle size={16} className="text-red-500 group-hover:text-red-300" />
+                <span>Identify Problem</span>
               </button>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'triggers pain point', 1); setContextMenuNode(null); }}
+                className="p-2 hover:bg-rose-500/20 hover:text-rose-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
+              >
+                <Heart size={16} className="text-rose-500 group-hover:text-rose-300" />
+                <span>Identify Pain Point</span>
+              </button>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'leverages technology', 1); setContextMenuNode(null); }}
+                className="p-2 hover:bg-emerald-500/20 hover:text-emerald-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
+              >
+                <Cpu size={16} className="text-emerald-500 group-hover:text-emerald-300" />
+                <span>Explore Tech</span>
+              </button>
+
               <button
                 onClick={(e) => { e.stopPropagation(); handleExpandNodeSingle(contextMenuNode, 'questions', 1); setContextMenuNode(null); }}
                 className="p-2 hover:bg-amber-500/20 hover:text-amber-200 rounded-xl text-slate-300 transition-colors flex items-center gap-3 text-sm text-left group"
               >
                 <MessageCircle size={16} className="text-amber-500 group-hover:text-amber-300" />
-                <span>Question...</span>
+                <span>Ask Question</span>
               </button>
 
               <div className="h-px bg-white/5 my-1 mx-2"></div>
@@ -1082,7 +1403,7 @@ function App() {
                   className={`px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-violet-900/20 hover:shadow-violet-500/40 flex items-center gap-2 hover:-translate-y-1 ${isGeneratingSeed ? 'opacity-80 cursor-wait' : ''}`}
                 >
                   {isGeneratingSeed ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-                  {isGeneratingSeed ? 'Generating...' : "I’m Feeling Unhinged"}
+                  {isGeneratingSeed ? 'Generating...' : "I'm feeling lucky"}
                 </button>
               </div>
             </div>
@@ -1093,15 +1414,17 @@ function App() {
       <Toolbar
         onAddNode={handleAddCustomNode}
         onStructureView={() => setLayoutTrigger(prev => prev + 1)}
-        onToggleSettings={() => { setShowSettings(!showSettings); setShowFilterMenu(false); setShowInfo(false); }}
-        onToggleFilterMenu={() => { setShowFilterMenu(!showFilterMenu); setShowInfo(false); setShowSettings(false); }}
-        onToggleInfo={() => { setShowInfo(!showInfo); setShowFilterMenu(false); setShowSettings(false); }}
+        onToggleSettings={() => setShowSettings(true)}
+        onToggleFilterMenu={() => setShowFilterMenu(!showFilterMenu)}
+        onToggleInfo={() => setShowInfo(!showInfo)}
         onToggleContextMode={() => setIsContextMode(!isContextMode)}
         onDashboard={() => setShowDashboard(true)}
         onSave={handleSaveSeed}
+        onToggleDiscovery={() => setDiscoveryState(prev => ({ ...prev, isActive: !prev.isActive }))}
         isFilterActive={hiddenTypes.length > 0}
         isInfoOpen={showInfo}
         isContextMode={isContextMode}
+        isDiscoveryActive={discoveryState.isActive}
         isProcessing={isProcessing}
         activeTypeCount={0}
       />
@@ -1116,6 +1439,7 @@ function App() {
       {showDashboard && (
         <SeedsDashboard
           onLoadSeed={handleLoadSeed}
+          onSave={handleSaveSeed}
           onNewSeed={handleNewSeed}
           onClose={() => setShowDashboard(false)}
           currentSeedId={currentSeedFileId}
@@ -1133,8 +1457,48 @@ function App() {
         onUpdateNode={handleUpdateNode}
         onDeleteNode={handleDeleteNode}
         onRegenerateNode={handleRegenerateNode}
+        onInnovate={handleInnovateNode}
+        onSolve={handleSolveProblem}
+        onAnswer={handleAnswerQuestion}
         isProcessing={isProcessing}
+        onAssimilate={handleAssimilateNode}
+        onPrune={handlePruneNode}
       />
+
+      {/* Discovery Console Overlay */}
+      {discoveryState.isActive && (
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-top-4 duration-500">
+          <div className="bg-slate-900/60 backdrop-blur-xl border border-sky-500/30 rounded-full px-6 py-2.5 shadow-[0_0_30px_rgba(14,165,233,0.2)] flex items-center gap-6 ring-1 ring-white/10">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 bg-sky-500 rounded-full animate-ping opacity-20"></div>
+                <BrainCircuit className="text-sky-400 relative z-10" size={20} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-sky-500/70 leading-none">Autonomous Gardener</span>
+                <span className="text-xs text-white font-medium">Scanning Innovation Fog...</span>
+              </div>
+            </div>
+
+            <div className="h-6 w-px bg-white/10" />
+
+            <div className="flex items-center gap-2">
+              {discoveryState.history.slice(0, 1).map((item, i) => (
+                <span key={i} className="text-xs text-slate-400 animate-in fade-in slide-in-from-right-2 line-clamp-1 max-w-[200px]">
+                  {item}
+                </span>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setDiscoveryState(prev => ({ ...prev, isActive: false }))}
+              className="ml-2 p-1.5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-full transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Add Node Modal Overlay - Glass Style */}
       {isAddingNode && (
