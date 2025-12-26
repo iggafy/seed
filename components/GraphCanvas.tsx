@@ -205,18 +205,28 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     const simulation = simulationRef.current;
     const g = gRef.current;
 
-    const currentNodes = simulation.nodes();
-    const nodeMap = new Map(currentNodes.map(n => [n.id, n]));
+    const currentNodes = simulation.nodes() as GraphNode[];
+    const nodeMap = new Map<string, GraphNode>(currentNodes.map(n => [n.id, n]));
 
     const nodes = data.nodes.map(n => {
-      const existing = nodeMap.get(n.id);
+      const existing = nodeMap.get(n.id) as GraphNode | undefined;
       if (existing) {
-        // Explicitly handle properties that might be stripped via JSON.stringify (like undefined)
-        const merged = Object.assign(existing, n);
+        // Capture current simulation state to avoid snapping to stale positions in React data.nodes
+        const { x, y, vx, vy, fx, fy } = existing;
+        // Merge newest properties from props
+        Object.assign(existing, n);
+        // Restore simulation state
+        existing.x = x;
+        existing.y = y;
+        existing.vx = vx;
+        existing.vy = vy;
+        existing.fx = fx;
+        existing.fy = fy;
+
         if (!n.hasOwnProperty('subGraphData')) {
-          merged.subGraphData = undefined;
+          existing.subGraphData = undefined;
         }
-        return merged;
+        return existing;
       }
       return { ...n };
     });

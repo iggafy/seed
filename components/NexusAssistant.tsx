@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, X, MessageSquare, Plus, Network, Loader2, Sparkles, User, Bot, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { ChatMessage, GraphNode, AISuggestion, NodeType } from '../types';
 
 interface NexusAssistantProps {
@@ -42,7 +43,7 @@ const NexusAssistant: React.FC<NexusAssistantProps> = ({
     };
 
     return (
-        <div className="fixed bottom-24 right-6 w-[450px] h-[600px] z-[100] flex flex-col bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in slide-in-from-bottom-5 duration-300 ring-1 ring-white/5">
+        <div className="absolute right-4 top-4 w-96 max-h-[calc(100vh-2rem)] h-[calc(100vh-2rem)] z-30 flex flex-col bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in slide-in-from-right-10 duration-300 ring-1 ring-white/5">
             {/* Header */}
             <div className="p-4 border-b border-white/5 bg-slate-800/20 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -114,12 +115,26 @@ const NexusAssistant: React.FC<NexusAssistantProps> = ({
                         </div>
 
                         <div className="flex flex-col gap-2 max-w-[85%]">
-                            <div className={`p-3 rounded-2xl text-xs leading-relaxed transition-all
+                            <div className={`p-3 rounded-2xl text-xs leading-relaxed transition-all markdown-content
                 ${m.role === 'user'
                                     ? 'bg-slate-800 text-slate-200 rounded-tr-none'
                                     : 'bg-slate-800/40 text-slate-300 border border-white/5 rounded-tl-none shadow-xl'}`}
                             >
-                                {m.content}
+                                <ReactMarkdown
+                                    components={{
+                                        p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                                        h1: ({ node, ...props }) => <h1 className="text-sm font-bold mt-3 mb-1 text-white" {...props} />,
+                                        h2: ({ node, ...props }) => <h2 className="text-sm font-bold mt-3 mb-1 text-white" {...props} />,
+                                        h3: ({ node, ...props }) => <h3 className="text-xs font-bold mt-2 mb-1 text-white uppercase tracking-wider" {...props} />,
+                                        ul: ({ node, ...props }) => <ul className="list-disc ml-4 mb-2 space-y-1" {...props} />,
+                                        ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mb-2 space-y-1" {...props} />,
+                                        li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                                        strong: ({ node, ...props }) => <strong className="font-bold text-indigo-300" {...props} />,
+                                        code: ({ node, ...props }) => <code className="bg-slate-900/50 px-1 rounded text-[10px] font-mono" {...props} />,
+                                    }}
+                                >
+                                    {m.content}
+                                </ReactMarkdown>
                             </div>
 
                             {/* Proactive Suggestion Block */}

@@ -38,7 +38,8 @@
     "lucide-react": "^0.562.0",
     "openai": "^6.15.0",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "react-markdown": "^10.1.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",
