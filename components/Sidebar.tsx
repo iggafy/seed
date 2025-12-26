@@ -32,6 +32,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onExpandSingle,
   onAnalyzeSynergy,
   onConnectNodes,
+  onUpdateLink,
+  onDeleteLink,
   onUpdateNode,
   onDeleteNodes,
   onKeepLucky,
