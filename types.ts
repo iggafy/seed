@@ -15,6 +15,8 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   // D3 optional properties
   x?: number;
   y?: number;
+  vx?: number;
+  vy?: number;
   fx?: number | null;
   fy?: number | null;
 }

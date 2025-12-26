@@ -27,7 +27,21 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
   const simulationRef = useRef<d3.Simulation<GraphNode, GraphLink> | null>(null);
   const gRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
-  const lastStructureRef = useRef<string>(""); // JSON fingerprint of nodes/links IDs
+  const lastStructureRef = useRef<string>(""); // JSON fingerprint
+  const lastTriggerRef = useRef<number>(0);
+  const lastSessionRef = useRef<string>("");
+
+  // Memoize structure to detect adds/deletes
+  const structureFingerprint = React.useMemo(() => {
+    return JSON.stringify({
+      nodes: data.nodes.map(n => ({ id: n.id, type: n.type })),
+      links: data.links.map(l => {
+        const s = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
+        const t = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
+        return `${s}-${t}-${l.relation}`;
+      })
+    });
+  }, [data.nodes, data.links]);
 
   // Initialize graph structure once
   useEffect(() => {
@@ -148,41 +162,30 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     };
   }, []); // Run once on mount
 
-  // Reset Zoom/Center when Session Changes
+  // Handle Structure View (Relayout) and Session Transitions
   useEffect(() => {
     if (!svgRef.current || !zoomRef.current || !containerRef.current) return;
 
     const svg = d3.select(svgRef.current);
-    svg.transition().duration(750).call(zoomRef.current.transform, d3.zoomIdentity);
+    const isManualTrigger = layoutTrigger !== lastTriggerRef.current;
+    const isSessionChange = sessionId !== lastSessionRef.current;
+    const isStructuralChange = structureFingerprint !== lastStructureRef.current;
 
-    if (simulationRef.current) {
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
-      simulationRef.current.force("center", d3.forceCenter(width / 2, height / 2));
-      simulationRef.current.alpha(1).restart();
+    // 1. Reset Zoom on manual trigger or session change
+    if (isManualTrigger || isSessionChange) {
+      svg.transition().duration(sessionId === 'root' && !isManualTrigger ? 0 : 1000).call(zoomRef.current.transform, d3.zoomIdentity);
     }
-  }, [sessionId]);
 
-  // Handle Structure View (Relayout)
-  useEffect(() => {
-    if (layoutTrigger === 0) return;
-    if (!svgRef.current || !zoomRef.current || !containerRef.current) return;
-
-    const svg = d3.select(svgRef.current);
-    // 1. Reset Zoom with transition
-    svg.transition().duration(1000).call(zoomRef.current.transform, d3.zoomIdentity);
-
-    // 2. Restart simulation with fresh energy
-    if (simulationRef.current) {
+    // 2. Restart simulation with fresh energy for any structural or layout event
+    if (simulationRef.current && (isManualTrigger || isSessionChange || isStructuralChange)) {
       const width = containerRef.current.clientWidth;
       const height = containerRef.current.clientHeight;
 
-      // Ensure center force is correct
       simulationRef.current.force("center", d3.forceCenter(width / 2, height / 2));
 
       // Temporarily boost repulsion/collision to "un-entangle"
       const charge = simulationRef.current.force("charge") as d3.ForceManyBody<GraphNode>;
-      if (charge) charge.strength(-1500); // Stronger repulsion temporarily
+      if (charge) charge.strength(-1500);
 
       simulationRef.current.alpha(1).restart();
 
@@ -195,7 +198,13 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         }
       }, 1000);
     }
-  }, [layoutTrigger]);
+
+    // Sync refs
+    lastTriggerRef.current = layoutTrigger || 0;
+    lastSessionRef.current = sessionId;
+    lastStructureRef.current = structureFingerprint;
+
+  }, [layoutTrigger, sessionId, structureFingerprint]);
 
 
   // Update Data and Simulation
@@ -573,23 +582,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         .attr("transform", d => `translate(${d.x},${d.y})`);
     });
 
-    // 4. CONDITIONAL RESTART
-    // Generate a fingerprint of the graph structure (IDs and connections)
-    const structureFingerprint = JSON.stringify({
-      nodes: data.nodes.map(n => ({ id: n.id, type: n.type })),
-      links: data.links.map(l => {
-        const s = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
-        const t = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
-        return `${s}-${t}-${l.relation}`;
-      })
-    });
-
-    const isStructuralChange = structureFingerprint !== lastStructureRef.current;
-
-    if (isStructuralChange) {
-      lastStructureRef.current = structureFingerprint;
-      simulation.alpha(0.3).restart();
-    }
+    // Structural change check is now handled in the layout effect
 
     // Drag Handlers
     function dragstarted(event: any, d: GraphNode) {
