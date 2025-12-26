@@ -27,11 +27,16 @@ function App() {
   const [future, setFuture] = useState<GraphData[]>([]);
 
   const recordHistory = useCallback(() => {
-    setPast(prev => {
-      const newPast = [...prev, JSON.parse(JSON.stringify(data))];
-      return newPast.slice(-10); // Keep last 10 turns
-    });
-    setFuture([]); // Clear redo stack on new action
+    try {
+      const snapshot = JSON.parse(JSON.stringify(data));
+      setPast(prev => {
+        const newPast = [...prev, snapshot];
+        return newPast.slice(-10); // Keep last 10 turns
+      });
+      setFuture([]); // Clear redo stack on new action
+    } catch (e) {
+      console.warn("Failed to record history snapshot:", e);
+    }
   }, [data]);
 
   const handleUndo = useCallback(() => {
@@ -1114,8 +1119,14 @@ function App() {
       links: prev.links.map(l => {
         const sId = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
         const tId = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
-        if (sId === sourceId && tId === targetId) {
-          return { ...l, relation };
+        // Match in either direction to be robust, but preserve the internal source/target if possible
+        if ((sId === sourceId && tId === targetId) || (sId === targetId && tId === sourceId)) {
+          return {
+            ...l,
+            source: sId,
+            target: tId,
+            relation
+          };
         }
         return l;
       })
@@ -1129,7 +1140,7 @@ function App() {
       links: prev.links.filter(l => {
         const sId = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
         const tId = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
-        return !(sId === sourceId && tId === targetId);
+        return !((sId === sourceId && tId === targetId) || (sId === targetId && tId === sourceId));
       })
     }));
   };
