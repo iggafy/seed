@@ -41,11 +41,11 @@ export const MODE_CONFIGS: Record<ExplorationMode, ModeConfig> = {
     aiPersona: "pragmatic technologist, hands-on innovation architect, and systems skeptic",
     seedExamples: [
       { label: 'The AI Context Tax', type: NodeType.PAIN_POINT, description: 'Senior devs spend 2.5 hours daily manually pasting code context, library docs, and schema definitions into LLM windows because automated RAG pipelines keep missing the technical nuance.' },
-      { label: 'Zombie SaaS Seats', type: NodeType.PAIN_POINT, description: 'Lean startups bleed $1,200/mo on "Pro" seats for legacy design and project tools that their AI-automated workflows have already replaced, but nobody has the time to audit the billing.' },
-      { label: 'Unstructured Feedback Debt', type: NodeType.PROBLEM, description: 'Product teams ignore 15,000+ unread Discord and Slack feedback pings because manual tagging is soul-crushing, while competitors are shipping the exact features users are screaming for.' },
+      { label: 'Cold Chain Integrity Gaps', type: NodeType.PROBLEM, description: 'Up to 25% of temperature-sensitive vaccines are wasted in last-mile transit because passive cooling containers lack real-time predictive failure alerts and adaptive insulation.' },
+      { label: 'Intermittent Energy Sinkhole', type: NodeType.CONSTRAINT, description: 'Regional power grids are forced to discard 15% of renewable output because long-duration storage (10h+) is too expensive to deploy at scale, stalling the decommissioning of coal peaker plants.' },
       { label: 'Invisible API Schema Drift', type: NodeType.PROBLEM, description: 'Critical backend services intermittently break because upstream LLM-integrated APIs changed their output JSON structure without a version bump, costing teams 10 hours of emergency debugging weekly.' },
-      { label: 'The Sales-to-Product Hallucination', type: NodeType.PAIN_POINT, description: 'Sales teams close $50k deals by promising "custom AI fine-tuning" that engineering literally cannot deliver with current infra, leading to massive churn and developer burnout.' },
-      { label: 'LLM Response Shrapnel', type: NodeType.FRICTION, description: 'Production app UIs look broken because "pro" models occasionally return markdown wrappers inside JSON fields, causing frontend parsing errors for 5% of all active users.' }
+      { label: 'Circular Material Friction', type: NodeType.FRICTION, description: 'Industrial textile recycling is stalled because mixed-fiber sortation is still 90% manual; automated spectral analysis struggles with worn or blended chemical dyes.' },
+      { label: 'Personalized Pharma Bottleneck', type: NodeType.PAIN_POINT, description: 'Custom mRNA cancer treatments take 6 weeks to synthesize per patient because microfluidic bioreactors lack standardized, low-cost "plug-and-play" control modules for parallel processing.' }
     ]
   },
   [ExplorationMode.KNOWLEDGE]: {

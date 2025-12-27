@@ -3,13 +3,13 @@ import { getModeConfig } from '../constants';
 
 const INNOVATION_RESEARCH_PRINCIPLES = `
 INNOVATION RESEARCH PRINCIPLES (STRICT):
-1. EPISTEMIC GROUNDING: Be concrete. Use specific technical terms, architectural patterns, or hardware mechanisms.
-2. EXPERIENTIAL ANCHORING: Describe concepts through the lens of real interaction. Mention "the developer," "the end-user," or "the system bottleneck."
-3. HUMAN RELEVANCE: Connect abstract ideas to real-world friction, cost, or time. Why does it matter right now?
-4. FALSIFIABILITY: Avoid buzzwords. Be specific enough that a technical implementation could be validated.
-5. CURRENT TECHNOLOGY: Focus on what can be built with today's stacks (0-3 years). Avoid purely theoretical or experimental domains (like broad-market quantum computing).
-6. FOUNDER-GRADE PAIN: Focus on "Product Hunt" style problems. Concrete, costly, emotionally annoying, and easy to recognize. Identify "clear losers" and high-intent "someone would pay for this" energy.
-7. SHARP & GROUNDED: Avoid institutional white-paper tone. Be direct, pragmatic, and slightly skeptical.
+1. EPISTEMIC GROUNDING: Be concrete. Use specific technical terms, architectural patterns, biological mechanisms, or industrial processes.
+2. EXPERIENTIAL ANCHORING: Describe concepts through the lens of real interaction. Mention "the practitioner," "the end-user," "the operator," or "the system bottleneck."
+3. HUMAN RELEVANCE: Connect abstract ideas to real-world friction, cost, time, or safety. Why does it matter right now?
+4. FALSIFIABILITY: Avoid buzzwords. Be specific enough that a physical or technical implementation could be validated or stress-tested.
+5. CURRENT TECHNOLOGY: Focus on what can be started or prototyped today (0-5 years). Avoid purely theoretical sci-fi (like broad-market starships).
+6. FOUNDER-GRADE PAIN: Focus on high-intent problems. Concrete, costly, and recognizable. Identify "clear losers" and "massive inefficiency" where a breakthrough would create immediate value.
+7. SHARP & GROUNDED: Avoid institutional white-paper tone. Be direct, pragmatic, and slightly skeptical of "magic" solutions.
 `;
 
 // Defined schemas via imported constants
@@ -542,10 +542,11 @@ export const generateRandomSeedNode = async (
     const persona = modeConfig.aiPersona;
 
     const modeSpecificPrompt = mode === ExplorationMode.INNOVATION
-        ? `Generate a single FOUNDER-GRADE PROBLEM or PAIN_POINT node that feels like the problem behind a top Product Hunt launch.
-    The problem should be concrete, costly (in time or money), and emotionally annoying for a specific user.
-    Focus on "AI-first" friction points in modern workflows, developer experience, or startup operations.
-    STYLE: Use "readable" language. Be sharp. Focus on the core friction where a user would say "take my money to solve this."
+        ? `Generate a single HIGH-IMPACT PROBLEM or PAIN_POINT node. 
+    The problem should be concrete, costly (in time, money, or efficiency), and recognizable to an industry expert.
+    DOMAIN ROTATION: Randomize between: Energy/Grid, BioTech/MedTech, Logistics/SupplyChain, MaterialsScience, AgriTech, or High-Efficiency Computing.
+    ${isRetry ? 'CRITICAL: Pick a DIFFERENT domain than any previously discarded idea.' : ''}
+    STYLE: Use "readable" language. Be sharp. Focus on the core friction where a stakeholder would say "this is the bottleneck holding us back."
     ${INNOVATION_RESEARCH_PRINCIPLES}`
         : `Generate a single interesting starting point for knowledge exploration. This could be:
     - A significant historical EVENT
