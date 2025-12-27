@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GraphNode, NodeType, ExplorationMode } from '../types';
-import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle, ChevronRight, Binary, Sparkles, Orbit, Layers, Search } from 'lucide-react';
+import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle, ChevronRight, Binary, Sparkles, Orbit, Layers, Search, SquarePlus } from 'lucide-react';
 
 interface SidebarProps {
   nodes: GraphNode[];
@@ -25,6 +25,7 @@ interface SidebarProps {
   onPrune: (nodeId: string) => void;
   onDirectedDiscovery: (node: GraphNode, instruction: string, count: number) => void;
   onOpenWiki: (node: GraphNode) => void;
+  onCreateNewSpace: (node: GraphNode) => void;
   isProcessing: boolean;
   allLinks: any[];
   relationOptions: string[];
@@ -55,6 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onPrune,
   onDirectedDiscovery,
   onOpenWiki,
+  onCreateNewSpace,
   isProcessing,
   allLinks,
   relationOptions,
@@ -288,6 +290,19 @@ const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
 
+          <div className="mt-2 flex flex-col gap-2">
+            <button
+              onClick={() => onCreateNewSpace(node)}
+              className="group flex items-center justify-between p-3 rounded-xl bg-emerald-900/10 border border-white/5 hover:border-emerald-500/30 transition-all text-emerald-400"
+            >
+              <div className="flex items-center gap-2">
+                <SquarePlus size={14} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Branch into New Space</span>
+              </div>
+              <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+
           {/* AI Tools (Only show if not editing) */}
           {!isEditing && (
             <div className="space-y-4">
@@ -310,8 +325,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                       </h3>
                       <p className="text-xs text-slate-400 mb-4 relative z-10">
                         {mode === ExplorationMode.INNOVATION
-                          ? 'Launch Autonomous Discovery to architect a breakthrough evolution and quest-line for this seed.'
-                          : 'Launch Autonomous Discovery to synthesize a deep insight and trigger an autonomous exploration quest.'}
+                          ? 'Architect a breakthrough evolution and structural advancement for this seed.'
+                          : 'Synthesize a deep conceptual insight from this foundation.'}
                       </p>
                       <button
                         onClick={() => onInnovate(node)}
@@ -373,8 +388,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </h3>
                     <p className="text-xs text-slate-400 mb-4 relative z-10">
                       {mode === ExplorationMode.INNOVATION
-                        ? 'Launch Autonomous Discovery to derive a structured solution and quest-line for this pain point.'
-                        : 'Launch Autonomous Discovery to resolve contradictions and trigger an autonomous research quest.'}
+                        ? 'Derive a structured solution and technical resolution for this pain point.'
+                        : 'Resolve contradictions and synthesize a unified understanding.'}
                     </p>
                     <button
                       onClick={() => onSolve(node)}
@@ -396,7 +411,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     Answer Question
                   </h3>
                   <p className="text-xs text-slate-400 mb-4 relative z-10">
-                    Launch Autonomous Discovery to synthesize a definitive answer from evidence and trigger a follow-up quest.
+                    Synthesize a definitive answer from evidence and establish a new knowledge node.
                   </p>
                   <button
                     onClick={() => onAnswer(node)}

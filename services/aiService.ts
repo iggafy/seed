@@ -2,7 +2,7 @@ import { AISuggestion, NodeType, AIProvider, AISettings, GraphNode, ChatMessage,
 import { getModeConfig } from '../constants';
 
 const INNOVATION_RESEARCH_PRINCIPLES = `
-INNOVATION RESEARCH PRINCIPLES (STRICT):
+INNOVATION RESEARCH PRINCIPLES:
 1. EPISTEMIC GROUNDING: Be concrete. Use specific technical terms, architectural patterns, biological mechanisms, or industrial processes.
 2. EXPERIENTIAL ANCHORING: Describe concepts through the lens of real interaction. Mention "the practitioner," "the end-user," "the operator," or "the system bottleneck."
 3. HUMAN RELEVANCE: Connect abstract ideas to real-world friction, cost, time, or safety. Why does it matter right now?
@@ -10,6 +10,20 @@ INNOVATION RESEARCH PRINCIPLES (STRICT):
 5. CURRENT TECHNOLOGY: Focus on what can be started or prototyped today (0-5 years). Avoid purely theoretical sci-fi (like broad-market starships).
 6. FOUNDER-GRADE PAIN: Focus on high-intent problems. Concrete, costly, and recognizable. Identify "clear losers" and "massive inefficiency" where a breakthrough would create immediate value.
 7. SHARP & GROUNDED: Avoid institutional white-paper tone. Be direct, pragmatic, and slightly skeptical of "magic" solutions.
+8. REAL-WORLD VIABILITY: When proposing solutions, constraints (energy, bandwidth, cost, physics) must be acknowledged. Improvements should be incremental and specific rather than magical.
+9. ANTI-HYPE: Do not use marketing fluff. If a solution is boring but effective, state it.
+10. CONTEXTUAL INTEGRITY: MATCH THE LAYER. If the user's graph is about software/web (e.g. "API", "React", "User Flow"), your suggestions MUST be software-based. Do not jump to hardware/bio/quantum unless the graph ALREADY contains those elements. If the context is ambiguous, favor software/digital product solutions as the default baseline.
+`;
+
+const KNOWLEDGE_RESEARCH_PRINCIPLES = `
+KNOWLEDGE RESEARCH PRINCIPLES:
+1. PRIMARY SOURCE INTENT: When describing events or people, prioritize facts that would be found in primary historical records or reputable academic syntheses. Avoid pop-history myths.
+2. CAUSAL DEPTH: Do not just list events. explain the *mechanism* of change. How did Event A specifically lead to Event B? (e.g., "The printing press didn't just 'spread ideas'; it drastically reduced the cost of reproduction, breaking the church's monopoly on scripture.")
+3. CHRONOLOGICAL INTEGRITY: Be hyper-aware of time. Do not use modern metaphors to describe ancient events unless explicitly drawing an analogy. (e.g., Don't say "Aristotle 'downloaded' knowledge").
+4. INTERDISCIPLINARY WEAVING: History is not just politics. It is economics, geography, philosophy, and technology. Link a political event to the *economic* condition that caused it, or the *philosophical* idea that justified it.
+5. NUANCED PERSPECTIVE: History is rarely black and white. Highlight internal contradictions, debates, or the "grey areas" of a person or movement.
+6. CURIOSITY DRIVEN: Frame descriptions to provoke the next question. "X happened, but historians still debate Y..."
+7. SPECIFICITY OVER GENERALITY: Instead of "ancient rituals", say "the Eleusinian Mysteries". Instead of "scientists", say "The Royal Society".
 `;
 
 // Defined schemas via imported constants
@@ -238,7 +252,7 @@ export const solveProblem = async (
     Reference key artifacts, people, or movements that provide the resolution's foundation.`;
 
     const prompt = `You are a ${persona}. 
-    Target Problem/Pain Point: "${nodeLabel}" (Type: ${nodeType}, Description: ${nodeDescription}).
+    Target Problem / Pain Point: "${nodeLabel}" (Type: ${nodeType}, Description: ${nodeDescription}).
     
     FULL GRAPH CONTEXT:
     ${fullGraphContext}
@@ -266,16 +280,16 @@ export const answerQuestion = async (
     const modeSpecificTask = mode === ExplorationMode.INNOVATION
         ? `Provide a concise, technically accurate answer to the question: "${nodeLabel}". 
            Use the surrounding context if available.
-           
-           Label: "Resolution: ${nodeLabel}".
-           Description: A direct answer (100-150 words) that clarifies the technical or conceptual uncertainty.
-           ${INNOVATION_RESEARCH_PRINCIPLES}`
-        : `Provide a historically accurate answer to the question: "${nodeLabel}".
-           
-           Label: "Historical Answer: ${nodeLabel}".
-           Description: A direct answer (100-150 words) referencing artifacts, events, or people in the graph.`;
 
-    const prompt = `You are a ${persona}. 
+        Label: "Resolution: ${nodeLabel}".
+            Description: A direct answer(100 - 150 words) that clarifies the technical or conceptual uncertainty.
+                ${INNOVATION_RESEARCH_PRINCIPLES} `
+        : `Provide a historically accurate answer to the question: "${nodeLabel}".
+
+        Label: "Historical Answer: ${nodeLabel}".
+            Description: A direct answer(100 - 150 words) referencing artifacts, events, or people in the graph.`;
+
+    const prompt = `You are a ${persona}.
     Question: "${nodeLabel}" (${nodeDescription}).
     
     FULL GRAPH CONTEXT:
@@ -305,11 +319,11 @@ export const optimizeConcept = async (
     ${fullGraphContext}
     
     Your Task:
-    Propose a specific OPTIMIZATION for this technology/concept. 
+    Propose a specific OPTIMIZATION for this technology / concept. 
     Focus on making it 10x faster, cheaper, or more sustainable WITHOUT changing the core breakthrough.
-    
+
     Label: "${nodeLabel} Optimization".
-    Description: A detailed plan (150-200 words) for efficiency gains. 
+    Description: A detailed plan (150-200 words) for efficiency gains.
     ${INNOVATION_RESEARCH_PRINCIPLES}
     Include specific technical levers (e.g., algorithmic complexity, material science, or resource distribution).`;
 
@@ -334,9 +348,9 @@ export const stressTestConcept = async (
     Your Task:
     Identify 2-3 critical failure modes or fundamental limitations for this seed.
     Each suggestion MUST be a CONSTRAINT or FRICTION node.
-    
+
     Label: "Failure: [Cause]".
-    Description: Why this fails, the physical/economic bottleneck, or the adoption friction.
+    Description: Why this fails, the physical / economic bottleneck, or the adoption friction.
     Relation: "is limited by" or "conflicts with".`;
 
     return await runIPCRequest(settings, prompt, true, ExplorationMode.INNOVATION);
@@ -358,8 +372,8 @@ export const generateImplementation = async (
     
     Your Task:
     Propose a practical IMPLEMENTATION (App, Product, or Physical Deployment) of this technology.
-    Focus on "How it looks in practice" and the primary interface/interaction model.
-    
+    Focus on "How it looks in practice" and the primary interface / interaction model.
+
     Label: "${nodeLabel} Product".
     Description: A detailed product description (150-200 words).
     ${INNOVATION_RESEARCH_PRINCIPLES}
@@ -390,8 +404,8 @@ export const quickExpand = async (
     FULL GRAPH CONTEXT:
     ${fullGraphContext}
     
-    Suggest 3 distinct discovery arcs. 
-    ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
+    Suggest 3 distinct discovery arcs.
+        ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : KNOWLEDGE_RESEARCH_PRINCIPLES}
     Response schema: array of suggestions.`;
 
     return await runIPCRequest(settings, prompt, true, mode);
@@ -415,21 +429,22 @@ export const autonomousDiscovery = async (
 
     const prompt = dieToGrow
         ? `You are an Autonomous Gardener working as a ${persona}. 
-            CONTEXT:
-            ${fullGraphContext}
-            
-            TASK: Pick the most 'active' or 'dangling' node in the graph and grow it further.
-            ${modeSpecificGuidance}
-            
-            Response schema: Single node with label, type, description, and relationToParent.`
+CONTEXT:
+${fullGraphContext}
+
+TASK: Pick the most 'active' or 'dangling' node in the graph and grow it further.
+${modeSpecificGuidance}
+
+Response schema: Single node with label, type, description, and relationToParent.`
         : `You are an Autonomous Scout working as a ${persona}. 
-            CONTEXT:
-            ${fullGraphContext}
-            
-            TASK: Identify two seemingly unrelated nodes in the graph and propose a 'Ghost Link' (synergy, conflict, or dependency) between them.
-            
-            Response schema: Single node (the bridging concept) connecting them, or just a relationship if applicable. 
-            (For this implementation, we'll focus on creating a bridging node).`;
+CONTEXT:
+${fullGraphContext}
+
+TASK: Identify two seemingly unrelated nodes in the graph and propose a 'Ghost Link' (synergy, conflict, or dependency) between them.
+${mode === ExplorationMode.KNOWLEDGE ? KNOWLEDGE_RESEARCH_PRINCIPLES : ''}
+
+Response schema: Single node (the bridging concept) connecting them, or just a relationship if applicable. 
+(For this implementation, we'll focus on creating a bridging node).`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
     return result[0] || null;
@@ -499,22 +514,24 @@ export const agenticDiscovery = async (
     ${INNOVATION_RESEARCH_PRINCIPLES}`
         : `1. DO NOT be generic. Be historically and factually accurate.
     2. AVOID LOOPS: Do not just chain EVENTS. Link them to the PERSON who influenced them or the ARTIFACT they left behind.
-    3. CURIOSITY: Look for the CONTRADICTION or QUESTION that remains unanswered in this lineage.`;
+    3. CURIOSITY: Look for the CONTRADICTION or QUESTION that remains unanswered in this lineage.
+    ${KNOWLEDGE_RESEARCH_PRINCIPLES}`;
 
     const prompt = `You are a SEED Discovery Agent working as a ${persona}. 
     ${activeNode ? `Focusing on: "${activeNode.label}" [${activeNode.type}]` : "Scanning the entire system."}
     
     Current System State:
     ${fullGraphContext}
-    
+
     Objective (${intent}):
     ${intent === "EXPAND" ? expandGuidance :
             intent === "CHALLENGE" ? challengeGuidance :
                 intent === "SOLVE" ? solveGuidance :
                     intent === "RESOLVE" ? solveGuidance :
                         intent === "ANSWER" ? answerGuidance :
-                            intent === "MITIGATE" ? mitigateGuidance : pivotGuidance}
-    
+                            intent === "MITIGATE" ? mitigateGuidance : pivotGuidance
+        }
+
     Constraint:
     ${specificityGuidance}
     
@@ -535,7 +552,7 @@ export const generateRandomSeedNode = async (
     const isRetry = discardedTitles && discardedTitles.length > 0;
     const avoidContext = isRetry
         ? `\nCRITICAL: DO NOT generate anything similar to these previously discarded ideas: ${discardedTitles.join(", ")}.
-           PIVOT: Take a completely different direction, a different topic area, and a different angle.`
+    PIVOT: Take a completely different direction, a different topic area, and a different angle.`
         : "";
 
     const modeConfig = getModeConfig(mode);
@@ -556,7 +573,8 @@ export const generateRandomSeedNode = async (
     - A fascinating DISCOVERY
     
     The topic should be interesting, educational, and rich with potential connections.
-    STYLE: Use clear, engaging language. Make it accessible but intellectually stimulating.`;
+    STYLE: Use clear, engaging language. Make it accessible but intellectually stimulating.
+    ${KNOWLEDGE_RESEARCH_PRINCIPLES}`;
 
     const prompt = `You are a ${persona}. ${modeSpecificPrompt}
     ${avoidContext}
@@ -571,6 +589,7 @@ export const researchAssistantChat = async (
     settings: AISettings,
     chatHistory: ChatMessage[],
     selectedNodes: GraphNode[],
+    allNodes: GraphNode[],
     allLinks: GraphLink[],
     mode: ExplorationMode = ExplorationMode.INNOVATION
 ): Promise<ChatMessage> => {
@@ -583,25 +602,32 @@ export const researchAssistantChat = async (
 
     // 1. Construct Contextual Brief
     let contextBrief = "NO NODES SELECTED.";
-    if (selectedNodes.length > 0) {
-        const nodeDescriptions = selectedNodes.map(n => `- ${n.label} (${n.type}): ${n.description || "No description"}`).join('\n');
+
+    // Use selected nodes if present, otherwise use the last 5 added nodes as "Recent Focus"
+    const focusNodes = selectedNodes.length > 0 ? selectedNodes : allNodes.slice(-5);
+
+    if (focusNodes.length > 0) {
+        const nodeDescriptions = focusNodes.map(n => `- ${n.label} (${n.type}): ${n.description || "No description"} `).join('\n');
 
         // Find links involving these nodes
         const relevantLinks = allLinks.filter(l => {
             const sid = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
             const tid = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
-            return selectedNodes.some(n => n.id === sid || n.id === tid);
+            return focusNodes.some(n => n.id === sid || n.id === tid);
         });
 
         const linkDescriptions = relevantLinks.map(l => {
             const sid = typeof l.source === 'object' ? (l.source as GraphNode).id : l.source;
             const tid = typeof l.target === 'object' ? (l.target as GraphNode).id : l.target;
-            const sNode = (typeof l.source === 'object' ? l.source : { label: "External Node" }) as any;
-            const tNode = (typeof l.target === 'object' ? l.target : { label: "External Node" }) as any;
-            return `- ${sNode.label} --[${l.relation}]--> ${tNode.label}`;
+
+            // Attempt to find nodes by ID in allNodes for labeling
+            const sNode = allNodes.find(n => n.id === sid) || { label: "Source" };
+            const tNode = allNodes.find(n => n.id === tid) || { label: "Target" };
+
+            return `- ${sNode.label} --[${l.relation}]--> ${tNode.label} `;
         }).join('\n');
 
-        contextBrief = `SELECTED NODES:\n${nodeDescriptions}\n\nRELEVANT RELATIONSHIPS:\n${linkDescriptions}`;
+        contextBrief = `${selectedNodes.length > 0 ? 'SELECTED NODES' : 'RECENT DISCOVERIES'}: \n${nodeDescriptions} \n\nRELEVANT RELATIONSHIPS: \n${linkDescriptions} `;
     }
 
     const modeSpecificGuidance = mode === ExplorationMode.INNOVATION
@@ -617,23 +643,28 @@ export const researchAssistantChat = async (
     YOUR GOAL:
     ${modeSpecificGuidance}
     
-    IMPORTANT COMMUNICATION RULES:
-    1. Always talk to the user in a helpful, conversational tone first. 
-    2. Explain your reasoning and provide background information.
-    3. If you identify a new concept, topic, or connection that belongs on the graph, you MUST propose it using this EXACT format at the VERY END of your message:
+    IMPORTANT SHARED DISCOVERY RULES (MANDATORY):
+    1. CONVERSATION FIRST: Respond to the user with depth, intuition, and technical/historical accuracy. 
+    2. SHARED KNOWLEDGE MAPPING: Act as a visual scribe for our shared discovery session. Extract atomic seeds from both our messages.
+    3. NO DISCONNECTED SEEDS: The graph is a single unified narrative. Every node in your [MAP] MUST be connected to something.
+       - If a new node relates to another new node, link them.
+       - CRITICAL: At least one node in your new set MUST link back to a node in the CURRENT GRAPH CONTEXT (if any nodes exist).
+       - If there is no specific technical parent, use a relational link like "evolves from", "context for", or "adjacent to" to connect to the most relevant existing node.
+    4. THE [MAP] BLOCK: Provide a raw JSON [MAP] block at the VERY END of your message.
     
-    [SUGGESTION]
+    [MAP]
     {
-      "label": "Name",
-      "type": "NodeType",
-      "description": "Short justification",
-      "relationToParent": "verb"
+      "nodes": [
+        { "label": "Concept Name", "type": "NodeType", "description": "Justification" }
+      ],
+      "links": [
+        { "sourceLabel": "Source", "targetLabel": "Target", "relation": "active verb" }
+      ]
     }
 
-    4. NodeType must be one of: ${nodeTypesList}.
-    5. The relationToParent should describe how it connects to the primary node in the current selection.
-    6. Do NOT output just JSON. Always provide a written response first.
-    7. Do NOT wrap the JSON in Markdown code blocks. Output raw JSON after the [SUGGESTION] tag.`;
+    5. NodeType must be one of: ${nodeTypesList}.
+    6. Relationships: Use active verbs. Avoid generic "related to" if possible.
+    7. CRITICAL: Do NOT output raw JSON alone. Provide a conversational response first.`;
 
     const formattedMessages = chatHistory.map(m => ({
         role: m.role,
@@ -653,39 +684,141 @@ export const researchAssistantChat = async (
         throw new Error(response.error);
     }
 
-    const content = response.content;
-    let mainContent = content;
-    const suggestedNodes: AISuggestion[] = [];
+    return extractMapInternal(response.content);
+};
 
-    // Parse Suggestions if present (supports multiple)
-    // Regex allows for optional markdown code blocks which some providers (OpenAI) insist on adding
-    const regex = /\[SUGGESTION\]\s*(?:```(?:json)?\s*)?(\{[\s\S]*?\})(?:\s*```)?/g;
-    const suggestionMatches = Array.from(content.matchAll(regex));
+// --- PARALLEL PERFORMANCE EXPLOIT: SPEED-OPTIMIZED CHAT ---
 
-    for (const match of suggestionMatches) {
-        try {
-            const parsed = JSON.parse(match[1]);
-            suggestedNodes.push({
-                label: parsed.label || "New Seed",
-                type: (parsed.type?.toUpperCase() as NodeType) || NodeType.CONCEPT,
-                description: parsed.description || "",
-                relationToParent: parsed.relationToParent || "related"
-            });
-            // Remove this suggestion block from the main content
-            mainContent = mainContent.replace(match[0], '');
-        } catch (e) {
-            console.error("Failed to parse AI suggestion from chat:", e);
-        }
+/**
+ * FAST CALL 1: Return ONLY the text response from the persona.
+ * No JSON or mapping logic involved to reduce cognitive load and latency.
+ */
+export const researchAssistantTextReply = async (
+    settings: AISettings,
+    chatHistory: ChatMessage[],
+    selectedNodes: GraphNode[],
+    allNodes: GraphNode[],
+    mode: ExplorationMode = ExplorationMode.INNOVATION
+): Promise<string> => {
+    const activeSettings = settings.providers[settings.provider];
+    if (!activeSettings?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+
+    const modeConfig = getModeConfig(mode);
+    const persona = modeConfig.aiPersona;
+
+    // 1. Construct Lightweight Context (Optimized for speed)
+    const focusNodes = selectedNodes.length > 0 ? selectedNodes : allNodes.slice(-3); // Reduced from 5 to 3 for speed
+    let contextBrief = "NO NODES SELECTED.";
+
+    if (focusNodes.length > 0) {
+        const nodeDescriptions = focusNodes.map(n => `- ${n.label} (${n.type})`).join('\n'); // Dropped description for speed unless essential
+        contextBrief = `FOCUS: \n${nodeDescriptions}`;
     }
 
-    return {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: mainContent.trim(),
-        timestamp: Date.now(),
-        suggestedNode: suggestedNodes[0], // Backward compatibility
-        suggestedNodes: suggestedNodes
-    };
+    const systemPrompt = `You are the Nexus Research Assistant, a ${persona}.
+    
+    CONTEXT:
+    ${contextBrief}
+
+    IMPORTANT RULES:
+    1. Respond to the user with depth and intuition but BE CONCISE. 
+    2. DO NOT output any structured data, [MAP], or structural tags. 
+    3. Just talk. Be an intellectual brainstorming partner.
+    4. Keep your response under 100 words unless complex explanation is requested.`;
+
+    const formattedMessages = chatHistory.map(m => ({
+        role: m.role,
+        content: m.content
+    }));
+
+    // @ts-ignore
+    const response = await window.api.aiRequest({
+        provider: settings.provider,
+        apiKey: activeSettings.apiKey,
+        model: activeSettings.model || undefined,
+        messages: formattedMessages,
+        systemPrompt: systemPrompt
+    });
+
+    if (response.error) throw new Error(response.error);
+    let content = response.content.trim();
+
+    // Fix for DeepSeek/models that return JSON despite instructions
+    try {
+        const cleanContent = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
+        if (cleanContent.startsWith('{') && cleanContent.endsWith('}')) {
+            const parsed = JSON.parse(cleanContent);
+            if (parsed.response && typeof parsed.response === 'string') return parsed.response;
+            if (parsed.content && typeof parsed.content === 'string') return parsed.content;
+            if (parsed.message && typeof parsed.message === 'string') return parsed.message;
+            if (parsed.answer && typeof parsed.answer === 'string') return parsed.answer;
+            if (parsed.suggestions && Array.isArray(parsed.suggestions)) {
+                return "Here are some suggestions:\n\n" + parsed.suggestions.map((s: string) => `- ${s}`).join('\n');
+            }
+        }
+    } catch (e) {
+        // Ignore JSON parse errors and return raw content
+    }
+
+    return content;
+};
+
+/**
+ * FAST CALL 2: Extract a knowledge map from raw text (User or AI).
+ * This runs in parallel or background to populate the graph without blocking chat.
+ */
+export const extractKnowledgeMap = async (
+    settings: AISettings,
+    textToAnalyze: string,
+    contextBrief: string,
+    mode: ExplorationMode = ExplorationMode.INNOVATION
+): Promise<{ nodes: AISuggestion[], links: Array<{ sourceLabel: string, targetLabel: string, relation: string }> }> => {
+    const activeSettings = settings.providers[settings.provider];
+    if (!activeSettings?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+
+    const modeConfig = getModeConfig(mode);
+    const nodeTypesList = modeConfig.nodeTypes.join(', ');
+
+    const systemPrompt = `You are a strict JSON-only Visual Discovery Scribe.
+    
+    YOUR TASK:
+    Extract a high-density knowledge map from the user's text.
+    
+    CONTEXT (RECENT GRAPH):
+    ${contextBrief}
+
+    RULES:
+    1. Extract 2-5 significant Seeds (Nodes) and their Relationships (Links).
+    2. NO DISCONNECTED CLUSTERS: At least one new node MUST link to an existing node in the CONTEXT.
+    3. Relationships MUST be active verbs.
+    4. OUTPUT ONLY RAW JSON. Do not use Markdown code blocks. Do not add any text before or after the JSON.
+    
+    [MAP]
+    {
+      "nodes": [
+        { "label": "Concept", "type": "NodeType", "description": "Justification" }
+      ],
+      "links": [
+        { "sourceLabel": "Source", "targetLabel": "Target", "relation": "verb" }
+      ]
+    }
+    
+    NodeType must be one of: ${nodeTypesList}.`;
+
+    // @ts-ignore
+    const response = await window.api.aiRequest({
+        provider: settings.provider,
+        apiKey: activeSettings.apiKey,
+        model: activeSettings.model || undefined,
+        messages: [{ role: 'user', content: `Extract the JSON map from this text: "${textToAnalyze}"` }],
+        systemPrompt: systemPrompt
+    });
+
+    if (response.error) return { nodes: [], links: [] };
+
+    // Use internal extractor logic
+    const chatMsg = extractMapInternal(response.content);
+    return { nodes: chatMsg.suggestedNodes || [], links: chatMsg.suggestedLinks || [] };
 };
 
 export const curateWikiSnippet = async (
@@ -720,11 +853,101 @@ export const curateWikiSnippet = async (
     - EPISTEMIC PRECISION: Use high-intent, active verbs. If a technology is used in an event, use "operationalized by". If a person founded a movement, use "galvanized".
     - SOPHISTICATED BRIDGE-LINKING: If the connection is indirect, identify the shared principle or structural parallel (e.g., "strategic analogue of" or "instantiates the principle of").
     
-    ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
+    \${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
     Response schema: single node.`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
     return result[0] || null;
+};
+
+const extractMapInternal = (content: string) => {
+    let mainContent = content;
+    const suggestedNodes: AISuggestion[] = [];
+    const suggestedLinks: Array<{ sourceLabel: string; targetLabel: string; relation: string }> = [];
+
+    // 1. ROBUST PARSING: Check if the entire response is a valid JSON (common with DeepSeek/highly structured models)
+    let possibleJson: any = null;
+    try {
+        const cleanContent = content.trim().replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
+        if (cleanContent.startsWith('{') && cleanContent.endsWith('}')) {
+            possibleJson = JSON.parse(cleanContent);
+        }
+    } catch (e) { }
+
+    if (possibleJson) {
+        const responseText = possibleJson.response || possibleJson.conversation || possibleJson.content || possibleJson.text || possibleJson.message;
+        if (responseText && typeof responseText === 'string') {
+            mainContent = responseText;
+        }
+        const mapData = possibleJson.map || possibleJson;
+        if (mapData.nodes && Array.isArray(mapData.nodes)) {
+            mapData.nodes.forEach((n: any) => {
+                suggestedNodes.push({
+                    label: n.label || "New Seed",
+                    type: (n.type?.toUpperCase() as NodeType) || NodeType.CONCEPT,
+                    description: n.description || "",
+                    relationToParent: "related"
+                });
+            });
+        }
+        if (mapData.links && Array.isArray(mapData.links)) {
+            mapData.links.forEach((l: any) => {
+                if (l.sourceLabel && l.targetLabel && l.relation) {
+                    suggestedLinks.push({ sourceLabel: l.sourceLabel, targetLabel: l.targetLabel, relation: l.relation });
+                }
+            });
+        }
+    } else {
+        const mapRegex = /\[MAP\]\s*(?:```(?:json)?\s*)?(\{[\s\S]*?\})(?:\s*```)?/g;
+        const mapMatch = mapRegex.exec(content);
+        if (mapMatch) {
+            try {
+                const parsedMap = JSON.parse(mapMatch[1]);
+                if (parsedMap.nodes && Array.isArray(parsedMap.nodes)) {
+                    parsedMap.nodes.forEach((n: any) => {
+                        suggestedNodes.push({
+                            label: n.label || "New Seed",
+                            type: (n.type?.toUpperCase() as NodeType) || NodeType.CONCEPT,
+                            description: n.description || "",
+                            relationToParent: "related"
+                        });
+                    });
+                }
+                if (parsedMap.links && Array.isArray(parsedMap.links)) {
+                    parsedMap.links.forEach((l: any) => {
+                        if (l.sourceLabel && l.targetLabel && l.relation) {
+                            suggestedLinks.push({ sourceLabel: l.sourceLabel, targetLabel: l.targetLabel, relation: l.relation });
+                        }
+                    });
+                }
+                mainContent = mainContent.replace(mapMatch[0], '');
+            } catch (e) { }
+        }
+        const suggestionRegex = /\[SUGGESTION\]\s*(?:```(?:json)?\s*)?(\{[\s\S]*?\})(?:\s*```)?/g;
+        const suggestionMatches = Array.from(content.matchAll(suggestionRegex));
+        for (const match of suggestionMatches) {
+            try {
+                const parsed = JSON.parse(match[1]);
+                suggestedNodes.push({
+                    label: parsed.label || "New Seed",
+                    type: (parsed.type?.toUpperCase() as NodeType) || NodeType.CONCEPT,
+                    description: parsed.description || "",
+                    relationToParent: parsed.relationToParent || "related"
+                });
+                mainContent = mainContent.replace(match[0], '');
+            } catch (e) { }
+        }
+    }
+
+    return {
+        id: Date.now().toString(),
+        role: 'assistant' as const,
+        content: mainContent.trim(),
+        timestamp: Date.now(),
+        suggestedNode: suggestedNodes[0],
+        suggestedNodes: suggestedNodes,
+        suggestedLinks: suggestedLinks
+    };
 };
 
 /**
@@ -792,7 +1015,7 @@ async function runIPCRequest(
         const cleanContent = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
         parsed = JSON.parse(cleanContent);
     } catch (e) {
-        throw new Error(`Failed to parse AI response: ${e instanceof Error ? e.message : 'Invalid JSON'}`);
+        throw new Error(`Failed to parse AI response: \${e instanceof Error ? e.message : 'Invalid JSON'}`);
     }
 
     // Normalizer

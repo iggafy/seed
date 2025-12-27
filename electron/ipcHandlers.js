@@ -65,7 +65,7 @@ async function handleOpenAI(provider, apiKey, model, messages, jsonSchema, syste
                 schema: jsonSchema
             }
         };
-    } else if (jsonSchema || systemPrompt?.toLowerCase().includes("json")) {
+    } else if (jsonSchema || systemPrompt?.toLowerCase().includes("valid json")) {
         response_format = { type: "json_object" };
     }
 

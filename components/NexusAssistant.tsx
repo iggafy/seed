@@ -137,8 +137,8 @@ const NexusAssistant: React.FC<NexusAssistantProps> = ({
                                 </ReactMarkdown>
                             </div>
 
-                            {/* Proactive Suggestion Block */}
-                            {(m.suggestedNodes || (m.suggestedNode ? [m.suggestedNode] : [])).map((node, idx) => (
+                            {/* Proactive Suggestion Block - Only show if not automatically assimilated */}
+                            {!m.wasAssimilated && (m.suggestedNodes || (m.suggestedNode ? [m.suggestedNode] : [])).map((node, idx) => (
                                 <div key={idx} className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-3 flex flex-col gap-3 animate-in zoom-in-95 duration-300">
                                     <div className="flex items-center gap-2 text-emerald-400">
                                         <Sparkles size={14} />
@@ -188,7 +188,7 @@ const NexusAssistant: React.FC<NexusAssistantProps> = ({
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         disabled={isProcessing}
-                        placeholder={selectedNodes.length > 0 ? "Ask about selected nodes..." : "Type a research inquiry..."}
+                        placeholder={selectedNodes.length > 0 ? "Explore context..." : "Type to explore..."}
                         className="w-full bg-slate-950/80 border border-white/10 rounded-2xl py-3 pl-4 pr-12 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all font-medium"
                     />
                     <button

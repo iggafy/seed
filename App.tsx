@@ -5,8 +5,8 @@ import Toolbar from './components/Toolbar';
 import SettingsModal from './components/SettingsModal';
 import SeedsDashboard from './components/SeedsDashboard';
 import { INITIAL_DATA, NODE_ICONS, NODE_COLORS, getModeConfig, getExpansionBlueprints, getRelationOptions, getSeedExamples } from './constants';
-import { curateWikiSnippet, expandConcept, expandConceptTargeted, directedDiscovery, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat, optimizeConcept, stressTestConcept, generateImplementation } from './services/aiService';
-import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit, RefreshCw, Network } from 'lucide-react';
+import { curateWikiSnippet, expandConcept, expandConceptTargeted, directedDiscovery, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat, optimizeConcept, stressTestConcept, generateImplementation, researchAssistantTextReply, extractKnowledgeMap } from './services/aiService';
+import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit, RefreshCw, Network, SquarePlus } from 'lucide-react';
 import NexusAssistant from './components/NexusAssistant';
 import NexusConfirmDialog from './components/NexusConfirmDialog';
 import ConfirmDialog from './components/ConfirmDialog';
@@ -375,7 +375,95 @@ function App() {
     setCurrentSessionName('Root');
     setShowDashboard(false);
     setShowWelcome(false);
-    setDiscardedLuckySeeds([]); // Reset AI memory for new session
+    setDiscardedLuckySeeds([]);
+
+    // Open chat and greet for new space
+    setIsChatOpen(true);
+    const modeConfig = getModeConfig(mode);
+    setChatMessages([{
+      id: generateId(),
+      role: 'assistant',
+      content: `What are we SEED-ing today?`,
+      timestamp: Date.now()
+    }]);
+  };
+
+  const handleCreateNewSpaceFromNode = async (node: GraphNode) => {
+    // 1. Save current session before switching
+    await handleSaveSeed(true);
+
+    // 2. Prepare new data with this node as the root
+    const rootNodeId = generateId();
+    const newId = generateId();
+
+    // Deep clone the node to avoid any shared object issues
+    const nodeCopy = JSON.parse(JSON.stringify(node));
+
+    const rootNode: GraphNode = {
+      ...nodeCopy,
+      id: rootNodeId,
+      isRoot: true,
+      x: 0,
+      y: 0,
+      fx: 0,
+      fy: 0,
+      subGraphData: undefined, // Don't carry over nested subgraphs to the new space's root
+      isNew: false,
+      isGhost: false,
+      isWormhole: false, // In the new space, it's the actual root, not a wormhole
+    };
+
+    const newData: GraphData = {
+      nodes: [rootNode],
+      links: []
+    };
+
+    const newSeedFile: SeedFile = {
+      id: newId,
+      name: node.label,
+      lastModified: Date.now(),
+      data: newData,
+      sessionStack: [],
+      viewport: { x: 0, y: 0, zoom: 1 },
+      mode: currentMode
+    };
+
+    try {
+      // @ts-ignore
+      const result = await window.api.db.saveSeed(newSeedFile);
+      if (result && result.error) {
+        throw new Error(result.error);
+      }
+
+      // 3. Update state to point to the new space
+      setData(newData);
+      setSessionStack([]);
+      setCurrentSeedFileId(newId);
+      setCurrentSeedFileName(node.label);
+      setCurrentSessionId('root');
+      setCurrentSessionName('Root');
+
+      // Reset history for the new space
+      setPast([]);
+      setFuture([]);
+
+      setNotification({ message: `New Seed Space created: ${node.label}`, type: 'success' });
+      setTimeout(() => setNotification(null), 3000);
+
+      // 4. Open chat to continue the conversation in the new space
+      setIsChatOpen(true);
+      setChatMessages([{
+        id: generateId(),
+        role: 'assistant',
+        content: `I've successfully branched your research on "${node.label}" into its own dedicated space. \n\nHow should we continue this exploration? We can brainstorm technical implementation, look for adjacent problems, or perform a global trace.`,
+        timestamp: Date.now()
+      }]);
+    } catch (e: any) {
+      console.error("Failed to create new seed space from node:", e);
+      popError(`Failed to create new seed space: ${e.message || 'Unknown error'}`);
+    }
+
+    setContextMenuNode(null);
   };
 
   // Handling Adding Manual Nodes
@@ -453,58 +541,99 @@ function App() {
 
         const suggestion = await agenticDiscovery(settingsRef.current, fullGraphContext, target!, modeRef.current);
 
-        // LOYAL STOP: Discard result if user clicked stop while AI was thinking
         if (suggestion && isActiveRef.current) {
-          const newNodeId = generateId();
-          const newNode: GraphNode = {
-            id: newNodeId,
-            label: suggestion.label,
-            type: suggestion.type,
-            description: suggestion.description,
-            isGhost: true,
-            isNew: true,
-            x: (target!.x || 0) + (Math.random() - 0.5) * 400,
-            y: (target!.y || 0) + (Math.random() - 0.5) * 400
+          // Check for Duplicates (Smart Match)
+          // Logic: Remove special chars, split, remove stop words, remove trailing 's', join, check equality
+          const cleanWords = (str: string) => {
+            return str.toLowerCase()
+              .replace(/[^a-z0-9 ]/g, '') // remove special chars context
+              .split(/\s+/)
+              .filter(w => !['the', 'a', 'an', 'of', 'in', 'on', 'at', 'to', 'for'].includes(w))
+              .map(w => w.endsWith('s') && w.length > 3 ? w.slice(0, -1) : w);
           };
 
-          // SCIENTIFIC PIVOT LOGIC: 
-          // If the suggestion is a pivot, we want to find the grandparent 
-          // (e.g., connect the new solution to the original problem, not the constraint)
-          let finalSourceId = target!.id;
-          const relation = (suggestion.relationToParent || "").toLowerCase();
-          const isPivot = relation.includes("pivot") || relation.includes("instead") || relation.includes("alternative");
+          const suggestionWords = cleanWords(suggestion.label).join('');
 
-          if (isPivot) {
-            const parentLink = dataRef.current.links.find(l => {
-              const tId = typeof l.target === 'object' ? (l.target as any).id : l.target;
-              return tId === target!.id;
+          const existingNode = dataRef.current.nodes.find(n => {
+            const nodeWords = cleanWords(n.label).join('');
+            // Exact match on cleaned "meaning core"
+            return nodeWords === suggestionWords && nodeWords.length > 0;
+          });
+
+          if (existingNode) {
+            // Duplicate found: Just link to it if not already linked
+            const alreadyLinked = dataRef.current.links.some(l => {
+              const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+              const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+              return (s === target!.id && t === existingNode.id) || (s === existingNode.id && t === target!.id);
             });
-            if (parentLink) {
-              const parentId = typeof parentLink.source === 'object' ? (parentLink.source as any).id : parentLink.source;
-              // If we are pivoting from a Constraint, we want to connect to the node that BROUGHT us to the constraint
-              // Usually: Problem -> Implementation -> Constraint. 
-              // Focused on Constraint, we pivot back to Implementation or even Problem.
-              finalSourceId = parentId;
+
+            if (!alreadyLinked && existingNode.id !== target!.id) {
+              const newLink = {
+                source: target!.id,
+                target: existingNode.id,
+                relation: suggestion.relationToParent || "connects to",
+                isGhost: true
+              };
+              setData(prev => ({ ...prev, links: [...prev.links, newLink] }));
+              setDiscoveryState(prev => ({
+                ...prev,
+                history: [`Reconnected: ${existingNode.label}`, ...prev.history].slice(0, 10)
+              }));
             }
+          } else {
+            // Create New Node
+            const newNodeId = generateId();
+            const newNode: GraphNode = {
+              id: newNodeId,
+              label: suggestion.label,
+              type: suggestion.type,
+              description: suggestion.description,
+              isGhost: true,
+              isNew: true,
+              x: (target!.x || 0) + (Math.random() - 0.5) * 400,
+              y: (target!.y || 0) + (Math.random() - 0.5) * 400
+            };
+
+            // SCIENTIFIC PIVOT LOGIC: 
+            // If the suggestion is a pivot, we want to find the grandparent 
+            // (e.g., connect the new solution to the original problem, not the constraint)
+            let finalSourceId = target!.id;
+            const relation = (suggestion.relationToParent || "").toLowerCase();
+            const isPivot = relation.includes("pivot") || relation.includes("instead") || relation.includes("alternative");
+
+            if (isPivot) {
+              const parentLink = dataRef.current.links.find(l => {
+                const tId = typeof l.target === 'object' ? (l.target as any).id : l.target;
+                return tId === target!.id;
+              });
+              if (parentLink) {
+                const parentId = typeof parentLink.source === 'object' ? (parentLink.source as any).id : parentLink.source;
+                // If we are pivoting from a Constraint, we want to connect to the node that BROUGHT us to the constraint
+                // Usually: Problem -> Implementation -> Constraint. 
+                // Focused on Constraint, we pivot back to Implementation or even Problem.
+                finalSourceId = parentId;
+              }
+            }
+
+            const newLink = {
+              source: finalSourceId,
+              target: newNodeId,
+              relation: suggestion.relationToParent || "hypothesized",
+              isGhost: true
+            };
+
+            setData(prev => ({
+              nodes: [...prev.nodes, newNode],
+              links: [...prev.links, newLink]
+            }));
+
+            setDiscoveryState(prev => ({
+              ...prev,
+              activeNodeId: prev.isQuest ? newNodeId : prev.activeNodeId, // Move focus if in quest mode
+              history: [`Discovered: ${suggestion.label} (${suggestion.type})`, ...prev.history].slice(0, 10)
+            }));
           }
-
-          const newLink = {
-            source: finalSourceId,
-            target: newNodeId,
-            relation: suggestion.relationToParent || "hypothesized",
-            isGhost: true
-          };
-
-          setData(prev => ({
-            nodes: [...prev.nodes, newNode],
-            links: [...prev.links, newLink]
-          }));
-
-          setDiscoveryState(prev => ({
-            ...prev,
-            activeNodeId: prev.isQuest ? newNodeId : prev.activeNodeId, // Move focus if in quest mode
-            history: [`Discovered: ${suggestion.label} (${suggestion.type})`, ...prev.history].slice(0, 10)
-          }));
         }
       } catch (e) {
         console.error("Discovery Pulse Error:", e);
@@ -1094,14 +1223,6 @@ function App() {
         }));
 
         setSelectedNodeIds([newNodeId]);
-
-        // AUTOMATIC DISCOVERY: Move focus to the new innovation and start quest
-        setDiscoveryState(prev => ({
-          ...prev,
-          isActive: true, // Trigger global discovery
-          isQuest: true,
-          activeNodeId: newNodeId
-        }));
       }
     } catch (e: any) {
       popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Innovation request failed" : "Synthesis request failed"));
@@ -1152,14 +1273,6 @@ function App() {
         }));
 
         setSelectedNodeIds([newNodeId]);
-
-        // AUTOMATIC DISCOVERY: Move focus to the solution and start quest
-        setDiscoveryState(prev => ({
-          ...prev,
-          isActive: true,
-          isQuest: true,
-          activeNodeId: newNodeId
-        }));
       }
     } catch (e: any) {
       popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Problem solving failed" : "Resolution failed"));
@@ -1210,14 +1323,6 @@ function App() {
         }));
 
         setSelectedNodeIds([newNodeId]);
-
-        // AUTOMATIC DISCOVERY: Move focus to the answer and start quest
-        setDiscoveryState(prev => ({
-          ...prev,
-          isActive: true,
-          isQuest: true,
-          activeNodeId: newNodeId
-        }));
       }
     } catch (e: any) {
       popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Answer request failed" : "Fact check failed"));
@@ -1523,6 +1628,144 @@ function App() {
     }
   };
 
+  const assimilateMapData = (map: { nodes: AISuggestion[], links: Array<{ sourceLabel: string, targetLabel: string, relation: string }> }) => {
+    if ((map.nodes && map.nodes.length > 0) || (map.links && map.links.length > 0)) {
+      recordHistory();
+      setData(prev => {
+        const nextNodes = [...prev.nodes];
+        const nextLinks = [...prev.links];
+        const labelToIdMap: Record<string, string> = {};
+        prev.nodes.forEach(n => { labelToIdMap[n.label.toLowerCase()] = n.id; });
+
+        // 1. Process New Nodes
+        map.nodes.forEach((suggestion) => {
+          const existingNode = nextNodes.find(n => n.label.toLowerCase() === suggestion.label.toLowerCase());
+          if (!existingNode) {
+            const newNodeId = generateId();
+            labelToIdMap[suggestion.label.toLowerCase()] = newNodeId;
+            const selectedNodes = prev.nodes.filter(n => selectedNodeIds.includes(n.id));
+            const baseX = selectedNodes.length > 0 ? (selectedNodes[0].x || 0) : 0;
+            const baseY = selectedNodes.length > 0 ? (selectedNodes[0].y || 0) : 0;
+            nextNodes.push({
+              id: newNodeId,
+              label: suggestion.label,
+              type: suggestion.type,
+              description: suggestion.description,
+              x: baseX + (Math.random() - 0.5) * 400,
+              y: baseY + (Math.random() - 0.5) * 400,
+              isNew: true
+            });
+          } else {
+            labelToIdMap[suggestion.label.toLowerCase()] = existingNode.id;
+          }
+        });
+
+        // 2. Process New Links
+        map.links.forEach(link => {
+          const sId = labelToIdMap[link.sourceLabel.toLowerCase()];
+          const tId = labelToIdMap[link.targetLabel.toLowerCase()];
+          if (sId && tId) {
+            const linkExists = nextLinks.some(l => {
+              const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+              const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+              return (currS === sId && currT === tId) || (currS === tId && currT === sId);
+            });
+            if (!linkExists) {
+              nextLinks.push({ source: sId, target: tId, relation: link.relation });
+            }
+          }
+        });
+
+        // 3. FORCE CONNECTION (Anti-Island Logic)
+        // Ensure every newly created node is connected to *something* in the existing graph (not just other new nodes).
+        // If a new node is part of a new cluster that is totally floating, we anchor the whole cluster or the node to the current context.
+        const prevNodeIds = prev.nodes.map(n => n.id);
+        const selectedNodes = prev.nodes.filter(n => selectedNodeIds.includes(n.id));
+        const anchorNodeId = selectedNodes.length > 0 ? selectedNodes[0].id : (prevNodeIds.length > 0 ? prevNodeIds[prevNodeIds.length - 1] : null);
+
+        if (anchorNodeId) {
+          // Identify "Floating Roots": Nodes that are part of the new batch, have no connection to the main graph,
+          // and arguably serve as the entry points for their own little new clusters.
+          // Strategy:
+          // 1. Build an adjacency graph of just the NEW nodes/links.
+          // 2. Find Connected Components (clusters) within the new nodes.
+          // 3. For each cluster, check if ANY node in it connects to the Main Graph.
+          // 4. If a cluster is totally floating, pick ONE node from it (e.g. the one with the most edges, or just the first) and link it to the Anchor.
+
+          const newIds = map.nodes.map(n => labelToIdMap[n.label.toLowerCase()]).filter(id => id);
+
+          // Build adjacency for new nodes
+          const adj: Record<string, string[]> = {};
+          newIds.forEach(id => adj[id] = []);
+
+          nextLinks.forEach(l => {
+            const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+            const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+            if (newIds.includes(s) && newIds.includes(t)) {
+              adj[s].push(t);
+              adj[t].push(s);
+            }
+          });
+
+          // Find clusters (Connected Components)
+          const visited = new Set<string>();
+          const clusters: string[][] = [];
+
+          newIds.forEach(id => {
+            if (!visited.has(id)) {
+              const cluster: string[] = [];
+              const queue = [id];
+              visited.add(id);
+              while (queue.length > 0) {
+                const curr = queue.shift()!;
+                cluster.push(curr);
+                adj[curr].forEach(neighbor => {
+                  if (!visited.has(neighbor)) {
+                    visited.add(neighbor);
+                    queue.push(neighbor);
+                  }
+                });
+              }
+              clusters.push(cluster);
+            }
+          });
+
+          // Process each cluster
+          clusters.forEach(cluster => {
+            // Check if this cluster is connected to Main Graph
+            const isAnchored = cluster.some(cId => {
+              return nextLinks.some(l => {
+                const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+                const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+                // Link connects (Cluster Node) <-> (Main Graph Node)
+                return (s === cId && prevNodeIds.includes(t)) || (t === cId && prevNodeIds.includes(s));
+              });
+            });
+
+            if (!isAnchored) {
+              // Cluster is floating! Link its "Root" to the Anchor.
+              // Heuristic for Root: The node with the most connections? Or just the first one?
+              // Using first one is usually fine as it's often the "primary" extracted concept.
+              const rootId = cluster[0];
+
+              const newLink = {
+                source: anchorNodeId,
+                target: rootId,
+                relation: currentMode === ExplorationMode.INNOVATION ? "context" : "related"
+              };
+
+              nextLinks.push(newLink);
+            }
+          });
+        }
+
+        return { nodes: nextNodes, links: nextLinks };
+      });
+      setNotification({ message: "Knowledge map updated", type: 'success' });
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
   const handleChatSendMessage = async (content: string) => {
     if (!content.trim() || isChatProcessing) return;
 
@@ -1539,8 +1782,41 @@ function App() {
 
     try {
       const selectedNodes = data.nodes.filter(n => selectedNodeIds.includes(n.id));
-      const response = await researchAssistantChat(aiSettings, newMessages, selectedNodes, data.links, currentMode);
-      setChatMessages(prev => [...prev, response]);
+
+      // --- PARALLEL EXECUTION ---
+      // Task 1: Persona Reply (The visible part)
+      const replyPromise = researchAssistantTextReply(aiSettings, newMessages, selectedNodes, data.nodes, currentMode);
+
+      // Task 3: Background Mapping (Extract from USER input)
+      const focusNodes = selectedNodes.length > 0 ? selectedNodes : data.nodes.slice(-5);
+      const userContextBrief = focusNodes.length > 0
+        ? `Focusing on recent/selected context: ${focusNodes.map(n => n.label).join(', ')}`
+        : `Start of a new discovery thread.`;
+      const userMapPromise = extractKnowledgeMap(aiSettings, content, userContextBrief, currentMode);
+
+      // Task 2: Wait for Text Reply
+      const aiResponseText = await replyPromise;
+
+      // Update UI with AI reply immediately
+      const aiMsg: ChatMessage = {
+        id: generateId(),
+        role: 'assistant',
+        content: aiResponseText,
+        timestamp: Date.now(),
+        wasAssimilated: true // We'll handle assimilation separately in background
+      };
+      setChatMessages(prev => [...prev, aiMsg]);
+      setIsChatProcessing(false); // Stop typing animation immediately
+
+
+      // Process User-driven mapping in background
+      const userMapData = await userMapPromise;
+      assimilateMapData(userMapData);
+
+      // Task 4: Background Mapping (Extract from AI reply)
+      const aiMapData = await extractKnowledgeMap(aiSettings, aiResponseText, `Follow-up to: ${content}`, currentMode);
+      assimilateMapData(aiMapData);
+
     } catch (e: any) {
       popError(e.message || "Nexus chat failed");
     } finally {
@@ -2072,6 +2348,14 @@ function App() {
                 </button>
 
                 <button
+                  onClick={(e) => { e.stopPropagation(); handleCreateNewSpaceFromNode(contextMenuNode); }}
+                  className="px-3 py-1.5 hover:bg-emerald-500/20 rounded-xl text-slate-300 hover:text-emerald-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                >
+                  <SquarePlus size={18} className="text-emerald-500 group-hover:scale-110 transition-transform shrink-0" />
+                  <span>New Seed Space</span>
+                </button>
+
+                <button
                   onClick={(e) => { e.stopPropagation(); handleTraceLineage(contextMenuNode); setContextMenuNode(null); }}
                   className="px-3 py-1.5 hover:bg-fuchsia-500/20 rounded-xl text-slate-300 hover:text-fuchsia-200 transition-all flex items-center gap-3 text-xs font-semibold group"
                 >
@@ -2264,10 +2548,10 @@ function App() {
               <p className="text-base text-slate-400 max-w-xs mb-8">
                 {currentMode === ExplorationMode.INNOVATION ? "Innovation starts with a single seed." : "Knowledge starts with a single seed."}
               </p>
-              <div className="flex gap-4 pointer-events-auto">
+              <div className="flex flex-col md:flex-row gap-4 pointer-events-auto">
                 <button
                   onClick={handleAddCustomNode}
-                  className="px-6 py-3 bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-sky-900/20 hover:shadow-sky-500/40 flex items-center gap-2 hover:-translate-y-1"
+                  className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-xl border border-white/5 transition-all flex items-center gap-2 hover:-translate-y-1"
                 >
                   <PlusCircle size={18} />
                   Add First Seed
@@ -2280,6 +2564,7 @@ function App() {
                   {isGeneratingSeed ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
                   {isGeneratingSeed ? 'Generating...' : (currentMode === ExplorationMode.KNOWLEDGE ? "I'm feeling curious" : "I'm feeling lucky")}
                 </button>
+
               </div>
             </div>
           </div>
@@ -2367,6 +2652,7 @@ function App() {
         onSolve={handleSolveProblem}
         onAnswer={handleAnswerQuestion}
         onDirectedDiscovery={handleDirectedDiscovery}
+        onCreateNewSpace={handleCreateNewSpaceFromNode}
         isProcessing={isProcessing || isGeneratingSeed}
         onAssimilate={handleAssimilateNode}
         onPrune={handlePruneNode}

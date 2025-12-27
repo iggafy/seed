@@ -152,6 +152,8 @@ export interface ChatMessage {
   timestamp: number;
   suggestedNode?: AISuggestion; // Proactive seed suggestion
   suggestedNodes?: AISuggestion[]; // Support for multiple suggestions
+  suggestedLinks?: Array<{ sourceLabel: string; targetLabel: string; relation: string }>;
+  wasAssimilated?: boolean; // Flag to indicate if suggestions were already added to the graph
 }
 
 export interface ChatContext {
