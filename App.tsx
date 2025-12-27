@@ -414,7 +414,7 @@ function App() {
       // 3. If no target, pick a purposeful one (prioritize problems/questions if in innovation mode)
       if (!target) {
         const priorityNodes = modeRef.current === ExplorationMode.INNOVATION
-          ? currentNodes.filter(n => [NodeType.PROBLEM, NodeType.PAIN_POINT, NodeType.QUESTION, NodeType.FRICTION, NodeType.CONSTRAINT].includes(n.type))
+          ? currentNodes.filter(n => [NodeType.PROBLEM, NodeType.PAIN_POINT, NodeType.QUESTION, NodeType.FRICTION, NodeType.CONSTRAINT, NodeType.ETHICS, NodeType.REGULATION, NodeType.MARKET, NodeType.MENTAL_MODEL].includes(n.type))
           : currentNodes.filter(n => [NodeType.QUESTION, NodeType.CONTRADICTION].includes(n.type));
 
         if (priorityNodes.length > 0) {
@@ -2151,7 +2151,7 @@ function App() {
                   className={`px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-violet-900/20 hover:shadow-violet-500/40 flex items-center gap-2 hover:-translate-y-1 ${isGeneratingSeed ? 'opacity-80 cursor-wait' : ''}`}
                 >
                   {isGeneratingSeed ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-                  {isGeneratingSeed ? 'Generating...' : "I'm feeling lucky"}
+                  {isGeneratingSeed ? 'Generating...' : (currentMode === ExplorationMode.KNOWLEDGE ? "I'm feeling curious" : "I'm feeling lucky")}
                 </button>
               </div>
             </div>

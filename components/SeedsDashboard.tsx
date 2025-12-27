@@ -108,7 +108,7 @@ const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, 
                             </button>
 
                             {/* Seed Cards */}
-                            {seeds.filter(s => s.mode === activeTab).map(seed => (
+                            {seeds.filter(s => (s.mode || ExplorationMode.INNOVATION) === activeTab).map(seed => (
                                 <div
                                     key={seed.id}
                                     onClick={() => onLoadSeed(seed.id)}

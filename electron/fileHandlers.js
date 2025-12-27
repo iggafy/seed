@@ -48,7 +48,8 @@ export function setupFileHandlers() {
                             id: data.id,
                             name: data.name,
                             lastModified: data.lastModified || 0,
-                            nodeCount: data.data?.nodes?.length || 0
+                            nodeCount: data.data?.nodes?.length || 0,
+                            mode: data.mode
                         });
                     } catch (e) {
                         console.error(`Error parsing seed ${file}`, e);

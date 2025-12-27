@@ -18,7 +18,12 @@ export const MODE_CONFIGS: Record<ExplorationMode, ModeConfig> = {
       NodeType.QUESTION,
       NodeType.TRACE,
       NodeType.IMPLEMENTATION,
-      NodeType.USER_SEGMENT
+      NodeType.USER_SEGMENT,
+      NodeType.ANALOGY,
+      NodeType.REGULATION,
+      NodeType.MARKET,
+      NodeType.ETHICS,
+      NodeType.MENTAL_MODEL
     ],
     defaultRelations: [
       "solves",
@@ -33,7 +38,7 @@ export const MODE_CONFIGS: Record<ExplorationMode, ModeConfig> = {
       "imposes",
       "requires"
     ],
-    aiPersona: "innovation engine and product architect",
+    aiPersona: "deep-tech researcher, interdisciplinary innovation architect, and systems thinker",
     seedExamples: [
       { label: 'Unused Cloud GPU Oversubscription', type: NodeType.PAIN_POINT, description: 'Enterprises pay for reserved GPU instances that sit idle 60% of the time, while startups can\'t access compute.' },
       { label: 'Fragmented Clinical Trial Data', type: NodeType.PROBLEM, description: 'Medical research is slowed down by siloed, non-interoperable patient records across different hospitals.' },
@@ -118,6 +123,11 @@ export const NODE_COLORS: Record<NodeType, string> = {
   [NodeType.CONTRADICTION]: '#ef4444', // Red (Debate)
   [NodeType.IMPLEMENTATION]: '#22c55e', // Green (Practical)
   [NodeType.USER_SEGMENT]: '#f97316', // Orange (Active Person)
+  [NodeType.ANALOGY]: '#f472b6', // Pink (Cross-pollination)
+  [NodeType.REGULATION]: '#64748b', // Slate (Governance)
+  [NodeType.MARKET]: '#eab308', // Gold (Economic)
+  [NodeType.ETHICS]: '#2dd4bf', // Teal (Values)
+  [NodeType.MENTAL_MODEL]: '#a78bfa', // Lavender (Paradigm)
 };
 
 // SVG Paths (based on 24x24 viewbox)
@@ -148,6 +158,11 @@ export const NODE_ICONS: Record<NodeType, string> = {
   [NodeType.CONTRADICTION]: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z",
   [NodeType.IMPLEMENTATION]: "M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44a.99.99 0 0 1-.94 0l-7.9-4.44A.993.993 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44a.99.99 0 0 1 .94 0l7.9 4.44c.32.17.53.5.53.88v9z M12 12l8.73-4.91 M12 12v9.7 M12 12L3.27 7.09",
   [NodeType.USER_SEGMENT]: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
+  [NodeType.ANALOGY]: "M18 4H6C4.9 4 4 4.9 4 6V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V6C20 4.9 19.1 4 18 4ZM18 18H6V6H18V18ZM8 17H16V15H8V17ZM8 13H16V11H8V13ZM8 9H16V7H8V9Z",
+  [NodeType.REGULATION]: "M12 2L1 21H23L12 2ZM12 6L19.53 19H4.47L12 6ZM11 10V14H13V10H11ZM11 16V18H13V16H11Z",
+  [NodeType.MARKET]: "M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z",
+  [NodeType.ETHICS]: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
+  [NodeType.MENTAL_MODEL]: "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7zm1-11h-2v3H8v2h3v3h2v-3h3v-2h-3V8z",
 };
 
 export const EXPANSION_BLUEPRINTS_INNOVATION = [
@@ -216,6 +231,36 @@ export const EXPANSION_BLUEPRINTS_INNOVATION = [
     relation: "targets",
     targetType: NodeType.USER_SEGMENT,
     sourceTypes: [NodeType.IMPLEMENTATION, NodeType.INNOVATION, NodeType.PAIN_POINT, NodeType.PROBLEM]
+  },
+  {
+    label: "What is a cross-disciplinary analogy?",
+    relation: "analogy of",
+    targetType: NodeType.ANALOGY,
+    sourceTypes: [NodeType.CONCEPT, NodeType.TECHNOLOGY, NodeType.INNOVATION]
+  },
+  {
+    label: "Are there regulatory or policy hurdles?",
+    relation: "impacted by",
+    targetType: NodeType.REGULATION,
+    sourceTypes: [NodeType.INNOVATION, NodeType.TECHNOLOGY, NodeType.IMPLEMENTATION]
+  },
+  {
+    label: "What is the economic/market driver?",
+    relation: "driven by",
+    targetType: NodeType.MARKET,
+    sourceTypes: [NodeType.INNOVATION, NodeType.TECHNOLOGY, NodeType.PROBLEM]
+  },
+  {
+    label: "What are the ethical or social implications?",
+    relation: "concerns",
+    targetType: NodeType.ETHICS,
+    sourceTypes: [NodeType.INNOVATION, NodeType.TECHNOLOGY, NodeType.USER_SEGMENT]
+  },
+  {
+    label: "What underlying mental model is being challenged?",
+    relation: "challenges",
+    targetType: NodeType.MENTAL_MODEL,
+    sourceTypes: [NodeType.INNOVATION, NodeType.CONCEPT, NodeType.TECHNOLOGY]
   }
 ];
 

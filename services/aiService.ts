@@ -366,7 +366,7 @@ export const autonomousDiscovery = async (
     const persona = modeConfig.aiPersona;
 
     const modeSpecificGuidance = mode === ExplorationMode.INNOVATION
-        ? "RESEARCH PRINCIPLE: Maintain 360-degree sight. Do not default to TECHNOLOGY or CONCEPT loops. If you see a technology, look for its hidden PROBLEM, friction point, or the USER_SEGMENT it targets. If you see an innovation, identify its physical CONSTRAINT or systemic FRICTION. Every advancement must be balanced by a ground-truth challenge."
+        ? "RESEARCH PRINCIPLE: Maintain 360-degree sight. Do not default to TECHNOLOGY or CONCEPT loops. If you see a technology, look for its hidden PROBLEM, friction point, or the USER_SEGMENT it targets. Consider the REGULATION, MARKET drivers, and ETHICS. Use ANALOGY to find cross-disciplinary solutions. Every advancement must be balanced by a ground-truth challenge or a MENTAL_MODEL being challenged."
         : "RESEARCH PRINCIPLE: Maintain 360-degree sight. Expand historical context by linking EVENTS to the PEOPLE they affected, the PLACES they occurred, and the underlying THEORIES or CONTRADICTIONS that drove them.";
 
     const prompt = dieToGrow
@@ -449,8 +449,9 @@ export const agenticDiscovery = async (
 
     const specificityGuidance = mode === ExplorationMode.INNOVATION
         ? `1. DO NOT be generic. Be technically specific.
-    2. AVOID LOOPS: If the surrounding graph is mostly TECHNOLOGIES, look for a PAIN_POINT or USER_SEGMENT. If it is all PROBLEMS, look for an ENTITY or CONCEPT.
-    3. BALANCE: For every two forward steps, provide one grounding step (CONSTRAINT, FRICTION, or QUESTION).`
+    2. AVOID LOOPS: If the surrounding graph is mostly TECHNOLOGIES, look for a PAIN_POINT, USER_SEGMENT, or ETHICS node. If it is all PROBLEMS, look for an ENTITY, MARKET driver, or ANALOGY.
+    3. BALANCE: For every two forward steps, provide one grounding step (CONSTRAINT, FRICTION, REGULATION, or QUESTION).
+    4. PERSPECTIVE: Occasionally challenge the underlying MENTAL_MODEL or propose a cross-disciplinary ANALOGY.`
         : `1. DO NOT be generic. Be historically and factually accurate.
     2. AVOID LOOPS: Do not just chain EVENTS. Link them to the PERSON who influenced them or the ARTIFACT they left behind.
     3. CURIOSITY: Look for the CONTRADICTION or QUESTION that remains unanswered in this lineage.`;

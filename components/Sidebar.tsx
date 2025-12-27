@@ -121,6 +121,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         case NodeType.TECHNOLOGY: return 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10';
         case NodeType.PROBLEM: return 'text-red-400 border-red-400/30 bg-red-400/10';
         case NodeType.QUESTION: return 'text-amber-400 border-amber-400/30 bg-amber-400/10';
+        case NodeType.ANALOGY: return 'text-pink-400 border-pink-400/30 bg-pink-400/10';
+        case NodeType.REGULATION: return 'text-slate-400 border-slate-400/30 bg-slate-400/10';
+        case NodeType.MARKET: return 'text-amber-500 border-amber-500/30 bg-amber-500/10';
+        case NodeType.ETHICS: return 'text-teal-400 border-teal-400/30 bg-teal-400/10';
+        case NodeType.MENTAL_MODEL: return 'text-purple-400 border-purple-400/30 bg-purple-400/10';
         default: return 'text-violet-400 border-violet-400/30 bg-violet-400/10';
       }
     };

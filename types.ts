@@ -78,6 +78,11 @@ export enum NodeType {
   TRACE = 'TRACE',
   IMPLEMENTATION = 'IMPLEMENTATION', // Practical application, app, or product
   USER_SEGMENT = 'USER_SEGMENT', // Target audience, persona, or market segment
+  ANALOGY = 'ANALOGY', // Cross-disciplinary analogy or inspiration
+  REGULATION = 'REGULATION', // Legal, policy, or regulatory context
+  MARKET = 'MARKET', // Economic drivers, market forces, or business models
+  ETHICS = 'ETHICS', // Values, societal impact, or moral considerations
+  MENTAL_MODEL = 'MENTAL_MODEL', // Underlying assumptions or paradigms being challenged
 
   // Knowledge Mode specific
   EVENT = 'EVENT', // Historical events, occurrences
