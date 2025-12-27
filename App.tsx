@@ -648,6 +648,7 @@ function App() {
         setCurrentSeedFileId(seed.id);
         setCurrentSessionId(generateId());
         setCurrentSessionName(seed.name);
+        setCurrentMode(seed.mode || ExplorationMode.INNOVATION);
 
         if (targetNodeId) {
           setSelectedNodeIds([targetNodeId]);

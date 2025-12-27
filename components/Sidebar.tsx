@@ -82,7 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       const validIndex = expansionBlueprints.findIndex(bp => bp.sourceTypes.includes(nodes[0].type));
       if (validIndex !== -1) setExpandBlueprintIndex(validIndex);
     }
-  }, [nodes]);
+  }, [nodes, expansionBlueprints]);
 
   const handleStartEdit = (node: GraphNode) => {
     setEditForm({
@@ -421,18 +421,36 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Target Specific Path</label>
-                  <select
-                    value={expandBlueprintIndex}
-                    onChange={(e) => setExpandBlueprintIndex(parseInt(e.target.value))}
-                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500/50 focus:outline-none appearance-none cursor-pointer hover:bg-slate-900 transition-colors"
-                  >
-                    {expansionBlueprints
+                  {(() => {
+                    const validBlueprints = expansionBlueprints
                       .map((bp, idx) => ({ ...bp, originalIndex: idx }))
-                      .filter(bp => bp.sourceTypes.includes(node.type))
-                      .map((bp) => (
-                        <option key={bp.label} value={bp.originalIndex}>{bp.label}</option>
-                      ))}
-                  </select>
+                      .filter(bp => bp.sourceTypes.includes(node.type));
+
+                    if (validBlueprints.length === 0) {
+                      return (
+                        <div className="bg-slate-950/30 border border-white/5 rounded-xl px-3 py-2.5 text-[10px] text-slate-500 italic">
+                          No specific branching paths available for this seed type.
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="relative group/select">
+                        <select
+                          value={expandBlueprintIndex}
+                          onChange={(e) => setExpandBlueprintIndex(parseInt(e.target.value))}
+                          className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500/50 focus:outline-none appearance-none cursor-pointer hover:bg-slate-900 transition-colors pr-10"
+                        >
+                          {validBlueprints.map((bp) => (
+                            <option key={bp.label} value={bp.originalIndex}>{bp.label}</option>
+                          ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover/select:text-slate-300 transition-colors">
+                          <ChevronRight size={14} className="rotate-90" />
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="flex items-center gap-3">
