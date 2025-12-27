@@ -366,8 +366,8 @@ export const autonomousDiscovery = async (
     const persona = modeConfig.aiPersona;
 
     const modeSpecificGuidance = mode === ExplorationMode.INNOVATION
-        ? "CRITICAL: Every 3rd developmental step MUST introduce a CONSTRAINT or FRICTION node to ground the innovation."
-        : "Focus on expanding historical context, adding related people, events, or theories that enrich understanding.";
+        ? "RESEARCH PRINCIPLE: Maintain 360-degree sight. Do not default to TECHNOLOGY or CONCEPT loops. If you see a technology, look for its hidden PROBLEM, friction point, or the USER_SEGMENT it targets. If you see an innovation, identify its physical CONSTRAINT or systemic FRICTION. Every advancement must be balanced by a ground-truth challenge."
+        : "RESEARCH PRINCIPLE: Maintain 360-degree sight. Expand historical context by linking EVENTS to the PEOPLE they affected, the PLACES they occurred, and the underlying THEORIES or CONTRADICTIONS that drove them.";
 
     const prompt = dieToGrow
         ? `You are an Autonomous Gardener working as a ${persona}. 
@@ -434,8 +434,8 @@ export const agenticDiscovery = async (
         : "Challenge assumptions by proposing a QUESTION or alternative THEORY node.";
 
     const solveGuidance = mode === ExplorationMode.INNOVATION
-        ? "Target is a technical problem. Propose a technical SOLUTION or mitigation approach."
-        : "Target is a historical contradiction or gap. Provide a RESOLUTION or evidence-based synthesis.";
+        ? "Target is a technical problem or pain point. Propose a specific SOLUTION or mitigation approach. DO NOT be generic. Consider the architectural trade-offs."
+        : "Target is a historical contradiction or gap. Provide a RESOLUTION or evidence-based synthesis that reconciles conflicting artifacts or accounts.";
 
     const answerGuidance = "Target is a question. Synthesize an evidence-based ANSWER or resolution.";
 
@@ -449,11 +449,11 @@ export const agenticDiscovery = async (
 
     const specificityGuidance = mode === ExplorationMode.INNOVATION
         ? `1. DO NOT be generic. Be technically specific.
-    2. If a CONSTRAINT, explain why it's a physical or economic bottleneck.
-    3. If FRICTION, explain the human or systemic resistance.`
+    2. AVOID LOOPS: If the surrounding graph is mostly TECHNOLOGIES, look for a PAIN_POINT or USER_SEGMENT. If it is all PROBLEMS, look for an ENTITY or CONCEPT.
+    3. BALANCE: For every two forward steps, provide one grounding step (CONSTRAINT, FRICTION, or QUESTION).`
         : `1. DO NOT be generic. Be historically and factually accurate.
-    2. If an EVENT, provide specific dates or time periods.
-    3. If a PERSON, include their key contributions or roles.`;
+    2. AVOID LOOPS: Do not just chain EVENTS. Link them to the PERSON who influenced them or the ARTIFACT they left behind.
+    3. CURIOSITY: Look for the CONTRADICTION or QUESTION that remains unanswered in this lineage.`;
 
     const prompt = `You are a SEED Discovery Agent working as a ${persona}. 
     ${activeNode ? `Focusing on: "${activeNode.label}" [${activeNode.type}]` : "Scanning the entire system."}
@@ -556,8 +556,8 @@ export const researchAssistantChat = async (
     }
 
     const modeSpecificGuidance = mode === ExplorationMode.INNOVATION
-        ? "Provide deep technical insights, definitions, and strategic analysis based on the selected nodes and their relationships."
-        : "Provide interdisciplinary insights, historical evidence, and causal analysis. Focus on clarifying complex interconnections and referencing sources/artifacts where possible.";
+        ? "Provide deep technical insights, definitions, and strategic analysis. EXERCISE 360-DEGREE RESEARCH: Suggest a variety of types (e.g. Problems, Entities, Constraints) to ensure a comprehensive investigation."
+        : "Provide interdisciplinary insights, historical evidence, and causal analysis. EXERCISE 360-DEGREE RESEARCH: Suggest connections across diverse types (e.g. Artifacts, Places, Contradictions) to enrich the tapestry of knowledge.";
 
     const systemPrompt = `You are the Nexus Research Assistant, a ${persona}.
     

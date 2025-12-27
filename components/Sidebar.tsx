@@ -283,8 +283,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                       </h3>
                       <p className="text-xs text-slate-400 mb-4 relative z-10">
                         {mode === ExplorationMode.INNOVATION
-                          ? 'Propel this technology into its next architectural evolution.'
-                          : 'Generate a deeper synthesis of this concept within the global context.'}
+                          ? 'Launch Autonomous Discovery to architect a breakthrough evolution and quest-line for this seed.'
+                          : 'Launch Autonomous Discovery to synthesize a deep insight and trigger an autonomous exploration quest.'}
                       </p>
                       <button
                         onClick={() => onInnovate(node)}
@@ -346,8 +346,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </h3>
                     <p className="text-xs text-slate-400 mb-4 relative z-10">
                       {mode === ExplorationMode.INNOVATION
-                        ? 'Analyze graph context to derive a technical solution for this pain point.'
-                        : 'Resolve historical ambiguity or summarize the key points of this debate.'}
+                        ? 'Launch Autonomous Discovery to derive a structured solution and quest-line for this pain point.'
+                        : 'Launch Autonomous Discovery to resolve contradictions and trigger an autonomous research quest.'}
                     </p>
                     <button
                       onClick={() => onSolve(node)}
@@ -369,7 +369,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     Answer Question
                   </h3>
                   <p className="text-xs text-slate-400 mb-4 relative z-10">
-                    Synthesize an evidence-based answer using the surrounding graph context.
+                    Launch Autonomous Discovery to synthesize a definitive answer from evidence and trigger a follow-up quest.
                   </p>
                   <button
                     onClick={() => onAnswer(node)}
@@ -392,7 +392,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   {mode === ExplorationMode.INNOVATION ? 'Innovation Discovery' : 'Path Discovery'}
                 </h3>
                 <p className="text-xs text-slate-400 mb-4 relative z-10">
-                  Expand this seed to find adjacent discovery opportunities.
+                  Generate a local cluster of related seeds to broaden the discovery field (creates 3-5 seeds).
                 </p>
                 <button
                   onClick={() => onExpand(node)}
@@ -411,11 +411,11 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div className="bg-slate-800/20 rounded-2xl p-5 border border-white/5 space-y-4">
                 <h3 className="flex items-center gap-2 text-sm font-bold text-emerald-400">
                   <MousePointerClick size={16} />
-                  Directed Discovery
+                  Directed Branching
                 </h3>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Inquire Adjacent Possibility</label>
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Target Specific Path</label>
                   <select
                     value={expandBlueprintIndex}
                     onChange={(e) => setExpandBlueprintIndex(parseInt(e.target.value))}
@@ -432,7 +432,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 <div className="flex items-center gap-3">
                   <div className="flex-1 space-y-1.5">
-                    <label className="text-[10px] uppercase font-bold text-slate-500">Node Density</label>
+                    <label className="text-[10px] uppercase font-bold text-slate-500">Seed Density (Number of new seeds)</label>
                     <div className="flex items-center gap-2">
                       {[1, 2, 3].map(val => (
                         <button
@@ -623,8 +623,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             </h3>
             <p className="text-xs text-slate-400 mb-4 relative z-10">
               {mode === ExplorationMode.INNOVATION
-                ? 'Identify technical synergies or potential conflicts between these two seeds.'
-                : 'Synthesize the historical or conceptual relationship between these two areas.'}
+                ? 'Create a single bridge seed representing the technical synergy between these two areas.'
+                : 'Create a single bridge seed representing the conceptual interconnection between these areas.'}
             </p>
             <button
               onClick={() => onAnalyzeSynergy(nodeA, nodeB)}
