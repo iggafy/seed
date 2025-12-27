@@ -267,6 +267,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               {/* Primary Node Actions */}
               {(node.type === NodeType.TECHNOLOGY ||
                 node.type === NodeType.INNOVATION ||
+                node.type === NodeType.IMPLEMENTATION ||
                 (mode === ExplorationMode.KNOWLEDGE && (
                   node.type === NodeType.THEORY ||
                   node.type === NodeType.MOVEMENT ||
@@ -318,7 +319,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       </div>
                     )}
 
-                    {mode === ExplorationMode.INNOVATION && (
+                    {mode === ExplorationMode.INNOVATION && node.type !== NodeType.IMPLEMENTATION && (
                       <button
                         onClick={() => onImplement(node)}
                         disabled={isProcessing}

@@ -517,16 +517,8 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
 
     // Update Node Visuals
-    allNodes.select("circle.node-body")
-      .attr("r", d => {
-        const r = d.type === NodeType.TRACE ? 16 : 28;
-        return d.isRoot ? r * 1.2 : r;
-      })
-      .attr("fill", d => `url(#grad-${d.type})`)
-      .attr("stroke", "transparent")
-      .attr("stroke-width", 0)
-      // Apply glow filter if selected or root
-      .attr("filter", d => (selectedNodeIds.includes(d.id) || d.isRoot) ? "url(#glow)" : null)
+    // Interaction Handlers (Attached to group for better hit area)
+    allNodes
       .on("contextmenu", (event, d) => {
         event.preventDefault();
         onNodeContextMenu(d, event.clientX, event.clientY);
@@ -541,6 +533,17 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         event.stopPropagation();
         onNodeDoubleClick(d);
       });
+
+    allNodes.select("circle.node-body")
+      .attr("r", d => {
+        const r = d.type === NodeType.TRACE ? 16 : 28;
+        return d.isRoot ? r * 1.2 : r;
+      })
+      .attr("fill", d => `url(#grad-${d.type})`)
+      .attr("stroke", "transparent")
+      .attr("stroke-width", 0)
+      // Apply glow filter if selected or root
+      .attr("filter", d => (selectedNodeIds.includes(d.id) || d.isRoot) ? "url(#glow)" : null);
 
     // Update Selection Ring
     allNodes.select("circle.node-ring")

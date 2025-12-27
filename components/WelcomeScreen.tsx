@@ -19,7 +19,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSelectMode }) => {
                 <div className="flex flex-col items-center mb-16 animate-in fade-in slide-in-from-top-4 duration-1000">
                     <div className="bg-sky-500/10 p-4 rounded-3xl border border-sky-500/20 mb-6 shadow-2xl shadow-sky-500/10 overflow-hidden relative">
                         <img
-                            src="/icon.png"
+                            src="icon.png"
                             alt="SEED Logo"
                             className="w-20 h-20 object-contain relative z-10"
                         />

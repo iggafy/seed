@@ -102,6 +102,7 @@ export interface DiscoveryState {
   isActive: boolean;
   activeNodeId: string | null;
   history: string[];
+  isQuest?: boolean; // If true, discovery moves to the newly created node recursively
 }
 
 export enum AIProvider {

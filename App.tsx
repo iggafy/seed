@@ -378,11 +378,13 @@ function App() {
 
   // --- DISCOVERY AGENT LOOP ---
   const isActiveRef = useRef(discoveryState.isActive);
+  const discoveryStateRef = useRef(discoveryState);
   const dataRef = useRef(data);
   const settingsRef = useRef(aiSettings);
   const modeRef = useRef(currentMode);
 
   useEffect(() => { isActiveRef.current = discoveryState.isActive; }, [discoveryState.isActive]);
+  useEffect(() => { discoveryStateRef.current = discoveryState; }, [discoveryState]);
   useEffect(() => { dataRef.current = data; }, [data]);
   useEffect(() => { settingsRef.current = aiSettings; }, [aiSettings]);
   useEffect(() => { modeRef.current = currentMode; }, [currentMode]);
@@ -398,8 +400,31 @@ function App() {
       const currentNodes = dataRef.current.nodes.filter(n => !n.isGhost);
       if (currentNodes.length === 0) return;
 
-      const target = currentNodes[Math.floor(Math.random() * currentNodes.length)];
-      setDiscoveryState(prev => ({ ...prev, activeNodeId: target.id }));
+      // TARGET SELECTION LOGIC
+      // 1. Check if we have a focus node from state
+      let targetId = discoveryStateRef.current.activeNodeId;
+      let target = targetId ? currentNodes.concat(dataRef.current.nodes.filter(n => n.isGhost)).find(n => n.id === targetId) : null;
+
+      // 2. If no target or target is gone, and we are in quest mode, stop quest
+      if (!target && discoveryStateRef.current.isQuest) {
+        setDiscoveryState(prev => ({ ...prev, isQuest: false, activeNodeId: null }));
+        return;
+      }
+
+      // 3. If no target, pick a purposeful one (prioritize problems/questions if in innovation mode)
+      if (!target) {
+        const priorityNodes = modeRef.current === ExplorationMode.INNOVATION
+          ? currentNodes.filter(n => [NodeType.PROBLEM, NodeType.PAIN_POINT, NodeType.QUESTION, NodeType.FRICTION, NodeType.CONSTRAINT].includes(n.type))
+          : currentNodes.filter(n => [NodeType.QUESTION, NodeType.CONTRADICTION].includes(n.type));
+
+        if (priorityNodes.length > 0) {
+          target = priorityNodes[Math.floor(Math.random() * priorityNodes.length)];
+        } else {
+          target = currentNodes[Math.floor(Math.random() * currentNodes.length)];
+        }
+      }
+
+      setDiscoveryState(prev => ({ ...prev, activeNodeId: target!.id }));
 
       const nodesString = dataRef.current.nodes.map(n => `- ${n.label} (${n.type})`).join('\n');
       const linksString = dataRef.current.links.map(l => {
@@ -407,7 +432,7 @@ function App() {
         const targetLabel = dataRef.current.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as any).id : l.target))?.label;
         return `- ${sourceLabel} --[${l.relation}]--> ${targetLabel}`;
       }).join('\n');
-      const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+      const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}\n\nCURRENT DISCOVERY SESSION HISTORY:\n${discoveryStateRef.current.history.slice(0, 5).reverse().join(' -> ')}`;
 
       try {
         // AI Thinking delay simulation
@@ -416,8 +441,7 @@ function App() {
         // LOYAL STOP: Check again before AI call
         if (!isActiveRef.current) return;
 
-        const target = currentNodes[Math.floor(Math.random() * currentNodes.length)];
-        const suggestion = await agenticDiscovery(settingsRef.current, fullGraphContext, target, modeRef.current);
+        const suggestion = await agenticDiscovery(settingsRef.current, fullGraphContext, target!, modeRef.current);
 
         // LOYAL STOP: Discard result if user clicked stop while AI was thinking
         if (suggestion && isActiveRef.current) {
@@ -429,12 +453,33 @@ function App() {
             description: suggestion.description,
             isGhost: true,
             isNew: true,
-            x: (target.x || 0) + (Math.random() - 0.5) * 300,
-            y: (target.y || 0) + (Math.random() - 0.5) * 300
+            x: (target!.x || 0) + (Math.random() - 0.5) * 400,
+            y: (target!.y || 0) + (Math.random() - 0.5) * 400
           };
 
+          // SCIENTIFIC PIVOT LOGIC: 
+          // If the suggestion is a pivot, we want to find the grandparent 
+          // (e.g., connect the new solution to the original problem, not the constraint)
+          let finalSourceId = target!.id;
+          const relation = (suggestion.relationToParent || "").toLowerCase();
+          const isPivot = relation.includes("pivot") || relation.includes("instead") || relation.includes("alternative");
+
+          if (isPivot) {
+            const parentLink = dataRef.current.links.find(l => {
+              const tId = typeof l.target === 'object' ? (l.target as any).id : l.target;
+              return tId === target!.id;
+            });
+            if (parentLink) {
+              const parentId = typeof parentLink.source === 'object' ? (parentLink.source as any).id : parentLink.source;
+              // If we are pivoting from a Constraint, we want to connect to the node that BROUGHT us to the constraint
+              // Usually: Problem -> Implementation -> Constraint. 
+              // Focused on Constraint, we pivot back to Implementation or even Problem.
+              finalSourceId = parentId;
+            }
+          }
+
           const newLink = {
-            source: target.id,
+            source: finalSourceId,
             target: newNodeId,
             relation: suggestion.relationToParent || "hypothesized",
             isGhost: true
@@ -447,16 +492,24 @@ function App() {
 
           setDiscoveryState(prev => ({
             ...prev,
+            activeNodeId: prev.isQuest ? newNodeId : prev.activeNodeId, // Move focus if in quest mode
             history: [`Discovered: ${suggestion.label} (${suggestion.type})`, ...prev.history].slice(0, 10)
           }));
         }
       } catch (e) {
         console.error("Discovery Pulse Error:", e);
       } finally {
-        setDiscoveryState(prev => ({ ...prev, activeNodeId: null }));
-        if (isActiveRef.current) {
-          timer = setTimeout(runPulse, 6000);
+        if (!isActiveRef.current) {
+          setDiscoveryState(prev => ({ ...prev, activeNodeId: null }));
+          return;
         }
+
+        // If we aren't in quest mode, clear active node for next random pick
+        if (!discoveryStateRef.current.isQuest) {
+          setDiscoveryState(prev => ({ ...prev, activeNodeId: null }));
+        }
+
+        timer = setTimeout(runPulse, 6000);
       }
     };
 
@@ -987,6 +1040,14 @@ function App() {
         }));
 
         setSelectedNodeIds([newNodeId]);
+
+        // AUTOMATIC DISCOVERY: Move focus to the new innovation and start quest
+        setDiscoveryState(prev => ({
+          ...prev,
+          isActive: true, // Trigger global discovery
+          isQuest: true,
+          activeNodeId: newNodeId
+        }));
       }
     } catch (e: any) {
       popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Innovation request failed" : "Synthesis request failed"));
@@ -1037,6 +1098,14 @@ function App() {
         }));
 
         setSelectedNodeIds([newNodeId]);
+
+        // AUTOMATIC DISCOVERY: Move focus to the solution and start quest
+        setDiscoveryState(prev => ({
+          ...prev,
+          isActive: true,
+          isQuest: true,
+          activeNodeId: newNodeId
+        }));
       }
     } catch (e: any) {
       popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Problem solving failed" : "Resolution failed"));
@@ -1087,6 +1156,14 @@ function App() {
         }));
 
         setSelectedNodeIds([newNodeId]);
+
+        // AUTOMATIC DISCOVERY: Move focus to the answer and start quest
+        setDiscoveryState(prev => ({
+          ...prev,
+          isActive: true,
+          isQuest: true,
+          activeNodeId: newNodeId
+        }));
       }
     } catch (e: any) {
       popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Answer request failed" : "Fact check failed"));
@@ -1875,43 +1952,52 @@ function App() {
                   <span>Trace Seed</span>
                 </button>
 
-                {(contextMenuNode.type === NodeType.TECHNOLOGY || contextMenuNode.type === NodeType.INNOVATION || (currentMode === ExplorationMode.KNOWLEDGE && (contextMenuNode.type === NodeType.THEORY || contextMenuNode.type === NodeType.CONCEPT || contextMenuNode.type === NodeType.DISCOVERY))) && (
-                  <>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleInnovateNode(contextMenuNode); setContextMenuNode(null); }}
-                      className="px-3 py-1.5 hover:bg-violet-500/20 rounded-xl text-slate-300 hover:text-violet-200 transition-all flex items-center gap-3 text-xs font-semibold group"
-                    >
-                      <Cpu size={18} className="text-violet-500 group-hover:animate-pulse shrink-0" />
-                      <span>{currentMode === ExplorationMode.INNOVATION ? 'Innovate' : 'Synthesize'}</span>
-                    </button>
+                {(contextMenuNode.type === NodeType.TECHNOLOGY ||
+                  contextMenuNode.type === NodeType.INNOVATION ||
+                  contextMenuNode.type === NodeType.IMPLEMENTATION ||
+                  (currentMode === ExplorationMode.KNOWLEDGE && (
+                    contextMenuNode.type === NodeType.THEORY ||
+                    contextMenuNode.type === NodeType.CONCEPT ||
+                    contextMenuNode.type === NodeType.DISCOVERY
+                  ))) && (
+                    <>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleInnovateNode(contextMenuNode); setContextMenuNode(null); }}
+                        className="px-3 py-1.5 hover:bg-violet-500/20 rounded-xl text-slate-300 hover:text-violet-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                      >
+                        <Cpu size={18} className="text-violet-500 group-hover:animate-pulse shrink-0" />
+                        <span>{currentMode === ExplorationMode.INNOVATION ? 'Innovate' : 'Synthesize'}</span>
+                      </button>
 
-                    {currentMode === ExplorationMode.INNOVATION && (
-                      <>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleOptimizeNode(contextMenuNode); setContextMenuNode(null); }}
-                          className="px-3 py-1.5 hover:bg-indigo-500/20 rounded-xl text-slate-300 hover:text-indigo-200 transition-all flex items-center gap-3 text-xs font-semibold group"
-                        >
-                          <RefreshCw size={18} className="text-indigo-400 shrink-0" />
-                          <span>Optimize</span>
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleStressTestNode(contextMenuNode); setContextMenuNode(null); }}
-                          className="px-3 py-1.5 hover:bg-red-500/20 rounded-xl text-slate-300 hover:text-red-200 transition-all flex items-center gap-3 text-xs font-semibold group"
-                        >
-                          <AlertCircle size={18} className="text-red-500 shrink-0" />
-                          <span>Stress Test</span>
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleImplementNode(contextMenuNode); setContextMenuNode(null); }}
-                          className="px-3 py-1.5 hover:bg-emerald-500/20 rounded-xl text-slate-300 hover:text-emerald-200 transition-all flex items-center gap-3 text-xs font-semibold group"
-                        >
-                          <Network size={18} className="text-emerald-400 shrink-0" />
-                          <span>Implement</span>
-                        </button>
-                      </>
-                    )}
-                  </>
-                )}
+                      {currentMode === ExplorationMode.INNOVATION && (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleOptimizeNode(contextMenuNode); setContextMenuNode(null); }}
+                            className="px-3 py-1.5 hover:bg-indigo-500/20 rounded-xl text-slate-300 hover:text-indigo-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                          >
+                            <RefreshCw size={18} className="text-indigo-400 shrink-0" />
+                            <span>Optimize</span>
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleStressTestNode(contextMenuNode); setContextMenuNode(null); }}
+                            className="px-3 py-1.5 hover:bg-red-500/20 rounded-xl text-slate-300 hover:text-red-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                          >
+                            <AlertCircle size={18} className="text-red-500 shrink-0" />
+                            <span>Stress Test</span>
+                          </button>
+                          {currentMode === ExplorationMode.INNOVATION && contextMenuNode.type !== NodeType.IMPLEMENTATION && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleImplementNode(contextMenuNode); setContextMenuNode(null); }}
+                              className="px-3 py-1.5 hover:bg-emerald-500/20 rounded-xl text-slate-300 hover:text-emerald-200 transition-all flex items-center gap-3 text-xs font-semibold group"
+                            >
+                              <Network size={18} className="text-emerald-400 shrink-0" />
+                              <span>Implement</span>
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
 
                 {(contextMenuNode.type === NodeType.PROBLEM || contextMenuNode.type === NodeType.PAIN_POINT || (currentMode === ExplorationMode.KNOWLEDGE && (contextMenuNode.type === NodeType.QUESTION || contextMenuNode.type === NodeType.EVENT))) && (
                   <button
@@ -2082,7 +2168,18 @@ function App() {
         onToggleContextMode={() => setIsContextMode(!isContextMode)}
         onDashboard={() => setShowDashboard(true)}
         onSave={handleSaveSeed}
-        onToggleDiscovery={() => setDiscoveryState(prev => ({ ...prev, isActive: !prev.isActive }))}
+        onToggleDiscovery={() => setDiscoveryState(prev => {
+          const isActivating = !prev.isActive;
+          const selectedNodes = getSelectedNodes();
+          const shouldBeQuest = isActivating && selectedNodes.length === 1;
+
+          return {
+            ...prev,
+            isActive: isActivating,
+            isQuest: shouldBeQuest,
+            activeNodeId: shouldBeQuest ? selectedNodes[0].id : null
+          };
+        })}
         onToggleChat={() => setIsChatOpen(!isChatOpen)}
         onUndo={handleUndo}
         onRedo={handleRedo}

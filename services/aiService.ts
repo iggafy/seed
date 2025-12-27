@@ -401,7 +401,29 @@ export const agenticDiscovery = async (
 
     const modeConfig = getModeConfig(mode);
     const persona = modeConfig.aiPersona;
-    const intent = Math.random() > 0.3 ? "EXPAND" : "CHALLENGE";
+    const isConstraint = activeNode && (
+        activeNode.type === NodeType.CONSTRAINT ||
+        activeNode.type === NodeType.FRICTION ||
+        (mode === ExplorationMode.KNOWLEDGE && activeNode.type === NodeType.CONTRADICTION)
+    );
+    const isProblematic = activeNode && (
+        activeNode.type === NodeType.PROBLEM ||
+        activeNode.type === NodeType.PAIN_POINT ||
+        (mode === ExplorationMode.KNOWLEDGE && activeNode.type === NodeType.QUESTION)
+    );
+    const isQuestion = activeNode && activeNode.type === NodeType.QUESTION;
+
+    let intent;
+    if (isConstraint) {
+        // Roadblock hit: Mitigation or Pivot?
+        intent = Math.random() > 0.4 ? "MITIGATE" : "PIVOT";
+    } else if (isProblematic) {
+        intent = mode === ExplorationMode.INNOVATION ? "SOLVE" : "RESOLVE";
+    } else if (isQuestion) {
+        intent = "ANSWER";
+    } else {
+        intent = Math.random() > 0.3 ? "EXPAND" : "CHALLENGE";
+    }
 
     const expandGuidance = mode === ExplorationMode.INNOVATION
         ? "Grow the graph by proposing a non-obvious next step (TECHNOLOGY, INNOVATION, or ENTITY)."
@@ -410,6 +432,20 @@ export const agenticDiscovery = async (
     const challengeGuidance = mode === ExplorationMode.INNOVATION
         ? "Challenge the current path by proposing an unavoidable CONSTRAINT or FRICTION node."
         : "Challenge assumptions by proposing a QUESTION or alternative THEORY node.";
+
+    const solveGuidance = mode === ExplorationMode.INNOVATION
+        ? "Target is a technical problem. Propose a technical SOLUTION or mitigation approach."
+        : "Target is a historical contradiction or gap. Provide a RESOLUTION or evidence-based synthesis.";
+
+    const answerGuidance = "Target is a question. Synthesize an evidence-based ANSWER or resolution.";
+
+    const mitigateGuidance = mode === ExplorationMode.INNOVATION
+        ? "Target is a ROADBLOCK (Constraint/Friction). Propose a technical way to OVERCOME or circumvent this specific limitation."
+        : "Target is a CONTRADICTION. Synthesize a higher-level perspective that reconciles the conflicting accounts or evidence.";
+
+    const pivotGuidance = mode === ExplorationMode.INNOVATION
+        ? "Target is a ROADBLOCK. This path might be a dead end. PIVOT: Propose an alternative solution or approach that avoids this specific constraint."
+        : "Target is a CONTRADICTION. This line of reasoning is conflicting. PIVOT: Propose an alternative theory or historical perspective that avoids this specific contradiction.";
 
     const specificityGuidance = mode === ExplorationMode.INNOVATION
         ? `1. DO NOT be generic. Be technically specific.
@@ -426,12 +462,17 @@ export const agenticDiscovery = async (
     ${fullGraphContext}
     
     Objective (${intent}):
-    ${intent === "EXPAND" ? expandGuidance : challengeGuidance}
+    ${intent === "EXPAND" ? expandGuidance :
+            intent === "CHALLENGE" ? challengeGuidance :
+                intent === "SOLVE" ? solveGuidance :
+                    intent === "RESOLVE" ? solveGuidance :
+                        intent === "ANSWER" ? answerGuidance :
+                            intent === "MITIGATE" ? mitigateGuidance : pivotGuidance}
     
     Constraint:
     ${specificityGuidance}
     
-    Output a single node suggestion.`;
+    Output a single node suggestion. If PIVOTING, ensure the 'relationToParent' field clearly identifies what it is pivoting 'from' or 'instead of'.`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
     return result[0] || null;
