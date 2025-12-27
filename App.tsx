@@ -5,14 +5,16 @@ import Toolbar from './components/Toolbar';
 import SettingsModal from './components/SettingsModal';
 import SeedsDashboard from './components/SeedsDashboard';
 import { INITIAL_DATA, NODE_ICONS, NODE_COLORS, getModeConfig, getExpansionBlueprints, getRelationOptions, getSeedExamples } from './constants';
-import { expandConcept, expandConceptTargeted, directedDiscovery, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat, optimizeConcept, stressTestConcept, generateImplementation } from './services/aiService';
+import { curateWikiSnippet, expandConcept, expandConceptTargeted, directedDiscovery, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat, optimizeConcept, stressTestConcept, generateImplementation } from './services/aiService';
 import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit, RefreshCw, Network } from 'lucide-react';
 import NexusAssistant from './components/NexusAssistant';
 import NexusConfirmDialog from './components/NexusConfirmDialog';
 import ConfirmDialog from './components/ConfirmDialog';
 import WormholeSelector from './components/WormholeSelector';
 import WelcomeScreen from './components/WelcomeScreen';
-import { ChatMessage, AISuggestion, DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile, GraphLink, ExplorationMode } from './types';
+import NexusWikiBrowser from './components/NexusWikiBrowser';
+import { searchWikipedia } from './services/wikipediaService';
+import { ChatMessage, AISuggestion, DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile, GraphLink, ExplorationMode, WikiBrowserState } from './types';
 
 // Utility to generate UUIDs locally
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -151,6 +153,14 @@ function App() {
 
   // Welcome Screen State
   const [showWelcome, setShowWelcome] = useState(true);
+
+  // Wiki Browser State
+  const [wikiBrowser, setWikiBrowser] = useState<WikiBrowserState>({
+    isOpen: false,
+    url: '',
+    title: '',
+    sourceNodeId: null
+  });
 
   // Load Settings from LocalStorage
   useEffect(() => {
@@ -1687,6 +1697,78 @@ function App() {
     handleImFeelingLucky(true); // Trigger retry with memory
   };
 
+  // --- WIKI INTEGRATION HANDLERS ---
+  const handleOpenWikiBrowser = async (node: GraphNode) => {
+    // Attempt to find a matching page if it's just a search request
+    setIsProcessing(true);
+    try {
+      const results = await searchWikipedia(node.label);
+      const match = results.length > 0 ? results[0].title : node.label;
+      setWikiBrowser({
+        isOpen: true,
+        title: match,
+        url: '', // Loaded by browser component
+        sourceNodeId: node.id
+      });
+    } catch (e) {
+      popError("Failed to reach Wikipedia Nexus");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleWikiHarvest = async (snippet: string, pageTitle: string) => {
+    if (!wikiBrowser.sourceNodeId) return;
+    const sourceNode = data.nodes.find(n => n.id === wikiBrowser.sourceNodeId);
+    if (!sourceNode) return;
+
+    setIsProcessing(true);
+    recordHistory();
+
+    try {
+      const suggestion = await curateWikiSnippet(
+        aiSettings,
+        snippet,
+        pageTitle,
+        { label: sourceNode.label, description: sourceNode.description || "" },
+        currentMode
+      );
+
+      if (suggestion) {
+        const newNodeId = generateId();
+        const newNode: GraphNode = {
+          id: newNodeId,
+          label: suggestion.label,
+          type: suggestion.type,
+          description: suggestion.description,
+          x: (sourceNode.x || 0) + 200,
+          y: (sourceNode.y || 0) + (Math.random() - 0.5) * 100,
+          isNew: true,
+          isWikipediaSource: true,
+          wikiUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(pageTitle.replace(/ /g, '_'))}`
+        };
+
+        const newLink: GraphLink = {
+          source: sourceNode.id,
+          target: newNodeId,
+          relation: suggestion.relationToParent
+        };
+
+        setData(prev => ({
+          nodes: [...prev.nodes, newNode],
+          links: [...prev.links, newLink]
+        }));
+
+        setNotification({ message: `Grown "${suggestion.label}" from Wikipedia`, type: 'success' });
+        setTimeout(() => setNotification(null), 3000);
+      }
+    } catch (e: any) {
+      popError(e.message || "Wiki harvesting failed");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const toggleFilter = (type: NodeType) => {
     setHiddenTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
@@ -2287,6 +2369,7 @@ function App() {
         isProcessing={isProcessing || isGeneratingSeed}
         onAssimilate={handleAssimilateNode}
         onPrune={handlePruneNode}
+        onOpenWiki={handleOpenWikiBrowser}
         allLinks={data.links}
         relationOptions={RELATION_OPTIONS}
         expansionBlueprints={EXPANSION_BLUEPRINTS}
@@ -2303,6 +2386,14 @@ function App() {
         selectedNodes={getSelectedNodes()}
         onProposeSeed={(suggestion) => setProposingSeed(suggestion)}
         onClearChat={() => setChatMessages([])}
+      />
+
+      <NexusWikiBrowser
+        isOpen={wikiBrowser.isOpen}
+        initialTitle={wikiBrowser.title}
+        onClose={() => setWikiBrowser(prev => ({ ...prev, isOpen: false }))}
+        onAddSeed={handleWikiHarvest}
+        isProcessing={isProcessing}
       />
 
       {/* Seed Proposal Confirmation */}

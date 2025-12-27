@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GraphNode, NodeType, ExplorationMode } from '../types';
-import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle, ChevronRight, Binary, Sparkles, Orbit, Layers } from 'lucide-react';
+import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle, ChevronRight, Binary, Sparkles, Orbit, Layers, Search } from 'lucide-react';
 
 interface SidebarProps {
   nodes: GraphNode[];
@@ -24,6 +24,7 @@ interface SidebarProps {
   onAssimilate: (nodeId: string) => void;
   onPrune: (nodeId: string) => void;
   onDirectedDiscovery: (node: GraphNode, instruction: string, count: number) => void;
+  onOpenWiki: (node: GraphNode) => void;
   isProcessing: boolean;
   allLinks: any[];
   relationOptions: string[];
@@ -53,6 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAssimilate,
   onPrune,
   onDirectedDiscovery,
+  onOpenWiki,
   isProcessing,
   allLinks,
   relationOptions,
@@ -268,6 +270,22 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {node.description || <span className="text-slate-600 italic">No description provided.</span>}
               </p>
             )}
+          </div>
+
+          {/* Wikipedia Context Section */}
+          <div className="mt-4 flex flex-col gap-2">
+            <button
+              onClick={() => onOpenWiki(node)}
+              className="group flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-white/5 hover:border-sky-500/30 transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <Search size={14} className="text-sky-400" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Wikipedia Nexus</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-sky-400 group-hover:translate-x-1 transition-transform">
+                LEARN MORE <ChevronRight size={12} />
+              </div>
+            </button>
           </div>
 
           {/* AI Tools (Only show if not editing) */}
@@ -522,7 +540,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </div>
-
         {/* FOOTER */}
         <div className="p-4 border-t border-white/5 flex justify-between items-center bg-slate-950/30">
           <div className="text-[10px] text-slate-600 font-mono">

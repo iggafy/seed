@@ -400,21 +400,6 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("fill", "none")
       .style("pointer-events", "none");
 
-    // Root Indicator Badge
-    const rootBadge = nodeEnter.append("g")
-      .attr("class", "root-badge")
-      .style("pointer-events", "none");
-
-    rootBadge.append("circle")
-      .attr("r", 10)
-      .attr("fill", "#fbbf24") // Amber 400
-      .attr("stroke", "#0f172a")
-      .attr("stroke-width", 1.5);
-
-    rootBadge.append("path")
-      .attr("d", "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z")
-      .attr("transform", "translate(-6, -6) scale(0.5)")
-      .attr("fill", "#0f172a");
 
     // Text Label Background (Pill)
     nodeEnter.append("rect")
@@ -435,6 +420,27 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .style("pointer-events", "none")
       .style("font-family", "sans-serif")
       .style("text-shadow", "0 1px 2px rgba(0,0,0,1)");
+
+    // Wikipedia Source Indicator
+    const wikiBadge = nodeEnter.append("g")
+      .attr("class", "wiki-source-badge")
+      .style("pointer-events", "none")
+      .attr("opacity", 0);
+
+    wikiBadge.append("circle")
+      .attr("r", 7)
+      .attr("fill", "#ffffff")
+      .attr("stroke", "#0f172a")
+      .attr("stroke-width", 1);
+
+    wikiBadge.append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", "3px")
+      .attr("font-size", "8px")
+      .attr("font-weight", "900")
+      .attr("fill", "#0f172a")
+      .text("W");
+
 
     nodeSelection.exit().transition().duration(300).attr("opacity", 0).remove();
 
@@ -578,13 +584,14 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .style("opacity", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 1 : 0)
       .style("pointer-events", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? "auto" : "none");
 
-    // Update Root Badge
-    allNodes.select("g.root-badge")
+    // Update Wikipedia Source Badge
+    allNodes.select("g.wiki-source-badge")
       .attr("transform", d => {
         const offset = d.type === NodeType.TRACE ? (d.isRoot ? 14 : 12) : (d.isRoot ? 26 : 22);
-        return `translate(${offset}, -${offset})`;
+        return `translate(${offset}, ${offset})`;
       })
-      .style("opacity", 0); // Hidden as per request to remove the star badge
+      .attr("opacity", d => d.isWikipediaSource ? 1 : 0);
+
     // Update Text & Pill
     allNodes.select("text")
       .attr("x", 0)

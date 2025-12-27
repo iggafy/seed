@@ -23,6 +23,16 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   vy?: number;
   fx?: number | null;
   fy?: number | null;
+  // Wikipedia Integration
+  wikiUrl?: string;
+  isWikipediaSource?: boolean;
+}
+
+export interface WikiBrowserState {
+  isOpen: boolean;
+  url: string;
+  title: string;
+  sourceNodeId: string | null;
 }
 
 export interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {

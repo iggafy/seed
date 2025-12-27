@@ -688,6 +688,45 @@ export const researchAssistantChat = async (
     };
 };
 
+export const curateWikiSnippet = async (
+    settings: AISettings,
+    snippet: string,
+    pageTitle: string,
+    sourceNodeContext: { label: string; description: string },
+    mode: ExplorationMode = ExplorationMode.KNOWLEDGE
+): Promise<AISuggestion | null> => {
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+
+    const modeConfig = getModeConfig(mode);
+    const persona = modeConfig.aiPersona;
+
+    const prompt = `You are the Nexus Research Assistant.
+    A user has highlighted a specific snippet from a Wikipedia article while researching a concept in SEED.
+    
+    WIKIPEDIA PAGE: "${pageTitle}"
+    SNIPPET: "${snippet}"
+    
+    CONSTITUTIONAL CONTEXT:
+    The user is connecting this back to their existing seed: "${sourceNodeContext.label}" (${sourceNodeContext.description}).
+    
+    TASK:
+    1. ARTIFACT CREATION: Summarize the snippet into a high-density "Seed Node". Focus on the core mechanism, event, or principle.
+    2. ARCHITECTURAL PLACEMENT: Select the most accurate NodeType from the internal framework.
+    3. RELATIONAL SYNTHESIS: Determine the precise relationship verb connecting this new seed back to "${sourceNodeContext.label}".
+    
+    PRINCIPLES OF RELATIONAL SYNTHESIS (MANDATORY):
+    - ANALYTICAL DEPTH: Move beyond generic connections. Identify the structural/functional role (e.g., is it a "catalyst for," "structural component of," "modern critique of," or "functional precursor to"?).
+    - TEMPORAL & CAUSAL INTEGRITY: Be sophisticated about time. While the arrow of time is absolute (earlier can cause later, not vice-versa), bridge-links can be thematic. A modern theory might "re-interpret" or "provide a framework for analyzing" an ancient event.
+    - EPISTEMIC PRECISION: Use high-intent, active verbs. If a technology is used in an event, use "operationalized by". If a person founded a movement, use "galvanized".
+    - SOPHISTICATED BRIDGE-LINKING: If the connection is indirect, identify the shared principle or structural parallel (e.g., "strategic analogue of" or "instantiates the principle of").
+    
+    ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
+    Response schema: single node.`;
+
+    const result = await runIPCRequest(settings, prompt, false, mode);
+    return result[0] || null;
+};
+
 /**
  * Executes a request to the backend IPC bridge
  * @param settings AI Settings
