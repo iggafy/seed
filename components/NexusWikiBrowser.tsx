@@ -112,7 +112,11 @@ const NexusWikiBrowser: React.FC<NexusWikiBrowserProps> = ({
         const sel = window.getSelection();
         if (sel && sel.toString().trim().length > 5) {
             setShowHint(false);
-            setSelection(sel.toString().trim());
+            let text = sel.toString().trim();
+            if (text.length > 300) {
+                text = text.slice(0, 300) + "...";
+            }
+            setSelection(text);
         } else {
             setSelection(null);
         }
@@ -263,7 +267,9 @@ const NexusWikiBrowser: React.FC<NexusWikiBrowserProps> = ({
                                 <Plus size={18} className="text-white" />
                             </div>
                             <div className="flex flex-col overflow-hidden">
-                                <span className="text-[10px] uppercase font-bold text-sky-100 tracking-widest">Selected Insight</span>
+                                <span className="text-[10px] uppercase font-bold text-sky-100 tracking-widest flex items-center gap-1.5">
+                                    Selected Insight {selection?.endsWith('...') && <span className="text-[8px] bg-white/20 px-1.5 py-0.5 rounded uppercase font-black overflow-visible whitespace-nowrap">(Max 300 chars)</span>}
+                                </span>
                                 <p className="text-xs text-white truncate italic opacity-90">
                                     "{selection}"
                                 </p>

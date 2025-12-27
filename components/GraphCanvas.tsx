@@ -124,19 +124,47 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     wormholeGrad.append("stop").attr("offset", "70%").attr("stop-color", "#4c1d95").attr("stop-opacity", 0.5);
     wormholeGrad.append("stop").attr("offset", "100%").attr("stop-color", "#1e1b4b").attr("stop-opacity", 0);
 
-    // Arrow Marker
+    // Arrow Marker (Standard)
     defs.append("marker")
       .attr("id", "arrow")
       .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 32) // Pushed back a bit to sit outside the node glow
+      .attr("refX", 10) // Exactly at the tip
       .attr("refY", 0)
       .attr("markerWidth", 5)
       .attr("markerHeight", 5)
       .attr("orient", "auto")
       .append("path")
       .attr("d", "M0,-5L10,0L0,5")
-      .attr("fill", "#64748b")
-      .attr("opacity", 0.6);
+      .attr("fill", "#94a3b8")
+      .attr("opacity", 0.4);
+
+    // Flow Marker (Bright)
+    defs.append("marker")
+      .attr("id", "arrow-flow")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 10)
+      .attr("refY", 0)
+      .attr("markerWidth", 6)
+      .attr("markerHeight", 6)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-5L10,0L0,5")
+      .attr("fill", "#ffffff")
+      .attr("opacity", 0.8);
+
+    // Trace Marker (Closer to node)
+    defs.append("marker")
+      .attr("id", "arrow-trace")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 10)
+      .attr("refY", 0)
+      .attr("markerWidth", 4)
+      .attr("markerHeight", 4)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-5L10,0L0,5")
+      .attr("fill", "#94a3b8")
+      .attr("opacity", 0.4);
 
     // Main Group
     const g = svg.append("g");
@@ -279,13 +307,28 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     const linkEnter = linkSelection.enter().append("line")
       .attr("class", "link")
       .attr("stroke", "#64748b") // Slate 500
-      .attr("stroke-opacity", 0.3) // More subtle
-      .attr("stroke-width", 1)
-      .attr("marker-end", "url(#arrow)");
+      .attr("stroke-opacity", 0.2) // Very subtle base
+      .attr("stroke-width", 1.5);
 
     linkSelection.exit().remove();
     const allLinks = linkEnter.merge(linkSelection)
-      .attr("stroke-dasharray", d => (d.target as GraphNode).type === NodeType.TRACE ? "4 3" : "none"); // Dotted for Trace
+      .attr("stroke-dasharray", d => (d.target as GraphNode).type === NodeType.TRACE ? "4 3" : "none") // Dotted for Trace
+      .attr("marker-end", d => (d.target as GraphNode).type === NodeType.TRACE ? "url(#arrow-trace)" : "url(#arrow)");
+
+    // 1.5 FLOW LINES (Animated)
+    const flowSelection = g.selectAll<SVGLineElement, GraphLink>("line.link-flow-line")
+      .data(links, getLinkId);
+
+    const flowEnter = flowSelection.enter().append("line")
+      .attr("class", "link-flow-line link-flow")
+      .attr("stroke-width", 1.5)
+      .attr("stroke-opacity", 0.5)
+      .style("pointer-events", "none");
+
+    flowSelection.exit().remove();
+    const allFlows = flowEnter.merge(flowSelection)
+      .attr("stroke", d => NODE_COLORS[(d.target as GraphNode).type] || "#3b82f6")
+      .style("display", d => (d.target as GraphNode).type === NodeType.TRACE ? "none" : "block"); // No flow on traces
 
     // 2. LINK LABELS
     const labelSelection = g.selectAll<SVGTextElement, GraphLink>("text.link-label")
@@ -613,11 +656,50 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     // Tick Function
     simulation.on("tick", () => {
+      const getNodeRadius = (d: GraphNode) => {
+        const baseR = d.type === NodeType.TRACE ? 16 : 28;
+        return d.isRoot ? baseR * 1.2 : baseR;
+      };
+
       allLinks
-        .attr("x1", d => (d.source as GraphNode).x!)
-        .attr("y1", d => (d.source as GraphNode).y!)
-        .attr("x2", d => (d.target as GraphNode).x!)
-        .attr("y2", d => (d.target as GraphNode).y!);
+        .each(function (d) {
+          const source = d.source as GraphNode;
+          const target = d.target as GraphNode;
+          const dx = target.x! - source.x!;
+          const dy = target.y! - source.y!;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist === 0) return;
+
+          const sourceR = getNodeRadius(source);
+          const targetR = getNodeRadius(target);
+
+          d3.select(this)
+            .attr("x1", source.x! + (dx * sourceR) / dist)
+            .attr("y1", source.y! + (dy * sourceR) / dist)
+            .attr("x2", target.x! - (dx * targetR) / dist)
+            .attr("y2", target.y! - (dy * targetR) / dist);
+        });
+
+      allFlows
+        .each(function (d) {
+          const source = d.source as GraphNode;
+          const target = d.target as GraphNode;
+          const dx = target.x! - source.x!;
+          const dy = target.y! - source.y!;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist === 0) return;
+
+          const sourceR = getNodeRadius(source);
+          const targetR = getNodeRadius(target);
+
+          d3.select(this)
+            .attr("x1", source.x! + (dx * sourceR) / dist)
+            .attr("y1", source.y! + (dy * sourceR) / dist)
+            .attr("x2", target.x! - (dx * targetR) / dist)
+            .attr("y2", target.y! - (dy * targetR) / dist);
+        });
 
       allLabels
         .attr("x", d => ((d.source as GraphNode).x! + (d.target as GraphNode).x!) / 2)

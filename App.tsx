@@ -1719,6 +1719,7 @@ function App() {
 
   const handleWikiHarvest = async (snippet: string, pageTitle: string) => {
     if (!wikiBrowser.sourceNodeId) return;
+    const truncatedSnippet = snippet.length > 300 ? snippet.slice(0, 300) + "..." : snippet;
     const sourceNode = data.nodes.find(n => n.id === wikiBrowser.sourceNodeId);
     if (!sourceNode) return;
 
@@ -1728,7 +1729,7 @@ function App() {
     try {
       const suggestion = await curateWikiSnippet(
         aiSettings,
-        snippet,
+        truncatedSnippet,
         pageTitle,
         { label: sourceNode.label, description: sourceNode.description || "" },
         currentMode
