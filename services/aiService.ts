@@ -1,6 +1,17 @@
 import { AISuggestion, NodeType, AIProvider, AISettings, GraphNode, ChatMessage, GraphLink, ExplorationMode } from '../types';
 import { getModeConfig } from '../constants';
 
+const INNOVATION_RESEARCH_PRINCIPLES = `
+INNOVATION RESEARCH PRINCIPLES (STRICT):
+1. EPISTEMIC GROUNDING: Be concrete. Use specific technical terms, architectural patterns, or hardware mechanisms.
+2. EXPERIENTIAL ANCHORING: Describe concepts through the lens of real interaction. Mention "the developer," "the end-user," or "the system bottleneck."
+3. HUMAN RELEVANCE: Connect abstract ideas to real-world friction, cost, or time. Why does it matter right now?
+4. FALSIFIABILITY: Avoid buzzwords. Be specific enough that a technical implementation could be validated.
+5. CURRENT TECHNOLOGY: Focus on what can be built with today's stacks (0-3 years). Avoid purely theoretical or experimental domains (like broad-market quantum computing).
+6. FOUNDER-GRADE PAIN: Focus on "Product Hunt" style problems. Concrete, costly, emotionally annoying, and easy to recognize. Identify "clear losers" and high-intent "someone would pay for this" energy.
+7. SHARP & GROUNDED: Avoid institutional white-paper tone. Be direct, pragmatic, and slightly skeptical.
+`;
+
 // Defined schemas via imported constants
 const NODE_SCHEMA_OPENAI = {
     type: "object",
@@ -45,6 +56,7 @@ export const expandConcept = async (
         : "Focus on related events, influential people, connected places, underlying theories, or historical context.";
 
     const prompt = `You are a ${persona}. Given the node "${nodeLabel}" (${nodeDescription}), suggest 3-5 distinct, meaningful connections.
+${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
 ${contextLineage ? `CRITICAL CONTEXTUAL CONSTRAINT: The node "${nodeLabel}" emerged from: [ ${contextLineage} ]. Interpret it strictly within this context.` : ''}
     ${modeSpecificGuidance}
     The relationships should be active verbs.`;
@@ -68,6 +80,7 @@ export const expandConceptTargeted = async (
     const persona = modeConfig.aiPersona;
 
     const prompt = `You are a ${persona}. Given the source node "${nodeLabel}" (${nodeDescription}), generate exactly ${count} distinct node(s) that satisfy this relationship: --[${relationType}]--> [New Node].
+${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
 ${targetType ? `TARGET NODE TYPE: ${targetType}. Ensure every generated node is strictly of this type.` : ''}
 ${contextLineage ? `CONTEXT LINEAGE: [ ${contextLineage} ]. Use this to maintain conceptual continuity.` : ''}
 Be specific and factually accurate.`;
@@ -102,6 +115,29 @@ export const generateSynergyNode = async (
     return result[0] || null;
 };
 
+export const directedDiscovery = async (
+    settings: AISettings,
+    nodeLabel: string,
+    nodeDescription: string,
+    instruction: string,
+    count: number = 1,
+    contextLineage?: string,
+    mode: ExplorationMode = ExplorationMode.INNOVATION
+): Promise<AISuggestion[]> => {
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+
+    const modeConfig = getModeConfig(mode);
+    const persona = modeConfig.aiPersona;
+
+    const prompt = `You are a ${persona}. Given the source node "${nodeLabel}" (${nodeDescription}), follow this SPECIFIC DISCOVERY INSTRUCTION: "${instruction}".
+    Generate exactly ${count} distinct node(s) as a result of this discovery.
+    ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
+    ${contextLineage ? `CONTEXT LINEAGE: [ ${contextLineage} ]. Use this to maintain conceptual continuity.` : ''}
+    Be specific, factually accurate, and highly relevant to the instruction.`;
+
+    return await runIPCRequest(settings, prompt, count > 1, mode);
+};
+
 export const traceLineageAnalysis = async (
     settings: AISettings,
     nodeLabel: string,
@@ -123,6 +159,7 @@ export const traceLineageAnalysis = async (
     Current node: "${nodeLabel}" (${nodeDescription}).
     
     Objective: ${modeSpecificObjective}
+    ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
     Response schema: single node.`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
@@ -148,6 +185,7 @@ export const innovateConcept = async (
     
     Label: "${nodeLabel} Evolution".
     Description: A detailed technical proposal (150-200 words) for a structural breakthrough. 
+    ${INNOVATION_RESEARCH_PRINCIPLES}
     Describe the unique mechanism, the theoretical basis, and how it dramatically overcomes current limitations mentioned in the graph.
     Include a brief technical stack or architectural approach.`
         : `Analyze this concept within the global historical or theoretical context.
@@ -189,6 +227,7 @@ export const solveProblem = async (
     
     Label: "${nodeLabel} Solution".
     Description: A detailed technical proposal (150-200 words) for an app or system. 
+    ${INNOVATION_RESEARCH_PRINCIPLES}
     Describe the core features, the unique value proposition, and why it specifically solves the target pain point better than existing solutions.
     Include a brief technical stack or architectural approach.`
         : `Analyze this historical event, debate, or contradiction within the context of the entire graph.
@@ -229,7 +268,8 @@ export const answerQuestion = async (
            Use the surrounding context if available.
            
            Label: "Resolution: ${nodeLabel}".
-           Description: A direct answer (100-150 words) that clarifies the technical or conceptual uncertainty.`
+           Description: A direct answer (100-150 words) that clarifies the technical or conceptual uncertainty.
+           ${INNOVATION_RESEARCH_PRINCIPLES}`
         : `Provide a historically accurate answer to the question: "${nodeLabel}".
            
            Label: "Historical Answer: ${nodeLabel}".
@@ -270,6 +310,7 @@ export const optimizeConcept = async (
     
     Label: "${nodeLabel} Optimization".
     Description: A detailed plan (150-200 words) for efficiency gains. 
+    ${INNOVATION_RESEARCH_PRINCIPLES}
     Include specific technical levers (e.g., algorithmic complexity, material science, or resource distribution).`;
 
     const result = await runIPCRequest(settings, prompt, false, ExplorationMode.INNOVATION);
@@ -321,6 +362,7 @@ export const generateImplementation = async (
     
     Label: "${nodeLabel} Product".
     Description: A detailed product description (150-200 words).
+    ${INNOVATION_RESEARCH_PRINCIPLES}
     Explain the UX, the core user flow, and how the underlying technology is abstracted for the user.
     Relation: "implemented as".`;
 
@@ -349,6 +391,7 @@ export const quickExpand = async (
     ${fullGraphContext}
     
     Suggest 3 distinct discovery arcs. 
+    ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
     Response schema: array of suggestions.`;
 
     return await runIPCRequest(settings, prompt, true, mode);
@@ -366,7 +409,8 @@ export const autonomousDiscovery = async (
     const persona = modeConfig.aiPersona;
 
     const modeSpecificGuidance = mode === ExplorationMode.INNOVATION
-        ? "RESEARCH PRINCIPLE: Maintain 360-degree sight. Do not default to TECHNOLOGY or CONCEPT loops. If you see a technology, look for its hidden PROBLEM, friction point, or the USER_SEGMENT it targets. Consider the REGULATION, MARKET drivers, and ETHICS. Use ANALOGY to find cross-disciplinary solutions. Every advancement must be balanced by a ground-truth challenge or a MENTAL_MODEL being challenged."
+        ? `RESEARCH PRINCIPLE: Maintain 360-degree sight. Do not default to TECHNOLOGY or CONCEPT loops. If you see a technology, look for its hidden PROBLEM, friction point, or the USER_SEGMENT it targets. Consider the REGULATION, MARKET drivers, and ETHICS. Use ANALOGY to find cross-disciplinary solutions. Every advancement must be balanced by a ground-truth challenge or a MENTAL_MODEL being challenged.
+        ${INNOVATION_RESEARCH_PRINCIPLES}`
         : "RESEARCH PRINCIPLE: Maintain 360-degree sight. Expand historical context by linking EVENTS to the PEOPLE they affected, the PLACES they occurred, and the underlying THEORIES or CONTRADICTIONS that drove them.";
 
     const prompt = dieToGrow
@@ -451,7 +495,8 @@ export const agenticDiscovery = async (
         ? `1. DO NOT be generic. Be technically specific.
     2. AVOID LOOPS: If the surrounding graph is mostly TECHNOLOGIES, look for a PAIN_POINT, USER_SEGMENT, or ETHICS node. If it is all PROBLEMS, look for an ENTITY, MARKET driver, or ANALOGY.
     3. BALANCE: For every two forward steps, provide one grounding step (CONSTRAINT, FRICTION, REGULATION, or QUESTION).
-    4. PERSPECTIVE: Occasionally challenge the underlying MENTAL_MODEL or propose a cross-disciplinary ANALOGY.`
+    4. PERSPECTIVE: Occasionally challenge the underlying MENTAL_MODEL or propose a cross-disciplinary ANALOGY.
+    ${INNOVATION_RESEARCH_PRINCIPLES}`
         : `1. DO NOT be generic. Be historically and factually accurate.
     2. AVOID LOOPS: Do not just chain EVENTS. Link them to the PERSON who influenced them or the ARTIFACT they left behind.
     3. CURIOSITY: Look for the CONTRADICTION or QUESTION that remains unanswered in this lineage.`;
@@ -497,9 +542,11 @@ export const generateRandomSeedNode = async (
     const persona = modeConfig.aiPersona;
 
     const modeSpecificPrompt = mode === ExplorationMode.INNOVATION
-        ? `Generate a single PROBLEM or PAIN_POINT node that represents a significant friction point in modern technology (computing, AI, hardware, or human-system interaction).
-    The problem should be concrete, high-impact, and clear.
-    STYLE: Use "readable" language. Avoid hyper-technical academic jargon unless absolutely necessary to describe a common problem. Focus on the core friction felt by engineers or users.`
+        ? `Generate a single FOUNDER-GRADE PROBLEM or PAIN_POINT node that feels like the problem behind a top Product Hunt launch.
+    The problem should be concrete, costly (in time or money), and emotionally annoying for a specific user.
+    Focus on "AI-first" friction points in modern workflows, developer experience, or startup operations.
+    STYLE: Use "readable" language. Be sharp. Focus on the core friction where a user would say "take my money to solve this."
+    ${INNOVATION_RESEARCH_PRINCIPLES}`
         : `Generate a single interesting starting point for knowledge exploration. This could be:
     - A significant historical EVENT
     - An influential PERSON
@@ -557,7 +604,8 @@ export const researchAssistantChat = async (
     }
 
     const modeSpecificGuidance = mode === ExplorationMode.INNOVATION
-        ? "Provide deep technical insights, definitions, and strategic analysis. EXERCISE 360-DEGREE RESEARCH: Suggest a variety of types (e.g. Problems, Entities, Constraints) to ensure a comprehensive investigation."
+        ? `Provide deep technical insights, definitions, and strategic analysis. EXERCISE 360-DEGREE RESEARCH: Suggest a variety of types (e.g. Problems, Entities, Constraints) to ensure a comprehensive investigation.
+        ${INNOVATION_RESEARCH_PRINCIPLES}`
         : "Provide interdisciplinary insights, historical evidence, and causal analysis. EXERCISE 360-DEGREE RESEARCH: Suggest connections across diverse types (e.g. Artifacts, Places, Contradictions) to enrich the tapestry of knowledge.";
 
     const systemPrompt = `You are the Nexus Research Assistant, a ${persona}.

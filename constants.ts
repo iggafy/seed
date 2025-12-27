@@ -38,14 +38,14 @@ export const MODE_CONFIGS: Record<ExplorationMode, ModeConfig> = {
       "imposes",
       "requires"
     ],
-    aiPersona: "deep-tech researcher, interdisciplinary innovation architect, and systems thinker",
+    aiPersona: "pragmatic technologist, hands-on innovation architect, and systems skeptic",
     seedExamples: [
-      { label: 'Unused Cloud GPU Oversubscription', type: NodeType.PAIN_POINT, description: 'Enterprises pay for reserved GPU instances that sit idle 60% of the time, while startups can\'t access compute.' },
-      { label: 'Fragmented Clinical Trial Data', type: NodeType.PROBLEM, description: 'Medical research is slowed down by siloed, non-interoperable patient records across different hospitals.' },
-      { label: 'E-commerce Return Logistics Waste', type: NodeType.PAIN_POINT, description: 'The massive environmental and financial cost of processing returns in fast fashion.' },
-      { label: 'Knowledge Silos in Remote Engineering', type: NodeType.PROBLEM, description: 'Senior engineers carry crucial architectural context that is never documented, causing friction in remote teams.' },
-      { label: 'Deepfake Verification at Scale', type: NodeType.QUESTION, description: 'How can we trust video evidence when generative AI can produce perfect fakes in real-time?' },
-      { label: 'Micro-SaaS Integration Fatigue', type: NodeType.PAIN_POINT, description: 'Users are overwhelmed by having 50+ different subscriptions that don\'t talk to each other.' }
+      { label: 'The AI Context Tax', type: NodeType.PAIN_POINT, description: 'Senior devs spend 2.5 hours daily manually pasting code context, library docs, and schema definitions into LLM windows because automated RAG pipelines keep missing the technical nuance.' },
+      { label: 'Zombie SaaS Seats', type: NodeType.PAIN_POINT, description: 'Lean startups bleed $1,200/mo on "Pro" seats for legacy design and project tools that their AI-automated workflows have already replaced, but nobody has the time to audit the billing.' },
+      { label: 'Unstructured Feedback Debt', type: NodeType.PROBLEM, description: 'Product teams ignore 15,000+ unread Discord and Slack feedback pings because manual tagging is soul-crushing, while competitors are shipping the exact features users are screaming for.' },
+      { label: 'Invisible API Schema Drift', type: NodeType.PROBLEM, description: 'Critical backend services intermittently break because upstream LLM-integrated APIs changed their output JSON structure without a version bump, costing teams 10 hours of emergency debugging weekly.' },
+      { label: 'The Sales-to-Product Hallucination', type: NodeType.PAIN_POINT, description: 'Sales teams close $50k deals by promising "custom AI fine-tuning" that engineering literally cannot deliver with current infra, leading to massive churn and developer burnout.' },
+      { label: 'LLM Response Shrapnel', type: NodeType.FRICTION, description: 'Production app UIs look broken because "pro" models occasionally return markdown wrappers inside JSON fields, causing frontend parsing errors for 5% of all active users.' }
     ]
   },
   [ExplorationMode.KNOWLEDGE]: {

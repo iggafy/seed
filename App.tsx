@@ -5,7 +5,7 @@ import Toolbar from './components/Toolbar';
 import SettingsModal from './components/SettingsModal';
 import SeedsDashboard from './components/SeedsDashboard';
 import { INITIAL_DATA, NODE_ICONS, NODE_COLORS, getModeConfig, getExpansionBlueprints, getRelationOptions, getSeedExamples } from './constants';
-import { expandConcept, expandConceptTargeted, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat, optimizeConcept, stressTestConcept, generateImplementation } from './services/aiService';
+import { expandConcept, expandConceptTargeted, directedDiscovery, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat, optimizeConcept, stressTestConcept, generateImplementation } from './services/aiService';
 import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit, RefreshCw, Network } from 'lucide-react';
 import NexusAssistant from './components/NexusAssistant';
 import NexusConfirmDialog from './components/NexusConfirmDialog';
@@ -957,6 +957,49 @@ function App() {
       }
     } catch (e: any) {
       popError(e.message || "Targeted expansion failed");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDirectedDiscovery = async (node: GraphNode, instruction: string, count: number = 1) => {
+    setIsProcessing(true);
+    recordHistory();
+
+    let contextString = undefined;
+    if (isContextMode) {
+      const ancestry = getNodeLineage(node.id);
+      contextString = ancestry ? `${ancestry} -> ${node.label}` : node.label;
+    }
+
+    try {
+      const suggestions = await directedDiscovery(aiSettings, node.label, node.description || "", instruction, count, contextString, currentMode);
+
+      if (suggestions && suggestions.length > 0) {
+        setData(prevData => {
+          const newNodes = suggestions.map(suggestion => ({
+            id: generateId(),
+            label: suggestion.label,
+            type: suggestion.type || NodeType.CONCEPT,
+            description: suggestion.description,
+            x: (node.x || 0) + (Math.random() - 0.5) * 150,
+            y: (node.y || 0) + (Math.random() - 0.5) * 150
+          }));
+
+          const newLinks = newNodes.map((newNode, index) => ({
+            source: node.id,
+            target: newNode.id,
+            relation: suggestions[index].relationToParent || "discovered"
+          }));
+
+          return {
+            nodes: [...prevData.nodes, ...newNodes],
+            links: [...prevData.links, ...newLinks]
+          };
+        });
+      }
+    } catch (e: any) {
+      popError(e.message || "Directed discovery failed");
     } finally {
       setIsProcessing(false);
     }
@@ -2240,6 +2283,7 @@ function App() {
         onImplement={handleImplementNode}
         onSolve={handleSolveProblem}
         onAnswer={handleAnswerQuestion}
+        onDirectedDiscovery={handleDirectedDiscovery}
         isProcessing={isProcessing || isGeneratingSeed}
         onAssimilate={handleAssimilateNode}
         onPrune={handlePruneNode}
