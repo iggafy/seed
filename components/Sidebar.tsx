@@ -491,46 +491,32 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 </div>
 
-                {/* Custom Instruction Toggle */}
-                <div className="pt-2 border-t border-white/5">
-                  {!showCustomDiscovery ? (
-                    <button
-                      onClick={() => setShowCustomDiscovery(true)}
-                      className="w-full py-2 text-[10px] uppercase font-bold tracking-widest text-slate-500 hover:text-emerald-400 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Sparkles size={12} /> Custom Discovery Direction
-                    </button>
-                  ) : (
-                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] uppercase tracking-widest font-bold text-emerald-500">Custom Path Instruction</label>
-                        <button onClick={() => setShowCustomDiscovery(false)} className="text-slate-500 hover:text-white transition-colors">
-                          <X size={12} />
-                        </button>
-                      </div>
-                      <textarea
-                        value={discoveryInstruction}
-                        onChange={(e) => setDiscoveryInstruction(e.target.value)}
-                        placeholder="e.g., 'What is the hardware bottleneck for this?' or 'Propose a social consequence of this event'"
-                        className="w-full h-20 bg-slate-950/50 border border-white/10 rounded-xl p-3 text-xs text-white focus:border-emerald-500/50 focus:outline-none resize-none"
-                      />
-                      <button
-                        onClick={() => {
-                          if (discoveryInstruction.trim()) {
-                            onDirectedDiscovery(node, discoveryInstruction, targetCount);
-                            setDiscoveryInstruction("");
-                          }
-                        }}
-                        disabled={isProcessing || !discoveryInstruction.trim()}
-                        className={`w-full py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2
+                {/* Custom Instruction Section (Always Visible) */}
+                <div className="pt-4 border-t border-white/5 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] uppercase tracking-widest font-bold text-emerald-500">Custom Path Instruction</label>
+                  </div>
+                  <textarea
+                    value={discoveryInstruction}
+                    onChange={(e) => setDiscoveryInstruction(e.target.value)}
+                    placeholder="e.g., 'What is the hardware bottleneck for this?' or 'Propose a social consequence of this event'"
+                    className="w-full h-20 bg-slate-950/50 border border-white/10 rounded-xl p-3 text-xs text-white focus:border-emerald-500/50 focus:outline-none resize-none"
+                  />
+                  <button
+                    onClick={() => {
+                      if (discoveryInstruction.trim()) {
+                        onDirectedDiscovery(node, discoveryInstruction, targetCount);
+                        setDiscoveryInstruction("");
+                      }
+                    }}
+                    disabled={isProcessing || !discoveryInstruction.trim()}
+                    className={`w-full py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2
                           ${(isProcessing || !discoveryInstruction.trim())
-                            ? 'bg-slate-800 text-slate-600'
-                            : 'bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-500/30'}`}
-                      >
-                        {isProcessing ? <RefreshCw size={14} className="animate-spin" /> : 'Launch Directed Discovery'}
-                      </button>
-                    </div>
-                  )}
+                        ? 'bg-slate-800 text-slate-600'
+                        : 'bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-500/30'}`}
+                  >
+                    {isProcessing ? <RefreshCw size={14} className="animate-spin" /> : 'Launch Directed Discovery'}
+                  </button>
                 </div>
               </div>
             </div>
