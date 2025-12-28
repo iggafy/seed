@@ -20,6 +20,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
   activeDiscoveryNodeId,
   layoutTrigger
 }) => {
+  const [hoveredNodeId, setHoveredNodeId] = React.useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -218,11 +219,11 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     const simulation = d3.forceSimulation<GraphNode, GraphLink>()
       .force("link", d3.forceLink<GraphNode, GraphLink>()
         .id(d => d.id)
-        .distance(d => (d.target as GraphNode).type === NodeType.TRACE ? 50 : 180) // Shorter distance for Trace
+        .distance(d => (d.target as GraphNode).type === NodeType.TRACE ? 60 : 220) // Increased distance
       )
-      .force("charge", d3.forceManyBody().strength(-500)) // Stronger repulsion for clarity
+      .force("charge", d3.forceManyBody().strength(-800)) // Stronger repulsion
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide(d => (d.type === NodeType.TRACE ? 35 : 60))); // Dynamic collision radius
+      .force("collide", d3.forceCollide(d => (d.type === NodeType.TRACE ? 40 : 80))); // Dynamic collision radius
 
     simulationRef.current = simulation;
 
@@ -277,6 +278,59 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
   }, [layoutTrigger, sessionId, structureFingerprint]);
 
 
+  // Focus / Dimming Effect
+  useEffect(() => {
+    if (!gRef.current) return;
+    const g = gRef.current;
+
+    const focusId = hoveredNodeId || (selectedNodeIds.length === 1 ? selectedNodeIds[0] : null);
+
+    if (focusId) {
+      // Find connected nodes
+      const connectedNodeIds = new Set<string>([focusId]);
+      data.links.forEach(l => {
+        const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+        const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+        if (s === focusId) connectedNodeIds.add(t);
+        if (t === focusId) connectedNodeIds.add(s);
+      });
+
+      g.selectAll("g.node")
+        .transition().duration(250)
+        .style("opacity", d => connectedNodeIds.has((d as any).id) ? 1 : 0.2);
+
+      g.selectAll("path.link")
+        .transition().duration(250)
+        .style("opacity", l => {
+          const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
+          const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
+          return (s === focusId || t === focusId) ? 1 : 0.1;
+        });
+
+      g.selectAll("path.link-flow-line")
+        .transition().duration(250)
+        .style("opacity", l => {
+          const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
+          const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
+          return (s === focusId || t === focusId) ? 0.8 : 0.05;
+        });
+
+      g.selectAll("text.link-label")
+        .transition().duration(250)
+        .style("opacity", l => {
+          const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
+          const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
+          return (s === focusId || t === focusId) ? 1 : 0;
+        });
+    } else {
+      g.selectAll("g.node").transition().duration(250).style("opacity", 1);
+      g.selectAll("path.link").transition().duration(250).style("opacity", l => (l as any).isGhost ? 0.4 : 1);
+      g.selectAll("path.link-flow-line").transition().duration(250).style("opacity", 0.5);
+      g.selectAll("text.link-label").transition().duration(250).style("opacity", 0);
+    }
+  }, [hoveredNodeId, selectedNodeIds, data.links]);
+
+
   // Update Data and Simulation
   useEffect(() => {
     if (!simulationRef.current || !gRef.current) return;
@@ -312,16 +366,36 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     const links = data.links.map(l => ({ ...l }));
 
+    // Count links between same pair for curvature offsetting
+    const linkCounts: Record<string, number> = {};
+    links.forEach(l => {
+      const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+      const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+      const key = [s, t].sort().join('-');
+      linkCounts[key] = (linkCounts[key] || 0) + 1;
+    });
+
+    const linkIndex: Record<string, number> = {};
+    links.forEach(l => {
+      const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+      const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+      const key = [s, t].sort().join('-');
+      const index = linkIndex[key] || 0;
+      (l as any).curveIndex = index;
+      (l as any).curveTotal = linkCounts[key];
+      linkIndex[key] = index + 1;
+    });
+
     simulation.nodes(nodes);
     const linkForce = simulation.force<d3.ForceLink<GraphNode, GraphLink>>("link");
     if (linkForce) {
       linkForce.links(links);
       // Re-apply distance based on updated links
-      linkForce.distance(d => (d.target as GraphNode).type === NodeType.TRACE ? 50 : 180);
+      linkForce.distance(d => (d.target as GraphNode).type === NodeType.TRACE ? 60 : 220);
     }
 
     // Update collision force for new nodes
-    simulation.force("collide", d3.forceCollide(d => (d.type === NodeType.TRACE ? 35 : 60)));
+    simulation.force("collide", d3.forceCollide(d => (d.type === NodeType.TRACE ? 40 : 80)));
 
 
     // --- D3 UPDATE PATTERN ---
@@ -333,11 +407,12 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       return `${s}-${t}-${d.relation}`;
     };
 
-    const linkSelection = g.selectAll<SVGLineElement, GraphLink>("line.link")
+    const linkSelection = g.selectAll<SVGPathElement, GraphLink>("path.link")
       .data(links, getLinkId);
 
-    const linkEnter = linkSelection.enter().append("line")
+    const linkEnter = linkSelection.enter().append("path")
       .attr("class", "link")
+      .attr("fill", "none")
       .attr("stroke", "#64748b") // Slate 500
       .attr("stroke-opacity", 0.2) // Very subtle base
       .attr("stroke-width", 1.5);
@@ -348,11 +423,12 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("marker-end", d => (d.target as GraphNode).type === NodeType.TRACE ? "url(#arrow-trace)" : "url(#arrow)");
 
     // 1.5 FLOW LINES (Animated)
-    const flowSelection = g.selectAll<SVGLineElement, GraphLink>("line.link-flow-line")
+    const flowSelection = g.selectAll<SVGPathElement, GraphLink>("path.link-flow-line")
       .data(links, getLinkId);
 
-    const flowEnter = flowSelection.enter().append("line")
+    const flowEnter = flowSelection.enter().append("path")
       .attr("class", "link-flow-line link-flow")
+      .attr("fill", "none")
       .attr("stroke-width", 1.5)
       .attr("stroke-opacity", 0.5)
       .style("pointer-events", "none");
@@ -375,7 +451,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("fill", "#94a3b8")
       .attr("text-anchor", "middle")
       .style("pointer-events", "none")
-      .style("opacity", 0.8)
+      .style("opacity", 0) // Start hidden
       .style("font-family", "sans-serif");
 
     labelSelection.exit().remove();
@@ -696,6 +772,12 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         event.preventDefault();
         event.stopPropagation();
         onNodeDoubleClick(d);
+      })
+      .on("mouseenter", (event, d) => {
+        setHoveredNodeId(d.id);
+      })
+      .on("mouseleave", () => {
+        setHoveredNodeId(null);
       });
 
     allNodes.select("circle.node-body")
@@ -774,7 +856,6 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       });
 
 
-    // Tick Function
     simulation.on("tick", () => {
       const getNodeRadius = (d: GraphNode) => {
         const baseR = d.type === NodeType.TRACE ? 16 : 28;
@@ -783,59 +864,85 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         return r;
       };
 
-      allLinks
-        .each(function (d) {
-          const source = d.source as GraphNode;
-          const target = d.target as GraphNode;
-          const dx = target.x! - source.x!;
-          const dy = target.y! - source.y!;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+      const updatePath = function (d: any) {
+        const source = d.source as GraphNode;
+        const target = d.target as GraphNode;
+        const dx = target.x! - source.x!;
+        const dy = target.y! - source.y!;
+        const dr = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist === 0 || isNaN(dist)) return;
+        if (dr === 0 || isNaN(dr)) return "";
 
-          const sourceR = getNodeRadius(source);
-          const targetR = getNodeRadius(target);
+        const sourceR = getNodeRadius(source);
+        const targetR = getNodeRadius(target);
 
-          const x1 = source.x! + (dx * sourceR) / dist;
-          const y1 = source.y! + (dy * sourceR) / dist;
-          const x2 = target.x! - (dx * targetR) / dist;
-          const y2 = target.y! - (dy * targetR) / dist;
+        const total = d.curveTotal || 1;
+        const index = d.curveIndex || 0;
 
-          if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) return;
+        const x1 = source.x! + (dx * sourceR) / dr;
+        const y1 = source.y! + (dy * sourceR) / dr;
+        const x2 = target.x! - (dx * targetR) / dr;
+        const y2 = target.y! - (dy * targetR) / dr;
 
-          d3.select(this)
-            .attr("x1", x1)
-            .attr("y1", y1)
-            .attr("x2", x2)
-            .attr("y2", y2);
-        });
+        if (total === 1) {
+          return `M${x1},${y1}L${x2},${y2}`;
+        }
 
-      allFlows
-        .each(function (d) {
-          const source = d.source as GraphNode;
-          const target = d.target as GraphNode;
-          const dx = target.x! - source.x!;
-          const dy = target.y! - source.y!;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+        const bend = 30;
+        const offset = bend * (index - (total - 1) / 2);
 
-          if (dist === 0) return;
+        const midX = (source.x! + target.x!) / 2;
+        const midY = (source.y! + target.y!) / 2;
 
-          const sourceR = getNodeRadius(source);
-          const targetR = getNodeRadius(target);
+        const nx = -dy / dr;
+        const ny = dx / dr;
 
-          d3.select(this)
-            .attr("x1", source.x! + (dx * sourceR) / dist)
-            .attr("y1", source.y! + (dy * sourceR) / dist)
-            .attr("x2", target.x! - (dx * targetR) / dist)
-            .attr("y2", target.y! - (dy * targetR) / dist);
-        });
+        const cx = midX + nx * offset * 2;
+        const cy = midY + ny * offset * 2;
+
+        return `M${x1},${y1}Q${cx},${cy} ${x2},${y2}`;
+      };
+
+      allLinks.attr("d", updatePath);
+      allFlows.attr("d", updatePath);
 
       allLabels
-        .attr("x", d => ((d.source as GraphNode).x! + (d.target as GraphNode).x!) / 2)
-        .attr("y", d => ((d.source as GraphNode).y! + (d.target as GraphNode).y!) / 2);
+        .attr("x", d => {
+          const source = d.source as GraphNode;
+          const target = d.target as GraphNode;
+          const total = (d as any).curveTotal || 1;
+          const index = (d as any).curveIndex || 0;
 
-      allNodes
-        .attr("transform", d => `translate(${d.x},${d.y})`);
+          const midX = (source.x! + target.x!) / 2;
+          if (total === 1) return midX;
+
+          const dx = target.x! - source.x!;
+          const dy = target.y! - source.y!;
+          const dr = Math.sqrt(dx * dx + dy * dy);
+          const nx = -dy / dr;
+          const bend = 30;
+          const offset = bend * (index - (total - 1) / 2);
+          return midX + nx * offset;
+        })
+        .attr("y", d => {
+          const source = d.source as GraphNode;
+          const target = d.target as GraphNode;
+          const total = (d as any).curveTotal || 1;
+          const index = (d as any).curveIndex || 0;
+
+          const midY = (source.y! + target.y!) / 2;
+          if (total === 1) return midY - 12;
+
+          const dx = target.x! - source.x!;
+          const dy = target.y! - source.y!;
+          const dr = Math.sqrt(dx * dx + dy * dy);
+          const ny = dx / dr;
+          const bend = 30;
+          const offset = bend * (index - (total - 1) / 2);
+          return midY + ny * offset - 12;
+        });
+
+      allNodes.attr("transform", d => `translate(${d.x},${d.y})`);
     });
 
     // Structural change check is now handled in the layout effect
