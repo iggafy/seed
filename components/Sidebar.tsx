@@ -282,14 +282,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           {node.valueVector && (
             <div className="bg-slate-950/40 rounded-2xl p-4 border border-white/5 space-y-3">
               <h3 className="text-[10px] font-bold uppercase text-slate-500 tracking-widest flex items-center gap-2">
-                <Binary size={12} className="text-sky-400" /> Value Vector
+                <Binary size={12} className="text-sky-400" /> {mode === ExplorationMode.INNOVATION ? 'Value Vector' : 'Epistemic Vector'}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { label: 'Feasibility', val: node.valueVector.feasibility, color: 'bg-emerald-500' },
-                  { label: 'Novelty', val: node.valueVector.novelty, color: 'bg-violet-500' },
-                  { label: 'Friction', val: node.valueVector.friction, color: 'bg-amber-500' },
-                  { label: 'Impact', val: node.valueVector.impact, color: 'bg-rose-500' }
+                  { label: mode === ExplorationMode.INNOVATION ? 'Feasibility' : 'Veracity', val: node.valueVector.feasibility, color: 'bg-emerald-500' },
+                  { label: mode === ExplorationMode.INNOVATION ? 'Novelty' : 'Originality', val: node.valueVector.novelty, color: 'bg-violet-500' },
+                  { label: mode === ExplorationMode.INNOVATION ? 'Friction' : 'Complexity', val: node.valueVector.friction, color: 'bg-amber-500' },
+                  { label: mode === ExplorationMode.INNOVATION ? 'Impact' : 'Significance', val: node.valueVector.impact, color: 'bg-rose-500' }
                 ].map(v => (
                   <div key={v.label} className="space-y-1">
                     <div className="flex justify-between text-[9px] uppercase font-bold text-slate-400">

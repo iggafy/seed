@@ -24,6 +24,11 @@ KNOWLEDGE RESEARCH PRINCIPLES:
 5. NUANCED PERSPECTIVE: History is rarely black and white. Highlight internal contradictions, debates, or the "grey areas" of a person or movement.
 6. CURIOSITY DRIVEN: Frame descriptions to provoke the next question. "X happened, but historians still debate Y..."
 7. SPECIFICITY OVER GENERALITY: Instead of "ancient rituals", say "the Eleusinian Mysteries". Instead of "scientists", say "The Royal Society".
+8. EPISTEMIC VECTOR: When assigning numerical values:
+   - Veracity (feasibility): 1.0 = highly documented/proven, 0.1 = speculative/mythical.
+   - Originality (novelty): 1.0 = unique/groundbreaking, 0.1 = common/derivative knowledge.
+   - Complexity (friction): 1.0 = highly nuanced/contradictory, 0.1 = straightforward/simple.
+   - Significance (impact): 1.0 = changed the course of history/thought, 0.1 = minor detail.
 `;
 
 // Defined schemas via imported constants
@@ -37,10 +42,10 @@ const NODE_SCHEMA_OPENAI = {
         valueVector: {
             type: "object",
             properties: {
-                feasibility: { type: "number", description: "0-1" },
-                novelty: { type: "number", description: "0-1" },
-                friction: { type: "number", description: "0-1" },
-                impact: { type: "number", description: "0-1" }
+                feasibility: { type: "number", description: "0-1 (Innovation: Feasibility / Knowledge: Veracity)" },
+                novelty: { type: "number", description: "0-1 (Innovation: Novelty / Knowledge: Originality)" },
+                friction: { type: "number", description: "0-1 (Innovation: Friction / Knowledge: Complexity)" },
+                impact: { type: "number", description: "0-1 (Innovation: Impact / Knowledge: Significance)" }
             },
             required: ["feasibility", "novelty", "friction", "impact"],
             additionalProperties: false
