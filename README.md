@@ -1,66 +1,65 @@
 # SEED: Shared Exploration & Emergent Discovery
 
-**SEED** is an Electron-based conceptual exploration tool powered by AI. It uses a force-directed graph interface to help users brainstorm, visualize, and expand upon complex ideas.
-
-## Features
-
-### 🧠 AI-Powered Exploration
-- **Concept Expansion**: Automatically generate related concepts, technologies, and problems from any node.
-- **Contextual Lineage**: The AI understands the path you took (e.g., *Biology -> Computing*) and generates context-aware suggestions.
-- **Deep Synergy**: Select two nodes to have the AI find a novel intersection or "Synergy" between them.
-- **Trace Analysis**: Generate a narrative history or theoretical trace of a specific concept path.
-
-### 🌐 Graph Visualization
-- **Dynamic Interface**: physics-based force-directed graph (D3.js).
-- **Interactive**: Drag nodes, zoom/pan, and explore connections intuitively.
-- **Smart Filtering**: Toggle visibility of Concepts, Technologies, Problems, Entities, etc.
-
-### 💾 Session Management
-- **Persistence**: Save and Load your "Seeds" (exploration graphs) to your local machine.
-- **Dashboard**: Manage multiple innovation sessions via a built-in dashboard.
-- **Privacy**: All data is stored locally in your user data folder.
-
-### 🤖 Multi-Provider Support
-- **Google Gemini**: Optimized for fast, creative reasoning.
-- **OpenAI**: Support for GPT models.
-- **DeepSeek**: Specialized integration with entropy injection to ensure high variety and bypass caching.
-
-## Getting Started
-
-### Prerequisites
-- Node.js (v18+)
-- API Key (Gemini, OpenAI, or DeepSeek)
-
-### Installation
-
-1.  **Clone and Install**
-    ```bash
-    git clone https://github.com/your/repo.git
-    cd SEED
-    npm install
-    ```
-
-2.  **Run Development Mode**
-    ```bash
-    npm run electron:dev
-    ```
-
-3.  **Build for Production**
-    ```bash
-    npm run electron:build
-    ```
-
-## Usage
-
-1.  **Start**: Click "I'm feeling lucky" or "Add Custom Seed" to begin.
-2.  **Expand**: Right-click any node to Expand connections.
-3.  **Deepen**: Double-click a node to enter a focused "Nested Session".
-4.  **Save**: Use the Save icon in the toolbar to persist your work.
-
-## Technology Stack
-- **Frontend**: React, D3.js, TailwindCSS
-- **Backend**: Electron (IPC), Node.js fs/promises
-- **AI**: Google Generative AI SDK, OpenAI SDK
+**SEED** is an interactive engine for emergent discovery. It transforms complex research and learning into a visual journey, helping you grasp the big picture and discover connections the moment they happen.
 
 ---
-*Innovation starts with a single seed.*
+
+## ✨ Emergent Discovery
+
+The core of SEED is "Emergent Discovery." You often don't know exactly what you're looking for until you find it. SEED acts as your navigator, suggesting the paths you didn't know existed and connecting dots you hadn't seen yet.
+
+### � Knowledge Mode (Emergent Learning)
+Master **emergent learning** by connecting the dots visually. Grasp and memorize complex topics through a gamified, interactive experience that reveals hidden interdisciplinary links.
+*   **Visual Memorization**: By connecting text to a 3D visual map, you grasp and memorize concepts faster. Your brain sees the "shape" of the information.
+*   **Discovery on the Go**: Start with one event or person, and watch a universe of interdisciplinary connections unfold.
+*   **Epistemic Fun**: It feels like a forensic investigation where you are the lead researcher uncovering hidden patterns across history and science.
+
+### �️ Innovation Mode (Emergent Innovation)
+Experience **emergent innovation** as the AI proactively suggests breakthroughs and strategic paths, helping you brainstorm solutions to complex problems in real-time.
+*   **Autonomous Brainstorming**: The AI doesn't just answer; it proactively hunts for breakthroughs, technologies, and market segments that solve your specific problem.
+*   **Smart Strategy**: It acts as a partner that looks for "friction" and "bottlenecks," forcing you to think about how an idea actually works in the real world.
+
+---
+
+## 🕹️ Interactive Intelligence
+
+### 🧬 The Pulse (How it moves)
+SEED uses four "Discovery Policies" to keep the exploration alive:
+- **Deepen**: Focuses on the current idea to find the hard facts.
+- **Wander**: Scans "into the fog" to find creative analogies and wild connections.
+- **Stress Test**: Deliberately tries to find what breaks your idea or your theory.
+- **Re-Anchor**: Safely pulls you back toward your main goal if you get too lost in the weeds.
+
+### 🧠 Smart Memory
+SEED remembers where you've been. Every new concept the AI suggests is based on the unique path you’ve taken. If you move from *Ancient Rome* to *Modern Fiber Optics*, the AI understands that specific bridge.
+
+---
+
+## � Privacy & Local-First
+
+Your ideas are yours alone.
+- **Local Storage**: All your graphs ("Seeds") are saved strictly on your device.
+- **Private Keys**: Your AI API keys stay in your SEED application. No data is sent to us—ever.
+
+---
+
+## 🚀 Get Started
+
+1.  **Clone the Repo**
+    ```bash
+    git clone https://github.com/your-username/seed.git
+    cd seed
+    ```
+2.  **Install & Start**
+    ```bash
+    npm install
+    npm run electron:dev
+    ```
+3.  **Build Your App**
+    ```bash
+    npm run dist
+    ```
+    *Find your installers for Windows and Linux in the `/release` folder.*
+
+---
+*Stop searching. Start discovering.*

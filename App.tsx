@@ -116,16 +116,45 @@ function App() {
   const [contextMenuNode, setContextMenuNode] = useState<GraphNode | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
 
-  // AI Settings State
-  const [showSettings, setShowSettings] = useState(false);
-  const [aiSettings, setAiSettings] = useState<AISettings>({
-    provider: AIProvider.GEMINI,
-    providers: {
-      [AIProvider.GEMINI]: { apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY || '', model: 'gemini-2.5-flash' },
-      [AIProvider.OPENAI]: { apiKey: '', model: 'gpt-4o' },
-      [AIProvider.DEEPSEEK]: { apiKey: '', model: 'deepseek-chat' }
+  // AI Settings State - Lazy initialized from localStorage
+  const [aiSettings, setAiSettings] = useState<AISettings>(() => {
+    const defaultSettings: AISettings = {
+      provider: AIProvider.GEMINI,
+      providers: {
+        [AIProvider.GEMINI]: { apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY || '', model: 'gemini-2.5-flash' },
+        [AIProvider.OPENAI]: { apiKey: '', model: 'gpt-4o' },
+        [AIProvider.DEEPSEEK]: { apiKey: '', model: 'deepseek-chat' }
+      }
+    };
+
+    const stored = localStorage.getItem('seed_ai_settings');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object') {
+          const providers = { ...defaultSettings.providers };
+          if (parsed.providers) {
+            Object.keys(parsed.providers).forEach(key => {
+              providers[key as AIProvider] = {
+                ...providers[key as AIProvider],
+                ...parsed.providers[key]
+              };
+            });
+          }
+          return {
+            ...defaultSettings,
+            provider: parsed.provider || defaultSettings.provider,
+            providers
+          };
+        }
+      } catch (e) {
+        console.error("Failed to parse settings", e);
+      }
     }
+    return defaultSettings;
   });
+
+  const [showSettings, setShowSettings] = useState(false);
 
   // Discovery Mode State
   const [discoveryState, setDiscoveryState] = useState<DiscoveryState>({
@@ -149,7 +178,7 @@ function App() {
   const modeConfig = getModeConfig(currentMode);
 
   // Assistant / Chat State
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(true);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [proposingSeed, setProposingSeed] = useState<AISuggestion | null>(null);
   const [isChatProcessing, setIsChatProcessing] = useState(false);
@@ -168,35 +197,37 @@ function App() {
   // Manual State
   const [showManual, setShowManual] = useState(false);
 
-  // Load Settings from LocalStorage
+
+  // Provide default greeting if skipping welcome
   useEffect(() => {
-    const stored = localStorage.getItem('seed_ai_settings');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed === 'object') {
-          setAiSettings(prev => {
-            const newProviders = { ...prev.providers };
-            if (parsed.providers) {
-              Object.keys(parsed.providers).forEach(key => {
-                newProviders[key as AIProvider] = {
-                  ...newProviders[key as AIProvider],
-                  ...parsed.providers[key]
-                };
-              });
-            }
-            return {
-              ...prev,
-              provider: parsed.provider || prev.provider,
-              providers: newProviders
-            };
-          });
-        }
-      } catch (e) {
-        console.error("Failed to parse settings", e);
-      }
+    if (!showWelcome && chatMessages.length === 0) {
+      setChatMessages([{
+        id: generateId(),
+        role: 'assistant',
+        content: `Welcome back. What are we SEED-ing today?`,
+        timestamp: Date.now()
+      }]);
     }
-  }, []);
+  }, [showWelcome]);
+
+  // Track if there are any saved seeds
+  const [hasSavedSeeds, setHasSavedSeeds] = useState(false);
+
+  useEffect(() => {
+    const checkSeeds = async () => {
+      try {
+        // @ts-ignore
+        const list = await window.api.db.listSeeds();
+        setHasSavedSeeds(list && list.length > 0);
+      } catch (e) {
+        console.error("Failed to check saved seeds", e);
+      }
+    };
+
+    if (showWelcome) {
+      checkSeeds();
+    }
+  }, [showWelcome]);
 
   const handleSaveSettings = (newSettings: AISettings) => {
     setAiSettings(newSettings);
@@ -392,6 +423,11 @@ function App() {
       content: `What are we SEED-ing today?`,
       timestamp: Date.now()
     }]);
+  };
+
+  const handleGoHome = () => {
+    setShowDashboard(false);
+    setShowWelcome(true);
   };
 
   const handleCreateNewSpaceFromNode = async (node: GraphNode) => {
@@ -2553,6 +2589,7 @@ function App() {
         onToggleManual={() => setShowManual(!showManual)}
         onUndo={handleUndo}
         onRedo={handleRedo}
+        onHome={handleGoHome}
         canUndo={past.length > 0}
         canRedo={future.length > 0}
         isFilterActive={hiddenTypes.length > 0}
@@ -2578,7 +2615,17 @@ function App() {
 
       {/* Welcome Screen */}
       {showWelcome && (
-        <WelcomeScreen onSelectMode={handleWelcomeModeSelect} />
+        <WelcomeScreen
+          onSelectMode={handleWelcomeModeSelect}
+          settings={aiSettings}
+          onUpdateSettings={handleSaveSettings}
+          onShowManual={() => setShowManual(true)}
+          onShowDashboard={() => {
+            setShowDashboard(true);
+            setShowWelcome(false);
+          }}
+          hasSavedSeeds={hasSavedSeeds}
+        />
       )}
 
       {
@@ -2586,7 +2633,12 @@ function App() {
           <SeedsDashboard
             onLoadSeed={handleLoadSeed}
             onNewSeed={handleNewSeed}
-            onClose={() => setShowDashboard(false)}
+            onClose={() => {
+              setShowDashboard(false);
+              if (data.nodes.length === 0) {
+                setShowWelcome(true);
+              }
+            }}
             currentSeedId={currentSeedFileId}
             askConfirm={askConfirm}
             onSelectMode={handleWelcomeModeSelect}

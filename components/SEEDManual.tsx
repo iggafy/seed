@@ -5,7 +5,8 @@ import {
     MousePointerClick, History, Binary, RefreshCw, ChevronRight,
     BookOpen, Lightbulb, CheckCircle2, ShieldCheck, GitMerge,
     History as HistoryIcon, Keyboard, Terminal, Globe,
-    Activity, ArrowUpRight, Target, Shield, Fingerprint, Lock
+    Activity, ArrowUpRight, Target, Shield, Fingerprint, Lock,
+    Maximize2, Plus, CornerDownRight, Microscope, Scan, MessageCircle
 } from 'lucide-react';
 import { ExplorationMode, NodeType, AISettings } from '../types';
 import { NODE_COLORS } from '../constants';
@@ -18,7 +19,7 @@ interface SEEDManualProps {
 }
 
 const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettings }) => {
-    const [activeTab, setActiveTab] = useState<'welcome' | 'autonomous' | 'actions' | 'ontology' | 'shortcuts'>('welcome');
+    const [activeTab, setActiveTab] = useState<'welcome' | 'autonomous' | 'protocols' | 'ontology' | 'shortcuts'>('welcome');
 
     if (!isOpen) return null;
 
@@ -31,12 +32,6 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
     };
 
     const isInnovation = mode === ExplorationMode.INNOVATION;
-
-    // Content tailored by mode
-    const modeSpecificTitle = isInnovation ? "Innovation Lattice" : "Knowledge Horizon";
-    const modeDescription = isInnovation
-        ? "Architect breakthrough solutions by mapping Technologies, Pain Points, and Risks. The AI acts as a **Pragmatic Strategist**, focusing on grounded feasibility and product synthesis."
-        : "Connect historical events, people, and theories. The AI acts as a **Forensic Researcher**, uncovering hidden causalities and multidisciplinary interconnections across time.";
 
     const renderBoldText = (text: string) => {
         const parts = text.split(/(\*\*.*?\*\*)/);
@@ -71,18 +66,18 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
 
                         <div className="h-4 w-px bg-white/10" />
 
-                        <nav className="flex items-center gap-1">
+                        <nav className="flex items-center gap-1 overflow-x-hidden overflow-y-visible pointer-events-auto p-1">
                             {[
                                 { id: 'welcome', label: 'Overview', icon: <Globe size={14} /> },
-                                { id: 'autonomous', label: 'Autonomous', icon: <BrainCircuit size={14} /> },
-                                { id: 'actions', label: 'AI Actions', icon: <Zap size={14} /> },
+                                { id: 'autonomous', label: 'Discovery', icon: <BrainCircuit size={14} /> },
+                                { id: 'protocols', label: 'Protocols', icon: <Zap size={14} /> },
                                 { id: 'ontology', label: 'Ontology', icon: <BookOpen size={14} /> },
                                 { id: 'shortcuts', label: 'Keyboard', icon: <Keyboard size={14} /> },
                             ].map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as any)}
-                                    className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${activeTab === tab.id
+                                    className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === tab.id
                                         ? 'bg-white text-slate-950 shadow-lg shadow-white/10 scale-105'
                                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                                         }`}
@@ -112,33 +107,33 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                         <div className="animate-in slide-in-from-bottom-4 duration-700">
                             <div className="max-w-4xl">
                                 <span className={`px-3 py-1 border rounded-full text-[10px] font-black tracking-[0.3em] uppercase mb-6 inline-block ${isInnovation ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'}`}>
-                                    {isInnovation ? 'Innovation Lattice Access' : 'Knowledge Horizon Access'}
+                                    {isInnovation ? 'Innovation Mode Active' : 'Knowledge Mode Active'}
                                 </span>
                                 <h1 className="text-6xl font-black text-white mb-6 tracking-tighter leading-[0.9]">
                                     Map the <span className={isInnovation ? 'text-sky-500' : 'text-indigo-500'}>Unseen</span>.<br />
                                     Bypass the <span className="text-rose-500">Known</span>.
                                 </h1>
                                 <p className="text-xl text-slate-400 font-light leading-relaxed mb-12 max-w-2xl">
-                                    {renderBoldText("SEED is a graph-based co-exploration engine designed for deep-tech research and **knowledge synthesis**. It combines autonomous AI agents with high-fidelity visual mapping to navigate complex possibility spaces.")}
+                                    {renderBoldText("SEED is an interactive engine for **emergent discovery**. It transforms complex research into a visual journey, helping you grasp the big picture and discover connections the moment they happen.")}
                                 </p>
 
                                 <div className="grid md:grid-cols-2 gap-8">
-                                    <div className={`group bg-slate-800/30 border p-8 rounded-[3rem] transition-all ${isInnovation ? 'border-sky-500/30' : 'border-white/5 opacity-60'}`}>
+                                    <div className={`group bg-slate-800/30 border p-8 rounded-[3.5rem] transition-all hover:bg-slate-800/50 ${isInnovation ? 'border-sky-500/30 shadow-[0_0_30px_rgba(14,165,233,0.1)]' : 'border-white/5 opacity-60'}`}>
                                         <div className={`p-4 rounded-2xl w-fit mb-6 ${isInnovation ? 'bg-sky-500/10 text-sky-400' : 'bg-slate-900 text-slate-500'}`}>
                                             <BrainCircuit size={32} />
                                         </div>
                                         <h3 className="text-2xl font-bold text-white mb-3">Innovation Mode</h3>
                                         <p className="text-slate-400 leading-relaxed text-sm">
-                                            {renderBoldText("Architect breakthrough solutions by mapping Technologies, Pain Points, and Risks. The AI acts as a **Pragmatic Strategist**, focusing on grounded feasibility and product synthesis.")}
+                                            {renderBoldText("Experience **emergent innovation** as the AI proactively suggests breakthroughs and strategic paths, helping you brainstorm solutions to complex problems in real-time.")}
                                         </p>
                                     </div>
-                                    <div className={`group bg-slate-800/30 border p-8 rounded-[3rem] transition-all ${!isInnovation ? 'border-indigo-500/30' : 'border-white/5 opacity-60'}`}>
+                                    <div className={`group bg-slate-800/30 border p-8 rounded-[3.5rem] transition-all hover:bg-slate-800/50 ${!isInnovation ? 'border-indigo-500/30 shadow-[0_0_30px_rgba(99,102,241,0.1)]' : 'border-white/5 opacity-60'}`}>
                                         <div className={`p-4 rounded-2xl w-fit mb-6 ${!isInnovation ? 'bg-indigo-500/10 text-indigo-400' : 'bg-slate-900 text-slate-500'}`}>
                                             <Orbit size={32} />
                                         </div>
-                                        <h3 className="text-2xl font-bold text-white mb-3">Knowledge Discovery</h3>
+                                        <h3 className="text-2xl font-bold text-white mb-3">Knowledge Mode</h3>
                                         <p className="text-slate-400 leading-relaxed text-sm">
-                                            {renderBoldText("Connect historical events, people, and theories. The AI acts as a **Forensic Researcher**, uncovering hidden causalities and multidisciplinary interconnections across time.")}
+                                            {renderBoldText("Master **emergent learning** by connecting the dots visually. Grasp and memorize complex topics through a gamified, interactive experience that reveals hidden interdisciplinary links.")}
                                         </p>
                                     </div>
                                 </div>
@@ -146,91 +141,105 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                         </div>
                     )}
 
-                    {/* 2. AUTONOMOUS CORE SECTION */}
+                    {/* 2. DISCOVERY & AUTONOMOUS CORE */}
                     {activeTab === 'autonomous' && (
                         <div className="animate-in slide-in-from-bottom-4 duration-700">
                             <div className="mb-12">
                                 <h2 className="text-4xl font-black text-white tracking-tighter mb-4">The Autonomous Pulse</h2>
-                                <p className="text-slate-400 text-lg max-w-2xl font-light">
-                                    {isInnovation
-                                        ? "In Innovation Mode, the engine hunts for architectural breakthroughs and market gaps by balancing technical rigor with product intuition."
-                                        : "In Knowledge Mode, the engine acts as an epistemic forensic tool, cross-referencing events to find deep causal relationships."}
+                                <p className="text-slate-400 text-lg max-w-3xl font-light">
+                                    {renderBoldText("SEEDS are not static data. They are **Living Intelligence**. The Autonomous Engine uses a policy-driven cycle to map your workspace without constant supervision.")}
                                 </p>
                             </div>
 
-                            <div className="grid md:grid-cols-4 gap-4 mb-12">
+                            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
                                 {[
-                                    { title: 'EXPLOIT', desc: isInnovation ? 'Refine existing nodes to maximize feasibility.' : 'Deepen current research path for primary facts.', icon: <Target className="text-emerald-400" /> },
-                                    { title: 'EXPLORE', desc: isInnovation ? 'Push into the "Innovation Fog" for analogies.' : 'Scan for distant historical correlations.', icon: <Sparkles className="text-sky-400" /> },
-                                    { title: 'PROBE', desc: isInnovation ? 'Stress-test constraints to find breaking points.' : 'Hunt for contradictions in historical accounts.', icon: <Shield className="text-rose-400" /> },
-                                    { title: 'RE-ANCHOR', desc: 'Realignment pulse toward the North Star.', icon: <RefreshCw className="text-amber-400" /> },
+                                    { title: 'Path Discovery', label: 'EXPLOIT', desc: 'The engine walks the existing graph to find missing links and inferred relationships between your Seeds.', icon: <Target className="text-emerald-400" /> },
+                                    { title: 'Fog Expansion', label: 'EXPLORE', desc: 'The AI pushes into the "unknown" to suggest entirely new categories of information you haven\'t considered.', icon: <Sparkles className="text-sky-400" /> },
+                                    { title: 'Constraint Probe', label: 'PROBE', desc: 'A stress-test pulse that hunts for frictions, bottlenecks, or logical contradictions in your theory.', icon: <Shield className="text-rose-400" /> },
+                                    { title: 'North Star', label: 'RE-ANCHOR', desc: 'If active, the engine pulls all new discoveries toward your primary Goal Node.', icon: <RefreshCw className="text-amber-400" /> },
                                 ].map((step, i) => (
-                                    <div key={i} className="bg-slate-800/40 border border-white/5 p-6 rounded-[2.5rem] flex flex-col items-center text-center">
-                                        <div className="p-3 bg-slate-900 rounded-2xl mb-4 shadow-xl">
+                                    <div key={i} className="bg-slate-800/40 border border-white/5 p-6 rounded-[2.5rem] flex flex-col items-center text-center group hover:bg-slate-800/60 transition-all">
+                                        <div className="p-3 bg-slate-900 rounded-2xl mb-4 shadow-xl group-hover:scale-110 transition-transform">
                                             {step.icon}
                                         </div>
-                                        <h4 className="text-sm font-black text-white tracking-widest uppercase mb-2">{step.title}</h4>
-                                        <p className="text-xs text-slate-500 leading-relaxed">{step.desc}</p>
+                                        <h4 className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase mb-1">{step.label}</h4>
+                                        <h4 className="text-sm font-bold text-white mb-2">{step.title}</h4>
+                                        <p className="text-[11px] text-slate-400 leading-relaxed">{step.desc}</p>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="grid md:grid-cols-2 gap-8">
-                                <div className="bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 p-8 rounded-[3rem]">
+                            <div className="grid md:grid-cols-3 gap-8">
+                                <div className="col-span-1 md:col-span-1 bg-slate-800/20 border border-white/5 p-8 rounded-[3rem]">
                                     <div className="flex items-center gap-3 mb-6">
-                                        <Orbit className="text-amber-400 animate-spin-slow" size={24} />
-                                        <h3 className="text-xl font-bold text-white">The North Star (Goal)</h3>
+                                        <Target className="text-sky-400" size={24} />
+                                        <h3 className="text-xl font-bold text-white italic tracking-tight">Active Discovery</h3>
                                     </div>
-                                    <p className="text-slate-400 text-sm leading-relaxed mb-4">
-                                        {renderBoldText("Select any node and **Set as Goal** to anchor the AI. Every discovery path will eventually be pulled toward this objective by the Re-Anchor pulse.")}
+                                    <p className="text-slate-400 text-xs leading-relaxed mb-6">
+                                        {renderBoldText("Toggle the **Discovery Brain** in the toolbar. Once active, the AI will autonomously generate new nodes based on the **Gravity** of your current graph.")}
                                     </p>
-                                    <div className="text-[10px] font-bold text-amber-500/60 uppercase tracking-widest border border-amber-500/20 rounded-xl p-3 bg-amber-500/5">
-                                        SYSTEM EFFECT: PERSISTENT GRAVITY WELL
+                                    <div className="flex flex-col gap-2">
+                                        <div className="text-[10px] font-bold text-sky-500 uppercase tracking-widest bg-sky-500/5 p-3 rounded-xl border border-sky-500/10">Policy: Smart Balancing</div>
+                                        <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10">Mode: {isInnovation ? 'Pragmatic Synthesis' : 'Forensic Research'}</div>
                                     </div>
                                 </div>
-                                <div className="bg-gradient-to-br from-rose-500/10 to-transparent border border-rose-500/20 p-8 rounded-[3rem]">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <ShieldCheck className="text-rose-400" size={24} />
-                                        <h3 className="text-xl font-bold text-white">Laws of Physics (Constraints)</h3>
-                                    </div>
-                                    <p className="text-slate-400 text-sm leading-relaxed mb-4">
-                                        {renderBoldText(isInnovation
-                                            ? "Mark nodes as **Laws** to define global boundaries (Budget, Energy, Regulation). The AI treats these as unbreakable rules during navigation."
-                                            : "Mark nodes as **Laws** to enforce epistemic rigor (Primary Sources Only, Academic Fact, Temporal Contiguity).")}
+                                <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-indigo-500/10 to-transparent border border-white/10 p-10 rounded-[3.5rem] flex flex-col justify-center">
+                                    <h3 className="text-2xl font-black text-white mb-4 tracking-tighter">The "Quest" Protocol</h3>
+                                    <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                                        {renderBoldText("When Discovery is active and a node is **Selected**, the engine enters **Quest Mode**. It focuses all its parallel processing power on that single Seed, branching it out until it finds a breakthrough or meets a constraint.")}
                                     </p>
-                                    <div className="text-[10px] font-bold text-rose-500/60 uppercase tracking-widest border border-rose-500/20 rounded-xl p-3 bg-rose-500/5">
-                                        SYSTEM EFFECT: CONSTRAINT FIELD ACTIVE
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex -space-x-3">
+                                            {[1, 2, 3].map(i => <div key={i} className="w-8 h-8 rounded-full border border-slate-900 bg-indigo-500/30 flex items-center justify-center text-[10px] text-white font-bold">{i}</div>)}
+                                        </div>
+                                        <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black">Parallel Processing Active</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* 3. AI ACTION SUITE SECTION */}
-                    {activeTab === 'actions' && (
+                    {/* 3. ADVANCED PROTOCOLS (Action Suite) */}
+                    {activeTab === 'protocols' && (
                         <div className="animate-in slide-in-from-bottom-4 duration-700">
                             <div className="mb-12">
-                                <h2 className="text-4xl font-black text-white tracking-tighter mb-4">AI Action Protocols</h2>
-                                <p className="text-slate-400 text-lg max-w-2xl font-light">
-                                    {renderBoldText(`Execute high-intent intelligence actions tailored for **${isInnovation ? 'Engineering' : 'Historical Analysis'}**.`)}
+                                <h2 className="text-4xl font-black text-white tracking-tighter mb-4">SEED Protocols</h2>
+                                <p className="text-slate-400 text-lg max-w-3xl font-light">
+                                    {renderBoldText("Manually trigger high-intent AI actions to solve specific research problems or architect complex systems.")}
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
                                 {[
-                                    { title: isInnovation ? 'Synthesize' : 'Resolve Contradiction', desc: isInnovation ? 'Finds the "Third Option" to move past a contradiction.' : 'Reconciles conflicting accounts into a causal theory.', color: 'text-emerald-400', icon: <Fingerprint size={24} /> },
-                                    { title: isInnovation ? 'Stress Test' : 'Reliability Check', desc: isInnovation ? 'Calculates the failure modes and hidden risks.' : 'Hunts for logical fallacies or missing evidence.', color: 'text-rose-400', icon: <AlertCircle size={24} /> },
-                                    { title: isInnovation ? 'Optimization' : 'Pattern Recognition', desc: isInnovation ? 'Refines a technology for cost, speed, or sustainability.' : 'Identifies recurring motifs across different timelines.', color: 'text-sky-400', icon: <Cpu size={24} /> },
-                                    { title: 'Directed Discovery', desc: 'Force the AI toward a specific question via the Sidebar.', color: 'text-amber-400', icon: <Target size={24} /> },
-                                    { title: 'Lineage Trace', desc: 'Visualizes the deep causality path and parents.', color: 'text-violet-400', icon: <HistoryIcon size={24} /> },
-                                    { title: 'Wiki Harvest', desc: 'Scrapes live Wikipedia to generate a grounding seed.', color: 'text-fuchsia-400', icon: <Search size={24} /> },
-                                ].map((action, i) => (
-                                    <div key={i} className="bg-slate-800/30 border border-white/5 p-8 rounded-[2.5rem] hover:bg-slate-800/50 transition-all">
-                                        <div className={`${action.color} mb-6`}>{action.icon}</div>
-                                        <h4 className="text-lg font-bold text-white mb-2">{action.title}</h4>
-                                        <p className="text-xs text-slate-500 leading-relaxed">{action.desc}</p>
+                                    { icon: <Plus size={24} />, title: "The Expand", desc: "Select a node and click 'Expand' to generate 3-5 logically connected neighbors. Perfect for fast brainstorming." },
+                                    { icon: <CornerDownRight size={24} />, title: "Directed Branching", desc: "Use the Sidebar 'Ask' field. Type a specific direction (e.g., 'How does this scale?') to force the AI to branch in that direction." },
+                                    { icon: <GitMerge size={24} />, title: "Contextual Lineage", desc: "Toggle Lineage view to see a node's full family tree. Understand exactly which parent Seed triggered this discovery." },
+                                    { icon: <Binary size={24} />, title: "Wormhole Seeds", desc: "Double-click any node to 'Seed In'. This creates a nested sub-graph inside that node, allowing for infinite depth." },
+                                    { icon: <Globe size={24} />, title: "Wikipedia Nexus", desc: "Enter a URL or search term to harvest live web knowledge. SEED will summarize and ground new nodes in real-world facts." },
+                                    { icon: <Scan size={24} />, title: "Trace Seed", desc: "A deep analysis that calculates the 'Epistemic Value' of a node, tracing its lineage back to the root theory." },
+                                    { icon: <MessageCircle size={24} />, title: "Co-Research Chat", desc: "The sidebar chat isn't just for talking. Ask it to 'Add a node about X' or 'Optimize this connection' to update the graph directly." },
+                                    { icon: <Microscope size={24} />, title: "Stress Test", desc: "Attempts to break your concept. Identifies failure modes, market risks, or historical inconsistencies." },
+                                    { icon: <Zap size={24} />, title: "Synergy Analysis", desc: "Shift-click 2+ nodes and trigger Synergy. The AI will hunt for a 'Third Way' or a hidden connection between them." },
+                                ].map((item, i) => (
+                                    <div key={i} className="bg-slate-800/30 border border-white/5 p-8 rounded-[2.5rem] hover:bg-slate-800/50 hover:border-white/20 transition-all group">
+                                        <div className="text-sky-400 mb-6 group-hover:scale-110 group-hover:text-white transition-all">{item.icon}</div>
+                                        <h4 className="text-lg font-bold text-white mb-2">{item.title}</h4>
+                                        <p className="text-[11px] text-slate-500 leading-relaxed italic mb-4">"{item.desc}"</p>
                                     </div>
                                 ))}
+                            </div>
+
+                            {/* Wikipedia & Web Harvest Highlight */}
+                            <div className="bg-gradient-to-br from-fuchsia-600/10 to-transparent border border-fuchsia-500/20 p-10 rounded-[3.5rem] flex flex-col md:flex-row gap-8 items-center">
+                                <div className="p-6 bg-fuchsia-600/10 rounded-3xl text-fuchsia-400">
+                                    <Globe size={48} />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-2xl font-black text-white mb-3 italic tracking-tight underline decoration-fuchsia-500/50 decoration-4">The Wikipedia Nexus</h3>
+                                    <p className="text-slate-400 text-sm leading-relaxed">
+                                        {renderBoldText("Bypass the search engine. Use the **Wiki Browser** inside SEED to find grounded information. Highlighting text in the browser allows you to instantly **Harvest** that context into new Seeds, complete with source metadata.")}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -241,7 +250,7 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                             <div className="mb-12">
                                 <h2 className="text-4xl font-black text-white tracking-tighter mb-4">Seed Ontology</h2>
                                 <p className="text-slate-400 text-lg max-w-2xl font-light italic">
-                                    Current Perspective: {modeSpecificTitle}
+                                    Current Perspective: {isInnovation ? "Innovation Mode" : "Knowledge Mode"}
                                 </p>
                             </div>
 
@@ -265,16 +274,16 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                                     { title: "Discovery", desc: "Scientific revelations.", type: NodeType.DISCOVERY },
                                     { title: "Context Law", desc: "Epistemic rules and source rigor.", type: NodeType.CONSTRAINT },
                                 ]).map((item, i) => (
-                                    <div key={i} className="flex items-center gap-4 bg-slate-800/20 border border-white/5 p-5 rounded-[2rem] hover:bg-slate-800/40 transition-all">
+                                    <div key={i} className="flex flex-col gap-4 bg-slate-800/20 border border-white/5 p-6 rounded-[2.5rem] hover:bg-slate-800/40 transition-all group">
                                         <div
-                                            className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.05)] border border-white/10"
+                                            className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.05)] border border-white/10 group-hover:scale-110 transition-transform"
                                             style={{ backgroundColor: `${NODE_COLORS[item.type]}20`, color: NODE_COLORS[item.type] }}
                                         >
-                                            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: NODE_COLORS[item.type] }}></div>
+                                            <div className="w-5 h-5 rounded-full" style={{ backgroundColor: NODE_COLORS[item.type] }}></div>
                                         </div>
                                         <div>
-                                            <h4 className="text-sm font-bold text-white">{item.title}</h4>
-                                            <p className="text-[10px] text-slate-500 leading-tight">{item.desc}</p>
+                                            <h4 className="text-base font-bold text-white mb-1">{item.title}</h4>
+                                            <p className="text-[10px] text-slate-500 leading-normal uppercase font-black tracking-widest">{item.desc}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -286,28 +295,34 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                     {activeTab === 'shortcuts' && (
                         <div className="animate-in slide-in-from-bottom-4 duration-700">
                             <div className="mb-12">
-                                <h2 className="text-4xl font-black text-white tracking-tighter mb-4">Command Center</h2>
+                                <h2 className="text-4xl font-black text-white tracking-tighter mb-4">High-Bandwidth Control</h2>
                                 <p className="text-slate-400 text-lg max-w-2xl font-light">
-                                    Standardized interaction shortcuts for high-bandwidth exploration.
+                                    Standardized keyboard interaction for the professional explorer.
                                 </p>
                             </div>
 
-                            <div className="grid md:grid-cols-2 gap-x-12 gap-y-6 bg-slate-950/40 border border-white/5 p-10 rounded-[3rem]">
+                            <div className="grid md:grid-cols-2 gap-x-12 gap-y-6 bg-slate-950/40 border border-white/5 p-12 rounded-[4rem]">
                                 {[
-                                    { key: 'I', action: isInnovation ? 'Innovate Technology' : 'Synthesize theory' },
-                                    { key: 'S', action: isInnovation ? 'Solve Problem' : 'Resolve tension' },
-                                    { key: 'A', action: 'Answer Question' },
-                                    { key: 'E', action: 'Quick Expand' },
-                                    { key: 'T', action: 'Trace Lineage' },
-                                    { key: 'SHIFT+CLICK', action: 'Multi-select for Synergy Analysis' },
-                                    { key: 'DBL CLICK', action: 'Seed In (Nesting View)' },
-                                    { key: 'DEL', action: 'Prune / Delete Seed' },
-                                    { key: 'CTRL+Z / Y', action: 'Undo / Redo Action' },
-                                    { key: 'SPACE', action: 'Reset Camera View' },
+                                    { key: 'I', action: isInnovation ? 'Trigger Innovation Pulse' : 'Synthesize research' },
+                                    { key: 'S', action: isInnovation ? 'Solve Bottleneck' : 'Resolve tension' },
+                                    { key: 'A', action: 'Answer Node Question' },
+                                    { key: 'E', action: 'Quick Expand (1 Depth)' },
+                                    { key: 'T', action: 'Trace Full Lineage' },
+                                    { key: 'M', action: 'Toggle Manual' },
+                                    { key: 'SHIFT+CLICK', action: 'Multi-select for Analysis' },
+                                    { key: 'DBL CLICK', action: 'Seed In (Sub-Graph View)' },
+                                    { key: 'DEL', action: 'Prune / Delete' },
+                                    { key: 'CTRL+Z', action: 'Undo Protocol' },
+                                    { key: 'SPACE', action: 'Recenter Graph' },
                                 ].map((shortcut, i) => (
-                                    <div key={i} className="flex justify-between items-center py-3 border-b border-white/5">
-                                        <span className="text-sm text-slate-400 font-medium">{shortcut.action}</span>
-                                        <kbd className="px-2.5 py-1 bg-slate-800 border-2 border-white/10 rounded-xl text-xs font-mono text-sky-400 shadow-inner">
+                                    <div key={i} className="flex justify-between items-center py-4 border-b border-white/5">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-6 h-6 rounded-lg bg-sky-500/10 flex items-center justify-center">
+                                                <Target size={12} className="text-sky-500" />
+                                            </div>
+                                            <span className="text-sm text-slate-400 font-bold uppercase tracking-wider">{shortcut.action}</span>
+                                        </div>
+                                        <kbd className="px-3 py-1.5 bg-slate-800 border border-white/10 rounded-xl text-xs font-mono text-sky-400 shadow-[0_4px_0_rgba(0,0,0,0.3)] min-w-[40px] text-center">
                                             {shortcut.key}
                                         </kbd>
                                     </div>

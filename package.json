@@ -13,7 +13,7 @@
     "dist": "npm run build && electron-builder"
   },
   "description": "Shared Exploration & Emergent Discovery Tool",
-  "author": "SEED Team <seed@example.com>",
+  "author": "Igga Fitzsimons <igga.fitzsimons@gmail.com>",
   "build": {
     "appId": "com.seed.app",
     "productName": "SEED",
@@ -29,7 +29,14 @@
       "target": [
         "deb"
       ],
-      "category": "Education"
+      "category": "Education",
+      "icon": "build/icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
     }
   },
   "dependencies": {

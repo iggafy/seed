@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Network, Filter, Info, GitMerge, Cpu, LayoutGrid, Save, BrainCircuit, MessageSquare, Undo2, Redo2, HelpCircle } from 'lucide-react';
+import { Plus, Network, Filter, Info, GitMerge, Cpu, LayoutGrid, Save, BrainCircuit, MessageSquare, Undo2, Redo2, HelpCircle, Home } from 'lucide-react';
 
 interface ToolbarProps {
   onAddNode: () => void;
@@ -14,6 +14,7 @@ interface ToolbarProps {
   onToggleManual: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  onHome: () => void;
   canUndo: boolean;
   canRedo: boolean;
   isFilterActive: boolean;
@@ -36,6 +37,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onToggleManual,
   onUndo,
   onRedo,
+  onHome,
   canUndo,
   canRedo,
   isFilterActive,
@@ -54,6 +56,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
       */}
 
       <div className="flex items-center bg-slate-950/40 backdrop-blur-3xl rounded-full border border-white/10 px-2 py-1.5 gap-1 shadow-2xl transition-all duration-500 hover:bg-slate-950/60 opacity-0 group-hover/toolbar:opacity-100 translate-y-4 group-hover/toolbar:translate-y-0 pointer-events-none group-hover/toolbar:pointer-events-auto">
+        <button
+          onClick={onHome}
+          className="p-3 rounded-full text-sky-400 hover:text-white hover:bg-sky-500/10 transition-all"
+          title="Back to Welcome Screen"
+        >
+          <Home size={18} />
+        </button>
         <button
           onClick={onDashboard}
           className="p-3 rounded-full text-fuchsia-400 hover:text-white hover:bg-fuchsia-500/10 transition-all"

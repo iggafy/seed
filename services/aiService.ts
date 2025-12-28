@@ -42,7 +42,8 @@ const NODE_SCHEMA_OPENAI = {
                 friction: { type: "number", description: "0-1" },
                 impact: { type: "number", description: "0-1" }
             },
-            required: ["feasibility", "novelty", "friction", "impact"]
+            required: ["feasibility", "novelty", "friction", "impact"],
+            additionalProperties: false
         }
     },
     required: ["label", "type", "description", "relationToParent", "valueVector"],
@@ -751,9 +752,11 @@ export const researchAssistantTextReply = async (
 
     // Fix for DeepSeek/models that return JSON despite instructions
     try {
-        const cleanContent = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
-        if (cleanContent.startsWith('{') && cleanContent.endsWith('}')) {
-            const parsed = JSON.parse(cleanContent);
+        const firstBrace = content.indexOf('{');
+        const lastBrace = content.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            const jsonCandidate = content.substring(firstBrace, lastBrace + 1);
+            const parsed = JSON.parse(jsonCandidate);
             if (parsed.response && typeof parsed.response === 'string') return parsed.response;
             if (parsed.content && typeof parsed.content === 'string') return parsed.content;
             if (parsed.message && typeof parsed.message === 'string') return parsed.message;
@@ -874,12 +877,14 @@ const extractMapInternal = (content: string) => {
     const suggestedNodes: AISuggestion[] = [];
     const suggestedLinks: Array<{ sourceLabel: string; targetLabel: string; relation: string }> = [];
 
-    // 1. ROBUST PARSING: Check if the entire response is a valid JSON (common with DeepSeek/highly structured models)
+    // 1. ROBUST PARSING: Check if the response contains valid JSON (common with DeepSeek/highly structured models)
     let possibleJson: any = null;
     try {
-        const cleanContent = content.trim().replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
-        if (cleanContent.startsWith('{') && cleanContent.endsWith('}')) {
-            possibleJson = JSON.parse(cleanContent);
+        const firstBrace = content.indexOf('{');
+        const lastBrace = content.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            const jsonCandidate = content.substring(firstBrace, lastBrace + 1);
+            possibleJson = JSON.parse(jsonCandidate);
         }
     } catch (e) { }
 
@@ -988,7 +993,8 @@ async function runIPCRequest(
         ? `You are a JSON-speaking ${modeConfig.aiPersona}. Respond ONLY with valid JSON. Do not use Markdown code blocks.
            CRITICAL: Your response MUST exactly match this schema:
            ${JSON.stringify(isArray ? ARRAY_NODE_SCHEMA_OPENAI : NODE_SCHEMA_OPENAI, null, 2)}
-            For "type", use one of: ${nodeTypesList}.
+           For "type", use one of: ${nodeTypesList}.
+           JSON SAFETY: If you use double quotes inside a string value (like a label), you MUST escape them with a backslash (e.g. "The \\"Last Mile\\"").
            [Entropy: ${entropy}]
            `
         : `You are a JSON-speaking ${modeConfig.aiPersona}. Respond ONLY with valid JSON. Do not use Markdown code blocks. [Entropy: ${entropy}]`;
@@ -1021,10 +1027,29 @@ async function runIPCRequest(
     // Parsing Logic (Shared)
     let parsed: any;
     try {
-        const cleanContent = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
-        parsed = JSON.parse(cleanContent);
+        // Robust Extraction: Find the start of the first { and the end of the last }
+        const firstBrace = content.indexOf('{');
+        const lastBrace = content.lastIndexOf('}');
+
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            const jsonCandidate = content.substring(firstBrace, lastBrace + 1);
+            try {
+                parsed = JSON.parse(jsonCandidate);
+            } catch (innerError) {
+                // SECOND CHANCE: AI often leaves unescaped quotes inside strings.
+                // We attempt to escape double quotes that appear to be inside a value (not followed by : or , or } or ])
+                // This is a heuristic fix for: "label": "The "Last Mile" of Cold Chain"
+                const repaired = jsonCandidate.replace(/([^:\s])"([^,\s}\]])/g, '$1\\"$2');
+                parsed = JSON.parse(repaired);
+                console.log("[AI-Service] Secondary Parse successful after string repair.");
+            }
+        } else {
+            // Fallback for non-braced content or other structures
+            parsed = JSON.parse(content.trim());
+        }
     } catch (e) {
-        throw new Error(`Failed to parse AI response: \${e instanceof Error ? e.message : 'Invalid JSON'}`);
+        console.error("[AI-Service] JSON Parse Error. Content was:", content);
+        throw new Error(`Failed to parse AI response: ${e instanceof Error ? e.message : 'Invalid JSON'}`);
     }
 
     // Normalizer
