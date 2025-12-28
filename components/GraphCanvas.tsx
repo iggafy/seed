@@ -100,6 +100,22 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     feMergeGoal.append("feMergeNode").attr("in", "coloredBlur");
     feMergeGoal.append("feMergeNode").attr("in", "SourceGraphic");
 
+    // New Seed Glow (Energetic Cyan Pulse)
+    const newSeedGlow = defs.append("filter")
+      .attr("id", "new-seed-glow")
+      .attr("x", "-150%")
+      .attr("y", "-150%")
+      .attr("width", "400%")
+      .attr("height", "400%");
+
+    newSeedGlow.append("feGaussianBlur")
+      .attr("stdDeviation", "6")
+      .attr("result", "coloredBlur");
+
+    const feMergeNew = newSeedGlow.append("feMerge");
+    feMergeNew.append("feMergeNode").attr("in", "coloredBlur");
+    feMergeNew.append("feMergeNode").attr("in", "SourceGraphic");
+
     // Gradients for each Node Type (Sphere effect)
     Object.keys(NODE_COLORS).forEach((key) => {
       const type = key as NodeType;
@@ -433,6 +449,17 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .style("pointer-events", "none")
       .style("filter", "url(#goal-glow)");
 
+    // New Seed Glow (Pulsing Cyan)
+    nodeEnter.append("circle")
+      .attr("class", "node-new-glow")
+      .attr("r", 0)
+      .attr("fill", "none")
+      .attr("stroke", "#22d3ee") // Cyan 400
+      .attr("stroke-width", 2)
+      .attr("opacity", 0)
+      .style("pointer-events", "none")
+      .style("filter", "url(#new-seed-glow)");
+
     // Icon
     nodeEnter.append("path")
       .attr("class", "node-icon")
@@ -614,6 +641,36 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       } else {
         goalHalo.interrupt();
         goalHalo.attr("data-pulsing", "false")
+          .attr("opacity", 0)
+          .attr("r", 0);
+      }
+
+      // 3. New Seed Pulse (Fresh AI turn)
+      const newGlow = d3.select(this).select("circle.node-new-glow");
+      if (d.isNew) {
+        if (newGlow.attr("data-pulsing") !== "true") {
+          newGlow.attr("data-pulsing", "true")
+            .attr("opacity", 0.6);
+          const newPulse = () => {
+            newGlow.transition()
+              .duration(3200)
+              .ease(d3.easeSinInOut)
+              .attr("r", d => (d.type === NodeType.TRACE ? 30 : 45))
+              .attr("stroke-width", 1)
+              .attr("opacity", 0.1)
+              .transition()
+              .duration(3200)
+              .ease(d3.easeSinInOut)
+              .attr("r", d => (d.type === NodeType.TRACE ? 18 : 32))
+              .attr("stroke-width", 3)
+              .attr("opacity", 0.4)
+              .on("end", newPulse);
+          };
+          newPulse();
+        }
+      } else {
+        newGlow.interrupt();
+        newGlow.attr("data-pulsing", "false")
           .attr("opacity", 0)
           .attr("r", 0);
       }

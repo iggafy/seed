@@ -20,6 +20,9 @@ import { ChatMessage, AISuggestion, DiscoveryState, GraphData, GraphNode, NodeTy
 // Utility to generate UUIDs locally
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Utility to clear isNew flag from all nodes to ensure only the latest turn's seeds glow
+const clearNewFlags = (nodes: GraphNode[]) => nodes.map(n => n.isNew ? { ...n, isNew: false } : n);
+
 function App() {
   const [data, setData] = useState<GraphData>(JSON.parse(JSON.stringify(INITIAL_DATA)));
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -718,7 +721,7 @@ function App() {
             };
 
             setData(prev => ({
-              nodes: [...prev.nodes, newNode],
+              nodes: [...clearNewFlags(prev.nodes), newNode],
               links: [...prev.links, newLink]
             }));
 
@@ -789,6 +792,14 @@ function App() {
       return;
     }
 
+    // Clear isNew flag if it exists
+    if (node.isNew) {
+      setData(prev => ({
+        ...prev,
+        nodes: prev.nodes.map(n => n.id === node.id ? { ...n, isNew: false } : n)
+      }));
+    }
+
     setSelectedNodeIds(prev => {
       if (isMultiSelect) {
         // Toggle
@@ -806,6 +817,12 @@ function App() {
 
   const handleNodeContextMenu = useCallback((node: GraphNode | null, x: number, y: number) => {
     if (node) {
+      if (node.isNew) {
+        setData(prev => ({
+          ...prev,
+          nodes: prev.nodes.map(n => n.id === node.id ? { ...n, isNew: false } : n)
+        }));
+      }
       setContextMenuNode(node);
       setContextMenuPos({ x, y });
     } else {
@@ -1139,7 +1156,7 @@ function App() {
 
       if (suggestions.length > 0) {
         setData(prevData => {
-          const nextNodes = [...prevData.nodes];
+          const nextNodes = clearNewFlags(prevData.nodes);
           const nextLinks = [...prevData.links];
 
           suggestions.forEach(s => {
@@ -1156,7 +1173,8 @@ function App() {
                 type: s.type,
                 description: s.description,
                 x: (node.x || 0) + (Math.random() - 0.5) * 100,
-                y: (node.y || 0) + (Math.random() - 0.5) * 100
+                y: (node.y || 0) + (Math.random() - 0.5) * 100,
+                isNew: true
               });
             }
 
@@ -1205,7 +1223,7 @@ function App() {
 
       if (suggestions && suggestions.length > 0) {
         setData(prevData => {
-          const nextNodes = [...prevData.nodes];
+          const nextNodes = clearNewFlags(prevData.nodes);
           const nextLinks = [...prevData.links];
 
           suggestions.forEach(suggestion => {
@@ -1222,7 +1240,8 @@ function App() {
                 type: targetType || suggestion.type,
                 description: suggestion.description,
                 x: (node.x || 0) + (Math.random() - 0.5) * 100,
-                y: (node.y || 0) + (Math.random() - 0.5) * 100
+                y: (node.y || 0) + (Math.random() - 0.5) * 100,
+                isNew: true
               });
             }
 
@@ -1270,7 +1289,7 @@ function App() {
 
       if (suggestions && suggestions.length > 0) {
         setData(prevData => {
-          const nextNodes = [...prevData.nodes];
+          const nextNodes = clearNewFlags(prevData.nodes);
           const nextLinks = [...prevData.links];
 
           suggestions.forEach(suggestion => {
@@ -1287,7 +1306,8 @@ function App() {
                 type: suggestion.type || NodeType.CONCEPT,
                 description: suggestion.description,
                 x: (node.x || 0) + (Math.random() - 0.5) * 150,
-                y: (node.y || 0) + (Math.random() - 0.5) * 150
+                y: (node.y || 0) + (Math.random() - 0.5) * 150,
+                isNew: true
               });
             }
 
@@ -1330,7 +1350,7 @@ function App() {
 
       if (suggestions && suggestions.length > 0) {
         setData(prev => {
-          const nextNodes = [...prev.nodes];
+          const nextNodes = clearNewFlags(prev.nodes);
           const nextLinks = [...prev.links];
 
           suggestions.forEach((s, i) => {
@@ -1347,7 +1367,8 @@ function App() {
                 type: s.type || NodeType.TRACE,
                 description: s.description,
                 x: (node.x || 0) + 100,
-                y: (node.y || 0) + (i - 1) * 120
+                y: (node.y || 0) + (i - 1) * 120,
+                isNew: true
               });
             }
 
@@ -1397,7 +1418,7 @@ function App() {
 
       if (innovation) {
         setData(prev => {
-          const nextNodes = [...prev.nodes];
+          const nextNodes = clearNewFlags(prev.nodes);
           const nextLinks = [...prev.links];
 
           const existingNode = nextNodes.find(n => n.label.toLowerCase() === innovation.label.toLowerCase());
@@ -1413,7 +1434,8 @@ function App() {
               type: innovation.type,
               description: innovation.description,
               x: (node.x || 0) + 120,
-              y: (node.y || 0) + 120
+              y: (node.y || 0) + 120,
+              isNew: true
             });
           }
 
@@ -1455,7 +1477,7 @@ function App() {
 
       if (solution) {
         setData(prev => {
-          const nextNodes = [...prev.nodes];
+          const nextNodes = clearNewFlags(prev.nodes);
           const nextLinks = [...prev.links];
 
           const existingNode = nextNodes.find(n => n.label.toLowerCase() === solution.label.toLowerCase());
@@ -1471,7 +1493,8 @@ function App() {
               type: solution.type,
               description: solution.description,
               x: (node.x || 0) + 120,
-              y: (node.y || 0) + 120
+              y: (node.y || 0) + 120,
+              isNew: true
             });
           }
 
@@ -1514,7 +1537,7 @@ function App() {
 
       if (answer) {
         setData(prev => {
-          const nextNodes = [...prev.nodes];
+          const nextNodes = clearNewFlags(prev.nodes);
           const nextLinks = [...prev.links];
 
           const existingNode = nextNodes.find(n => n.label.toLowerCase() === answer.label.toLowerCase());
@@ -1530,7 +1553,8 @@ function App() {
               type: answer.type,
               description: answer.description,
               x: (node.x || 0) + 120,
-              y: (node.y || 0) + 120
+              y: (node.y || 0) + 120,
+              isNew: true
             });
           }
 
@@ -1578,7 +1602,7 @@ function App() {
 
     if (suggestion) {
       setData(prev => {
-        const nextNodes = [...prev.nodes];
+        const nextNodes = clearNewFlags(prev.nodes);
         const nextLinks = [...prev.links];
 
         const existingNode = nextNodes.find(n => n.label.toLowerCase() === suggestion.label.toLowerCase());
@@ -1594,7 +1618,8 @@ function App() {
             type: suggestion.type,
             description: suggestion.description,
             x: ((nodeA.x || 0) + (nodeB.x || 0)) / 2,
-            y: ((nodeA.y || 0) + (nodeB.y || 0)) / 2
+            y: ((nodeA.y || 0) + (nodeB.y || 0)) / 2,
+            isNew: true
           });
         }
 
@@ -1634,7 +1659,7 @@ function App() {
       const optimization = await optimizeConcept(aiSettings, node.label, node.description || "", fullGraphContext);
       if (optimization) {
         setData(prev => {
-          const nextNodes = [...prev.nodes];
+          const nextNodes = clearNewFlags(prev.nodes);
           const nextLinks = [...prev.links];
 
           const existingNode = nextNodes.find(n => n.label.toLowerCase() === optimization.label.toLowerCase());
@@ -1650,7 +1675,8 @@ function App() {
               type: optimization.type,
               description: optimization.description,
               x: (node.x || 0) + 120,
-              y: (node.y || 0) - 120
+              y: (node.y || 0) - 120,
+              isNew: true
             });
           }
 
@@ -1684,7 +1710,7 @@ function App() {
       const failures = await stressTestConcept(aiSettings, node.label, node.description || "", fullGraphContext);
       if (failures && failures.length > 0) {
         setData(prev => {
-          const nextNodes = [...prev.nodes];
+          const nextNodes = clearNewFlags(prev.nodes);
           const nextLinks = [...prev.links];
 
           failures.forEach((fail, i) => {
@@ -1701,7 +1727,8 @@ function App() {
                 type: fail.type,
                 description: fail.description,
                 x: (node.x || 0) - 150,
-                y: (node.y || 0) + (i - 1) * 120
+                y: (node.y || 0) + (i - 1) * 120,
+                isNew: true
               });
             }
 
@@ -1736,7 +1763,7 @@ function App() {
       const impl = await generateImplementation(aiSettings, node.label, node.description || "", fullGraphContext);
       if (impl) {
         setData(prev => {
-          const nextNodes = [...prev.nodes];
+          const nextNodes = clearNewFlags(prev.nodes);
           const nextLinks = [...prev.links];
 
           const existingNode = nextNodes.find(n => n.label.toLowerCase() === impl.label.toLowerCase());
@@ -1752,7 +1779,8 @@ function App() {
               type: impl.type,
               description: impl.description,
               x: (node.x || 0) + 150,
-              y: (node.y || 0)
+              y: (node.y || 0),
+              isNew: true
             });
           }
 
@@ -1958,7 +1986,7 @@ function App() {
     if ((map.nodes && map.nodes.length > 0) || (map.links && map.links.length > 0)) {
       recordHistory();
       setData(prev => {
-        const nextNodes = [...prev.nodes];
+        const nextNodes = clearNewFlags(prev.nodes);
         const nextLinks = [...prev.links];
         const labelToIdMap: Record<string, string> = {};
         prev.nodes.forEach(n => { labelToIdMap[n.label.toLowerCase()] = n.id; });
@@ -2170,7 +2198,7 @@ function App() {
     };
 
     setData(prev => ({
-      nodes: [...prev.nodes, newNode],
+      nodes: [...clearNewFlags(prev.nodes), newNode],
       links: [...prev.links, newLink]
     }));
 
@@ -2213,7 +2241,8 @@ function App() {
       description: newNodeDescription.trim() || "User defined seed.",
       isRoot: data.nodes.length === 0,
       x,
-      y
+      y,
+      isNew: true
     };
 
     const newLink = addingNodeParent ? {
@@ -2223,7 +2252,7 @@ function App() {
     } : null;
 
     setData(prev => ({
-      nodes: [...prev.nodes, newNode],
+      nodes: [...clearNewFlags(prev.nodes), newNode],
       links: newLink ? [...prev.links, newLink] : prev.links
     }));
 
@@ -2272,9 +2301,11 @@ function App() {
         isRoot: true,
         isLuckyResult: true, // Tag for curation UI
         x: 0,
-        y: 0
+        y: 0,
+        isNew: true
       };
-      setData({ nodes: [newNode], links: [] });
+      setData({ nodes: clearNewFlags([]), links: [] }); // Clear existing nodes and their 'isNew' flags
+      setData(prev => ({ nodes: [...clearNewFlags(prev.nodes), newNode], links: [] }));
       setSelectedNodeIds([newNode.id]);
 
     } catch (e: any) {
