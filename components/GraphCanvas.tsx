@@ -359,7 +359,10 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     flowSelection.exit().remove();
     const allFlows = flowEnter.merge(flowSelection)
-      .attr("stroke", d => NODE_COLORS[(d.target as GraphNode).type] || "#3b82f6")
+      .attr("stroke", d => {
+        const type = (d.target as GraphNode).type;
+        return NODE_COLORS[type] || NODE_COLORS[NodeType.CONCEPT];
+      })
       .style("display", d => (d.target as GraphNode).type === NodeType.TRACE ? "none" : "block"); // No flow on traces
 
     // 2. LINK LABELS
@@ -567,7 +570,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         return d.isRoot ? r * 1.2 : r;
       })
       .attr("opacity", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 0.7 : 0)
-      .attr("stroke", d => NODE_COLORS[d.type])
+      .attr("stroke", d => NODE_COLORS[d.type] || NODE_COLORS[NodeType.CONCEPT])
       .attr("stroke-width", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 2.5 : 0)
       .style("filter", "url(#nested-glow)");
 
@@ -702,7 +705,10 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         if (d.isGoalNode) finalR *= 1.35; // Goal nodes are significantly larger
         return finalR;
       })
-      .attr("fill", d => `url(#grad-${d.type})`)
+      .attr("fill", d => {
+        const type = d.type in NODE_COLORS ? d.type : NodeType.CONCEPT;
+        return `url(#grad-${type})`;
+      })
       .attr("stroke", "transparent")
       .attr("stroke-width", 0)
       // Apply glow filter if selected or root
@@ -729,7 +735,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
           ? `translate(${-8 * scale}, ${-8 * scale}) scale(${0.66 * scale})`
           : `translate(${-12 * scale}, ${-12 * scale}) scale(${1 * scale})`;
       })
-      .attr("d", d => NODE_ICONS[d.type])
+      .attr("d", d => NODE_ICONS[d.type] || NODE_ICONS[NodeType.CONCEPT])
       .attr("fill", "#ffffff");
 
     // Update Tesseract Indicator
@@ -785,16 +791,23 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
           const dy = target.y! - source.y!;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist === 0) return;
+          if (dist === 0 || isNaN(dist)) return;
 
           const sourceR = getNodeRadius(source);
           const targetR = getNodeRadius(target);
 
+          const x1 = source.x! + (dx * sourceR) / dist;
+          const y1 = source.y! + (dy * sourceR) / dist;
+          const x2 = target.x! - (dx * targetR) / dist;
+          const y2 = target.y! - (dy * targetR) / dist;
+
+          if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) return;
+
           d3.select(this)
-            .attr("x1", source.x! + (dx * sourceR) / dist)
-            .attr("y1", source.y! + (dy * sourceR) / dist)
-            .attr("x2", target.x! - (dx * targetR) / dist)
-            .attr("y2", target.y! - (dy * targetR) / dist);
+            .attr("x1", x1)
+            .attr("y1", y1)
+            .attr("x2", x2)
+            .attr("y2", y2);
         });
 
       allFlows

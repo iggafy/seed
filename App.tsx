@@ -709,8 +709,8 @@ function App() {
               isGhost: true,
               isNew: true,
               valueVector: suggestion.valueVector,
-              x: (target!.x || 0) + (Math.random() - 0.5) * 400,
-              y: (target!.y || 0) + (Math.random() - 0.5) * 400
+              x: (isNaN(target!.x || 0) ? 0 : (target!.x || 0)) + (Math.random() - 0.5) * 400,
+              y: (isNaN(target!.y || 0) ? 0 : (target!.y || 0)) + (Math.random() - 0.5) * 400
             };
 
             const newLink = {
@@ -1172,8 +1172,8 @@ function App() {
                 label: s.label,
                 type: s.type,
                 description: s.description,
-                x: (node.x || 0) + (Math.random() - 0.5) * 100,
-                y: (node.y || 0) + (Math.random() - 0.5) * 100,
+                x: (isNaN(node.x || 0) ? 0 : (node.x || 0)) + (Math.random() - 0.5) * 100,
+                y: (isNaN(node.y || 0) ? 0 : (node.y || 0)) + (Math.random() - 0.5) * 100,
                 isNew: true
               });
             }
@@ -1305,8 +1305,8 @@ function App() {
                 label: suggestion.label,
                 type: suggestion.type || NodeType.CONCEPT,
                 description: suggestion.description,
-                x: (node.x || 0) + (Math.random() - 0.5) * 150,
-                y: (node.y || 0) + (Math.random() - 0.5) * 150,
+                x: (isNaN(node.x || 0) ? 0 : (node.x || 0)) + (Math.random() - 0.5) * 150,
+                y: (isNaN(node.y || 0) ? 0 : (node.y || 0)) + (Math.random() - 0.5) * 150,
                 isNew: true
               });
             }
@@ -1366,8 +1366,8 @@ function App() {
                 label: s.label,
                 type: s.type || NodeType.TRACE,
                 description: s.description,
-                x: (node.x || 0) + 100,
-                y: (node.y || 0) + (i - 1) * 120,
+                x: (isNaN(node.x || 0) ? 0 : (node.x || 0)) + 100,
+                y: (isNaN(node.y || 0) ? 0 : (node.y || 0)) + (i - 1) * 120,
                 isNew: true
               });
             }
@@ -2000,13 +2000,15 @@ function App() {
             const selectedNodes = prev.nodes.filter(n => selectedNodeIds.includes(n.id));
             const baseX = selectedNodes.length > 0 ? (selectedNodes[0].x || 0) : 0;
             const baseY = selectedNodes.length > 0 ? (selectedNodes[0].y || 0) : 0;
+            const safeX = isNaN(baseX) ? 0 : baseX;
+            const safeY = isNaN(baseY) ? 0 : baseY;
             nextNodes.push({
               id: newNodeId,
               label: suggestion.label,
               type: suggestion.type,
               description: suggestion.description,
-              x: baseX + (Math.random() - 0.5) * 400,
-              y: baseY + (Math.random() - 0.5) * 400,
+              x: safeX + (Math.random() - 0.5) * 400,
+              y: safeY + (Math.random() - 0.5) * 400,
               isNew: true
             });
           } else {

@@ -886,6 +886,17 @@ export const extractKnowledgeMap = async (
     return { nodes: chatMsg.suggestedNodes || [], links: chatMsg.suggestedLinks || [] };
 };
 
+export function normalizeNodeType(typeStr?: string): NodeType {
+    if (!typeStr) return NodeType.CONCEPT;
+    const normalized = typeStr.trim().toUpperCase();
+    const validTypes = Object.values(NodeType) as string[];
+    if (validTypes.includes(normalized)) {
+        return normalized as NodeType;
+    }
+    console.warn(`[AI-Service] Invalid NodeType received: ${typeStr}. Fallback to CONCEPT.`);
+    return NodeType.CONCEPT;
+}
+
 export const curateWikiSnippet = async (
     settings: AISettings,
     snippet: string,
@@ -951,7 +962,7 @@ const extractMapInternal = (content: string) => {
             mapData.nodes.forEach((n: any) => {
                 suggestedNodes.push({
                     label: n.label || "New Seed",
-                    type: (n.type?.toUpperCase() as NodeType) || NodeType.CONCEPT,
+                    type: normalizeNodeType(n.type),
                     description: n.description || "",
                     relationToParent: "related"
                 });
@@ -974,7 +985,7 @@ const extractMapInternal = (content: string) => {
                     parsedMap.nodes.forEach((n: any) => {
                         suggestedNodes.push({
                             label: n.label || "New Seed",
-                            type: (n.type?.toUpperCase() as NodeType) || NodeType.CONCEPT,
+                            type: normalizeNodeType(n.type),
                             description: n.description || "",
                             relationToParent: "related"
                         });
@@ -997,7 +1008,7 @@ const extractMapInternal = (content: string) => {
                 const parsed = JSON.parse(match[1]);
                 suggestedNodes.push({
                     label: parsed.label || "New Seed",
-                    type: (parsed.type?.toUpperCase() as NodeType) || NodeType.CONCEPT,
+                    type: normalizeNodeType(parsed.type),
                     description: parsed.description || "",
                     relationToParent: parsed.relationToParent || "related"
                 });
@@ -1107,21 +1118,9 @@ async function runIPCRequest(
 
     // Normalizer
     const normalizeNode = (n: any) => {
-        let nodeType = n.type || "CONCEPT";
-        // DeepSeek/other models might return lowercase or slightly different strings
-        const normalizedType = nodeType.toUpperCase();
-        const validTypes = Object.values(NodeType) as string[];
-
-        if (!validTypes.includes(normalizedType)) {
-            console.warn(`[AI-Service] Invalid NodeType received: ${nodeType}. Fallback to CONCEPT.`);
-            nodeType = NodeType.CONCEPT;
-        } else {
-            nodeType = normalizedType as NodeType;
-        }
-
         return {
             label: n.label || n.title || "Unknown",
-            type: nodeType,
+            type: normalizeNodeType(n.type),
             description: n.description || "No description",
             relationToParent: n.relationToParent || n.relation || "related",
             valueVector: n.valueVector || undefined
