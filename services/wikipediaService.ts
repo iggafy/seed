@@ -2,6 +2,14 @@ import { NodeType } from '../types';
 
 const EN_WIKI_API = 'https://en.wikipedia.org/w/api.php';
 
+const fixWikiProtocols = (html: string) => {
+    if (!html) return "";
+    return html
+        .replace(/src="\/\//g, 'src="https://')
+        .replace(/srcset="\/\//g, 'srcset="https://')
+        .replace(/href="\/\//g, 'href="https://');
+};
+
 export interface WikiSearchResult {
     title: string;
     snippet: string;
@@ -59,7 +67,7 @@ export const getWikiPageContent = async (title: string): Promise<WikiPageContent
 
         return {
             title: page.title,
-            extract: page.extract, // HTML
+            extract: fixWikiProtocols(page.extract), // HTML
             url: page.fullurl
         };
     } catch (e) {
@@ -80,7 +88,7 @@ export const getWikiFullHtml = async (title: string): Promise<string> => {
     try {
         const response = await fetch(`${EN_WIKI_API}?${params.toString()}`);
         const data = await response.json();
-        return data.parse.text['*'];
+        return fixWikiProtocols(data.parse.text['*']);
     } catch (e) {
         console.error("Wiki Parse failed", e);
         return "";
