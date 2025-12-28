@@ -324,16 +324,39 @@ const NexusWikiBrowser: React.FC<NexusWikiBrowserProps> = ({
 
             {/* Global style for wiki content */}
             <style>{`
-                .wiki-content { font-family: 'Inter', sans-serif; color: #cbd5e1; }
+                .wiki-content { font-family: 'Outfit', 'Inter', sans-serif; color: #cbd5e1; }
                 .wiki-content p { margin-bottom: 1.5em; line-height: 1.7; font-size: 0.95rem; }
-                .wiki-content h1, .wiki-content h2, .wiki-content h3 { color: #fff; margin-top: 1.5em; margin-bottom: 0.5em; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.2em; }
+                .wiki-content h1, .wiki-content h2, .wiki-content h3 { color: #fff; margin-top: 1.5em; margin-bottom: 0.5em; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.2em; font-weight: 700; }
                 .wiki-content a { color: #38bdf8; text-decoration: none; border-bottom: 1px solid transparent; transition: all 0.2s; }
                 .wiki-content a:hover { border-bottom-color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+                
+                /* Layout & Containers */
                 .wiki-content .mw-empty-elt { display: none; }
-                .wiki-content .infobox { float: right; margin-left: 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 16px; font-size: 0.8rem; max-width: 250px; }
-                .wiki-content .thumb { float: right; margin: 10px; border: 1px solid rgba(255,255,255,0.1); padding: 5px; border-radius: 8px; }
+                .wiki-content .infobox { float: right; margin: 0 0 1em 1em; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1); padding: 16px; border-radius: 20px; font-size: 0.8rem; max-width: 280px; backdrop-blur: 10px; }
+                
+                /* Thumbnails & Images */
+                .wiki-content .thumb { clear: both; margin-bottom: 1.5em; overflow: hidden; }
+                .wiki-content .tright { float: right; margin-left: 1.5em; }
+                .wiki-content .tleft { float: left; margin-right: 1.5em; }
+                .wiki-content .thumbinner { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 8px; border-radius: 12px; text-align: center; overflow: hidden; }
+                .wiki-content .thumbimage { border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; background: #fff; }
+                .wiki-content .thumbcaption { font-size: 0.75rem; line-height: 1.4; padding: 8px 4px 4px; color: #94a3b8; text-align: left; }
+                .wiki-content .magnify { display: none; }
+                
+                .wiki-content img { max-width: 100%; height: auto; border-radius: 4px; }
+                .wiki-content figure { margin: 1em 0; border: 1px solid rgba(255,255,255,0.1); padding: 8px; border-radius: 12px; background: rgba(255,255,255,0.02); display: inline-block; max-width: 100%; }
+                .wiki-content figcaption { font-size: 0.75rem; color: #94a3b8; margin-top: 8px; }
+
+                /* Math & Misc */
+                .wiki-content .mwe-math-element { overflow-x: auto; max-width: 100%; display: inline-block; vertical-align: middle; }
+                .wiki-content .mwe-math-fallback-image-inline { filter: invert(0.9) hue-rotate(180deg); } /* Light math images to dark */
                 .wiki-content table.ambox { display: none; }
-                .wiki-content role=\"note\" { font-style: italic; color: #94a3b8; font-size: 0.8rem; margin-bottom: 1em; }
+                .wiki-content div.hatnote { font-style: italic; color: #94a3b8; font-size: 0.8rem; margin-bottom: 1em; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; }
+                
+                /* Tables */
+                .wiki-content table:not(.infobox) { border-collapse: collapse; margin: 1em 0; width: 100%; font-size: 0.85rem; }
+                .wiki-content table th, .wiki-content table td { border: 1px solid rgba(255,255,255,0.1); padding: 8px; }
+                .wiki-content table th { background: rgba(255,255,255,0.05); }
             `}</style>
         </div>
     );

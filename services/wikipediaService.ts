@@ -4,10 +4,37 @@ const EN_WIKI_API = 'https://en.wikipedia.org/w/api.php';
 
 const fixWikiProtocols = (html: string) => {
     if (!html) return "";
-    return html
-        .replace(/src="\/\//g, 'src="https://')
-        .replace(/srcset="\/\//g, 'srcset="https://')
-        .replace(/href="\/\//g, 'href="https://');
+
+    let fixed = html;
+
+    // 1. Fix src, href, poster, data-src, data-srcset, resource for protocol-relative URLs
+    // We handle both double and single quotes
+    fixed = fixed.replace(/(src|href|poster|data-src|data-srcset|resource)=(['"])\/\//g, '$1=$2https://');
+
+    // 2. Fix root-relative Wikipedia URLs (/wiki, /w, /static, /math, /api)
+    // We point them to en.wikipedia.org
+    fixed = fixed.replace(/(src|href|poster|data-src|data-srcset|resource)=(['"])\/(wiki|w|static|math|api)\//g, '$1=$2https://en.wikipedia.org/$3/');
+
+    // 3. Fix srcset specifically because it contains multiple URLs separated by commas
+    fixed = fixed.replace(/srcset=(['"])([^'"]+)\1/g, (match, quote, content) => {
+        const parts = content.split(',').map((part: string) => {
+            let trimmed = part.trim();
+            if (trimmed.startsWith('//')) {
+                trimmed = 'https:' + trimmed;
+            } else if (trimmed.startsWith('/')) {
+                trimmed = 'https://en.wikipedia.org' + trimmed;
+            }
+            return trimmed;
+        });
+        return `srcset=${quote}${parts.join(', ')}${quote}`;
+    });
+
+    // 4. Promote lazy-loaded content (swap data-src/data-srcset to src/srcset)
+    // Wikipedia often uses data-src for lazy loading which we won't trigger with JS
+    fixed = fixed.replace(/data-src=(['"])([^'"]+)\1/g, 'src=$1$2$1');
+    fixed = fixed.replace(/data-srcset=(['"])([^'"]+)\1/g, 'srcset=$1$2$1');
+
+    return fixed;
 };
 
 export interface WikiSearchResult {
