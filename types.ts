@@ -129,7 +129,6 @@ export interface AISuggestion {
   description: string;
   relationToParent: string;
   valueVector?: ValueVector;
-  shouldSeedIn?: boolean;
 }
 
 export interface DiscoveryState {

@@ -39,7 +39,6 @@ const NODE_SCHEMA_OPENAI = {
         type: { type: "string", enum: [NodeType.CONCEPT, NodeType.TECHNOLOGY, NodeType.PROBLEM, NodeType.PAIN_POINT, NodeType.INNOVATION, NodeType.CONSTRAINT, NodeType.FRICTION, NodeType.ENTITY, NodeType.QUESTION, NodeType.TRACE, NodeType.EVENT, NodeType.PERSON, NodeType.PLACE, NodeType.THEORY, NodeType.ARTIFACT, NodeType.MOVEMENT, NodeType.DISCOVERY, NodeType.RELATIONSHIP, NodeType.CONTRADICTION, NodeType.IMPLEMENTATION, NodeType.USER_SEGMENT, NodeType.ANALOGY, NodeType.REGULATION, NodeType.MARKET, NodeType.ETHICS, NodeType.MENTAL_MODEL] },
         description: { type: "string", description: "Short description" },
         relationToParent: { type: "string", description: "Relationship verb" },
-        shouldSeedIn: { type: "boolean", description: "Whether to automatically 'Seed In' (nest) into this concept due to its internal complexity" },
         valueVector: {
             type: "object",
             properties: {
@@ -98,9 +97,7 @@ SEED REUSABILITY RULE:
 Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
 
     ${modeSpecificGuidance}
-    The relationships should be active verbs.
-    
-    CRITICAL: If a suggested concept is highly complex or serves as a major category/pillar, set "shouldSeedIn": true to signal that the research should move into a nested sub-graph for that node.`;
+    The relationships should be active verbs.`;
 
     return await runIPCRequest(settings, prompt, true, mode);
 };
@@ -189,8 +186,6 @@ export const directedDiscovery = async (
 
     SEED REUSABILITY RULE:
     Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
-
-    NESTING RULE: If the node being generated represents a significant category or an extremely deep technical area, set "shouldSeedIn": true.
 
     Be specific, factually accurate, and highly relevant to the instruction.`;
 
@@ -502,8 +497,6 @@ ${modeSpecificGuidance}
 SEED REUSABILITY RULE:
 Before proposing a new seed, check the CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
 
-NESTING RULE: If the concept you are growing has massive internal depth or is a foundational pillar for a new sub-domain, set "shouldSeedIn": true.
-
 Response schema: Single node with label, type, description, and relationToParent.`
         : `You are an Autonomous Scout working as a ${persona}. 
 CONTEXT:
@@ -599,11 +592,9 @@ export const agenticDiscovery = async (
     ${specificityGuidance}
     
     SEED REUSABILITY RULE:
-Before proposing a new seed, check the CURRENT SYSTEM STATE. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
+    Before proposing a new seed, check the CURRENT SYSTEM STATE. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
 
-NESTING RULE: If this new node represents a significant pivot or a category with deep internal logic, set "shouldSeedIn": true.
-
-Output a single node suggestion with a full ValueVector (0-1).`;
+    Output a single node suggestion with a full ValueVector (0-1).`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
     return result[0] || null;
@@ -737,8 +728,7 @@ export const researchAssistantChat = async (
 
     5. NodeType must be one of: ${nodeTypesList}.
     6. Relationships: Use active verbs. Avoid generic "related to" if possible.
-    7. NESTING: If a node in your [MAP] represents a major category or a topic with high internal complexity, set "shouldSeedIn": true in the JSON node object.
-    8. CRITICAL: Do NOT output raw JSON alone. Provide a conversational response first.`;
+    7. CRITICAL: Do NOT output raw JSON alone. Provide a conversational response first.`;
 
     const formattedMessages = chatHistory.map(m => ({
         role: m.role,
@@ -878,8 +868,6 @@ export const extractKnowledgeMap = async (
       ]
     }
     
-    NESTING: If a node represents a significant sub-domain or category, set "shouldSeedIn": true.
-    
     NodeType must be one of: ${nodeTypesList}.`;
 
     // @ts-ignore
@@ -976,8 +964,7 @@ const extractMapInternal = (content: string) => {
                     label: n.label || "New Seed",
                     type: normalizeNodeType(n.type),
                     description: n.description || "",
-                    relationToParent: "related",
-                    shouldSeedIn: !!n.shouldSeedIn
+                    relationToParent: "related"
                 });
             });
         }
@@ -1000,8 +987,7 @@ const extractMapInternal = (content: string) => {
                             label: n.label || "New Seed",
                             type: normalizeNodeType(n.type),
                             description: n.description || "",
-                            relationToParent: "related",
-                            shouldSeedIn: !!n.shouldSeedIn
+                            relationToParent: "related"
                         });
                     });
                 }
@@ -1024,8 +1010,7 @@ const extractMapInternal = (content: string) => {
                     label: parsed.label || "New Seed",
                     type: normalizeNodeType(parsed.type),
                     description: parsed.description || "",
-                    relationToParent: parsed.relationToParent || "related",
-                    shouldSeedIn: !!parsed.shouldSeedIn
+                    relationToParent: parsed.relationToParent || "related"
                 });
                 mainContent = mainContent.replace(match[0], '');
             } catch (e) { }
@@ -1138,8 +1123,7 @@ async function runIPCRequest(
             type: normalizeNodeType(n.type),
             description: n.description || "No description",
             relationToParent: n.relationToParent || n.relation || "related",
-            valueVector: n.valueVector || undefined,
-            shouldSeedIn: !!n.shouldSeedIn
+            valueVector: n.valueVector || undefined
         };
     };
 
