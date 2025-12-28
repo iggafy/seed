@@ -902,7 +902,7 @@ function App() {
     );
   };
 
-  const handleSelectWormholeTarget = async (targetSessionId: string, targetSessionName: string, targetNodeId: string, targetNodeLabel: string, relation: string) => {
+  const handleSelectWormholeTarget = async (targetSessionId: string, targetSessionName: string, targetNodeId: string, targetNodeLabel: string, relation: string, reciprocalRelation?: string) => {
     if (!contextMenuNode) return;
 
     const sourceSeed = contextMenuNode;
@@ -988,7 +988,7 @@ function App() {
             "explores": "is explored by"
           };
 
-          const reverseRelation = REVERSE_RELATIONS[relation] || `linked by ${relation}`;
+          const reverseRelation = reciprocalRelation || REVERSE_RELATIONS[relation] || `linked by ${relation}`;
 
           const reverseLink: GraphLink = {
             source: reverseWormholeId,
@@ -999,6 +999,10 @@ function App() {
           targetSeedFile.data.nodes.push(reverseWormholeSeed);
           targetSeedFile.data.links.push(reverseLink);
           targetSeedFile.lastModified = Date.now();
+          // Ensure mode is preserved or defaulted to INNOVATION if legacy
+          if (!targetSeedFile.mode) {
+            targetSeedFile.mode = ExplorationMode.INNOVATION;
+          }
 
           // @ts-ignore
           await window.api.db.saveSeed(targetSeedFile);
@@ -1107,6 +1111,17 @@ function App() {
     return lineage.join(" -> ");
   };
 
+  const getGraphContext = (currentData: GraphData): string => {
+    const nodesString = currentData.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
+    const linksString = currentData.links.map(l => {
+      const source = currentData.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
+      const target = currentData.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
+      return `- ${source} --[${l.relation}]--> ${target}`;
+    }).join('\n');
+
+    return `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+  };
+
 
   const handleExpandNode = async (node: GraphNode) => {
     setIsProcessing(true);
@@ -1119,28 +1134,51 @@ function App() {
     }
 
     try {
-      const suggestions = await expandConcept(aiSettings, node.label, node.description || "", contextString, currentMode);
+      const fullGraphContext = getGraphContext(data);
+      const suggestions = await expandConcept(aiSettings, node.label, node.description || "", fullGraphContext, contextString, currentMode);
 
       if (suggestions.length > 0) {
         setData(prevData => {
-          const newNodes: GraphNode[] = suggestions.map(s => ({
-            id: generateId(),
-            label: s.label,
-            type: s.type,
-            description: s.description,
-            x: (node.x || 0) + (Math.random() - 0.5) * 100,
-            y: (node.y || 0) + (Math.random() - 0.5) * 100
-          }));
+          const nextNodes = [...prevData.nodes];
+          const nextLinks = [...prevData.links];
 
-          const newLinks = newNodes.map((n, index) => ({
-            source: node.id,
-            target: n.id,
-            relation: suggestions[index].relationToParent
-          }));
+          suggestions.forEach(s => {
+            const existingNode = nextNodes.find(n => n.label.toLowerCase() === s.label.toLowerCase());
+            let targetId: string;
+
+            if (existingNode) {
+              targetId = existingNode.id;
+            } else {
+              targetId = generateId();
+              nextNodes.push({
+                id: targetId,
+                label: s.label,
+                type: s.type,
+                description: s.description,
+                x: (node.x || 0) + (Math.random() - 0.5) * 100,
+                y: (node.y || 0) + (Math.random() - 0.5) * 100
+              });
+            }
+
+            // check for existing link
+            const linkExists = nextLinks.some(l => {
+              const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+              const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+              return (currS === node.id && currT === targetId) || (currS === targetId && currT === node.id);
+            });
+
+            if (!linkExists) {
+              nextLinks.push({
+                source: node.id,
+                target: targetId,
+                relation: s.relationToParent
+              });
+            }
+          });
 
           return {
-            nodes: [...prevData.nodes, ...newNodes],
-            links: [...prevData.links, ...newLinks]
+            nodes: nextNodes,
+            links: nextLinks
           };
         });
       }
@@ -1162,28 +1200,50 @@ function App() {
     }
 
     try {
-      const suggestions = await expandConceptTargeted(aiSettings, node.label, node.description || "", relation, count, contextString, targetType, currentMode);
+      const fullGraphContext = getGraphContext(data);
+      const suggestions = await expandConceptTargeted(aiSettings, node.label, node.description || "", relation, fullGraphContext, count, contextString, targetType, currentMode);
 
       if (suggestions && suggestions.length > 0) {
         setData(prevData => {
-          const newNodes = suggestions.map(suggestion => ({
-            id: generateId(),
-            label: suggestion.label,
-            type: targetType || suggestion.type,
-            description: suggestion.description,
-            x: (node.x || 0) + (Math.random() - 0.5) * 100,
-            y: (node.y || 0) + (Math.random() - 0.5) * 100
-          }));
+          const nextNodes = [...prevData.nodes];
+          const nextLinks = [...prevData.links];
 
-          const newLinks = newNodes.map((newNode, index) => ({
-            source: node.id,
-            target: newNode.id,
-            relation: suggestions[index].relationToParent || relation
-          }));
+          suggestions.forEach(suggestion => {
+            const existingNode = nextNodes.find(n => n.label.toLowerCase() === suggestion.label.toLowerCase());
+            let targetId: string;
+
+            if (existingNode) {
+              targetId = existingNode.id;
+            } else {
+              targetId = generateId();
+              nextNodes.push({
+                id: targetId,
+                label: suggestion.label,
+                type: targetType || suggestion.type,
+                description: suggestion.description,
+                x: (node.x || 0) + (Math.random() - 0.5) * 100,
+                y: (node.y || 0) + (Math.random() - 0.5) * 100
+              });
+            }
+
+            const linkExists = nextLinks.some(l => {
+              const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+              const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+              return (currS === node.id && currT === targetId) || (currS === targetId && currT === node.id);
+            });
+
+            if (!linkExists) {
+              nextLinks.push({
+                source: node.id,
+                target: targetId,
+                relation: suggestion.relationToParent || relation
+              });
+            }
+          });
 
           return {
-            nodes: [...prevData.nodes, ...newNodes],
-            links: [...prevData.links, ...newLinks]
+            nodes: nextNodes,
+            links: nextLinks
           };
         });
       }
@@ -1205,28 +1265,50 @@ function App() {
     }
 
     try {
-      const suggestions = await directedDiscovery(aiSettings, node.label, node.description || "", instruction, count, contextString, currentMode);
+      const fullGraphContext = getGraphContext(data);
+      const suggestions = await directedDiscovery(aiSettings, node.label, node.description || "", instruction, fullGraphContext, count, contextString, currentMode);
 
       if (suggestions && suggestions.length > 0) {
         setData(prevData => {
-          const newNodes = suggestions.map(suggestion => ({
-            id: generateId(),
-            label: suggestion.label,
-            type: suggestion.type || NodeType.CONCEPT,
-            description: suggestion.description,
-            x: (node.x || 0) + (Math.random() - 0.5) * 150,
-            y: (node.y || 0) + (Math.random() - 0.5) * 150
-          }));
+          const nextNodes = [...prevData.nodes];
+          const nextLinks = [...prevData.links];
 
-          const newLinks = newNodes.map((newNode, index) => ({
-            source: node.id,
-            target: newNode.id,
-            relation: suggestions[index].relationToParent || "discovered"
-          }));
+          suggestions.forEach(suggestion => {
+            const existingNode = nextNodes.find(n => n.label.toLowerCase() === suggestion.label.toLowerCase());
+            let targetId: string;
+
+            if (existingNode) {
+              targetId = existingNode.id;
+            } else {
+              targetId = generateId();
+              nextNodes.push({
+                id: targetId,
+                label: suggestion.label,
+                type: suggestion.type || NodeType.CONCEPT,
+                description: suggestion.description,
+                x: (node.x || 0) + (Math.random() - 0.5) * 150,
+                y: (node.y || 0) + (Math.random() - 0.5) * 150
+              });
+            }
+
+            const linkExists = nextLinks.some(l => {
+              const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+              const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+              return (currS === node.id && currT === targetId) || (currS === targetId && currT === node.id);
+            });
+
+            if (!linkExists) {
+              nextLinks.push({
+                source: node.id,
+                target: targetId,
+                relation: suggestion.relationToParent || "discovered"
+              });
+            }
+          });
 
           return {
-            nodes: [...prevData.nodes, ...newNodes],
-            links: [...prevData.links, ...newLinks]
+            nodes: nextNodes,
+            links: nextLinks
           };
         });
       }
@@ -1247,35 +1329,48 @@ function App() {
       const suggestions = await traceLineageAnalysis(aiSettings, node.label, node.description || "", fullPath, currentMode);
 
       if (suggestions && suggestions.length > 0) {
-        const createdNodeIds: string[] = [];
-
         setData(prev => {
-          const newNodes: GraphNode[] = suggestions.map((s, i) => {
-            const id = generateId();
-            createdNodeIds.push(id);
-            return {
-              id: id,
-              label: s.label,
-              type: s.type || NodeType.TRACE,
-              description: s.description,
-              x: (node.x || 0) + 100,
-              y: (node.y || 0) + (i - 1) * 120
-            };
+          const nextNodes = [...prev.nodes];
+          const nextLinks = [...prev.links];
+
+          suggestions.forEach((s, i) => {
+            const existingNode = nextNodes.find(n => n.label.toLowerCase() === s.label.toLowerCase());
+            let targetId: string;
+
+            if (existingNode) {
+              targetId = existingNode.id;
+            } else {
+              targetId = generateId();
+              nextNodes.push({
+                id: targetId,
+                label: s.label,
+                type: s.type || NodeType.TRACE,
+                description: s.description,
+                x: (node.x || 0) + 100,
+                y: (node.y || 0) + (i - 1) * 120
+              });
+            }
+
+            const linkExists = nextLinks.some(l => {
+              const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+              const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+              return (currS === node.id && currT === targetId) || (currS === targetId && currT === node.id);
+            });
+
+            if (!linkExists) {
+              nextLinks.push({
+                source: node.id,
+                target: targetId,
+                relation: s.relationToParent || "traced to"
+              });
+            }
           });
 
-          const newLinks = newNodes.map((newNode, i) => ({
-            source: node.id,
-            target: newNode.id,
-            relation: suggestions[i].relationToParent || "traced to"
-          }));
-
           return {
-            nodes: [...prev.nodes, ...newNodes],
-            links: [...prev.links, ...newLinks]
+            nodes: nextNodes,
+            links: nextLinks
           };
         });
-
-        setSelectedNodeIds(createdNodeIds);
       }
     } catch (e: any) {
       popError(e.message || "Lineage analysis failed");
@@ -1288,15 +1383,7 @@ function App() {
     setIsProcessing(true);
     recordHistory();
 
-    // 1. Prepare Full Graph Context
-    const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
-    const linksString = data.links.map(l => {
-      const source = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
-      const target = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
-      return `- ${source} --[${l.relation}]--> ${target}`;
-    }).join('\n');
-
-    const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+    const fullGraphContext = getGraphContext(data);
 
     try {
       const innovation = await innovateConcept(
@@ -1309,24 +1396,39 @@ function App() {
       );
 
       if (innovation) {
-        const newNodeId = generateId();
-        const newNode: GraphNode = {
-          id: newNodeId,
-          label: innovation.label,
-          type: innovation.type,
-          description: innovation.description,
-          x: (node.x || 0) + 120, // Slightly further away for distinction
-          y: (node.y || 0) + 120
-        };
+        setData(prev => {
+          const nextNodes = [...prev.nodes];
+          const nextLinks = [...prev.links];
 
-        const newLink = { source: node.id, target: newNodeId, relation: "facilitates" };
+          const existingNode = nextNodes.find(n => n.label.toLowerCase() === innovation.label.toLowerCase());
+          let targetId: string;
 
-        setData(prev => ({
-          nodes: [...prev.nodes, newNode],
-          links: [...prev.links, newLink]
-        }));
+          if (existingNode) {
+            targetId = existingNode.id;
+          } else {
+            targetId = generateId();
+            nextNodes.push({
+              id: targetId,
+              label: innovation.label,
+              type: innovation.type,
+              description: innovation.description,
+              x: (node.x || 0) + 120,
+              y: (node.y || 0) + 120
+            });
+          }
 
-        setSelectedNodeIds([newNodeId]);
+          const linkExists = nextLinks.some(l => {
+            const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+            const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+            return (currS === node.id && currT === targetId) || (currS === targetId && currT === node.id);
+          });
+
+          if (!linkExists) {
+            nextLinks.push({ source: node.id, target: targetId, relation: "facilitates" });
+          }
+
+          return { nodes: nextNodes, links: nextLinks };
+        });
       }
     } catch (e: any) {
       popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Innovation request failed" : "Synthesis request failed"));
@@ -1339,14 +1441,7 @@ function App() {
     setIsProcessing(true);
     recordHistory();
 
-    const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
-    const linksString = data.links.map(l => {
-      const source = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
-      const target = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
-      return `- ${source} --[${l.relation}]--> ${target}`;
-    }).join('\n');
-
-    const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+    const fullGraphContext = getGraphContext(data);
 
     try {
       const solution = await solveProblem(
@@ -1359,24 +1454,39 @@ function App() {
       );
 
       if (solution) {
-        const newNodeId = generateId();
-        const newNode: GraphNode = {
-          id: newNodeId,
-          label: solution.label,
-          type: solution.type,
-          description: solution.description,
-          x: (node.x || 0) + 120,
-          y: (node.y || 0) + 120
-        };
+        setData(prev => {
+          const nextNodes = [...prev.nodes];
+          const nextLinks = [...prev.links];
 
-        const newLink = { source: node.id, target: newNodeId, relation: currentMode === ExplorationMode.INNOVATION ? "solved by" : "resolved by" };
+          const existingNode = nextNodes.find(n => n.label.toLowerCase() === solution.label.toLowerCase());
+          let targetId: string;
 
-        setData(prev => ({
-          nodes: [...prev.nodes, newNode],
-          links: [...prev.links, newLink]
-        }));
+          if (existingNode) {
+            targetId = existingNode.id;
+          } else {
+            targetId = generateId();
+            nextNodes.push({
+              id: targetId,
+              label: solution.label,
+              type: solution.type,
+              description: solution.description,
+              x: (node.x || 0) + 120,
+              y: (node.y || 0) + 120
+            });
+          }
 
-        setSelectedNodeIds([newNodeId]);
+          const linkExists = nextLinks.some(l => {
+            const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+            const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+            return (currS === node.id && currT === targetId) || (currS === targetId && currT === node.id);
+          });
+
+          if (!linkExists) {
+            nextLinks.push({ source: node.id, target: targetId, relation: currentMode === ExplorationMode.INNOVATION ? "solved by" : "resolved by" });
+          }
+
+          return { nodes: nextNodes, links: nextLinks };
+        });
       }
     } catch (e: any) {
       popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Problem solving failed" : "Resolution failed"));
@@ -1399,34 +1509,46 @@ function App() {
     const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
 
     try {
-      const answer = await answerQuestion(
-        aiSettings,
-        node.label,
-        node.description || "",
-        node.type,
-        fullGraphContext,
-        currentMode
-      );
+      const fullGraphContext = getGraphContext(data);
+      const answer = await answerQuestion(aiSettings, node.label, node.description || "", node.type, fullGraphContext, currentMode);
 
       if (answer) {
-        const newNodeId = generateId();
-        const newNode: GraphNode = {
-          id: newNodeId,
-          label: answer.label,
-          type: answer.type,
-          description: answer.description,
-          x: (node.x || 0) + 120,
-          y: (node.y || 0) + 120
-        };
+        setData(prev => {
+          const nextNodes = [...prev.nodes];
+          const nextLinks = [...prev.links];
 
-        const newLink = { source: node.id, target: newNodeId, relation: "answered by" };
+          const existingNode = nextNodes.find(n => n.label.toLowerCase() === answer.label.toLowerCase());
+          let targetId: string;
 
-        setData(prev => ({
-          nodes: [...prev.nodes, newNode],
-          links: [...prev.links, newLink]
-        }));
+          if (existingNode) {
+            targetId = existingNode.id;
+          } else {
+            targetId = generateId();
+            nextNodes.push({
+              id: targetId,
+              label: answer.label,
+              type: answer.type,
+              description: answer.description,
+              x: (node.x || 0) + 120,
+              y: (node.y || 0) + 120
+            });
+          }
 
-        setSelectedNodeIds([newNodeId]);
+          const linkExists = nextLinks.some(l => {
+            const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+            const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+            return (currS === node.id && currT === targetId) || (currS === targetId && currT === node.id);
+          });
+
+          if (!linkExists) {
+            nextLinks.push({ source: node.id, target: targetId, relation: "answered by" });
+          }
+
+          return { nodes: nextNodes, links: nextLinks };
+        });
+
+        // Set the newNode as high-level selection?
+        // setSelectedNodeIds([newNodeId]);
       }
     } catch (e: any) {
       popError(e.message || (currentMode === ExplorationMode.INNOVATION ? "Answer request failed" : "Fact check failed"));
@@ -1455,25 +1577,49 @@ function App() {
     );
 
     if (suggestion) {
-      const newNodeId = generateId();
-      const newNode: GraphNode = {
-        id: newNodeId,
-        label: suggestion.label,
-        type: suggestion.type,
-        description: suggestion.description,
-        x: ((nodeA.x || 0) + (nodeB.x || 0)) / 2,
-        y: ((nodeA.y || 0) + (nodeB.y || 0)) / 2
-      };
+      setData(prev => {
+        const nextNodes = [...prev.nodes];
+        const nextLinks = [...prev.links];
 
-      const linkA = { source: nodeA.id, target: newNodeId, relation: "contributes to" };
-      const linkB = { source: nodeB.id, target: newNodeId, relation: "contributes to" };
+        const existingNode = nextNodes.find(n => n.label.toLowerCase() === suggestion.label.toLowerCase());
+        let targetId: string;
 
-      setData(prev => ({
-        nodes: [...prev.nodes, newNode],
-        links: [...prev.links, linkA, linkB]
-      }));
+        if (existingNode) {
+          targetId = existingNode.id;
+        } else {
+          targetId = generateId();
+          nextNodes.push({
+            id: targetId,
+            label: suggestion.label,
+            type: suggestion.type,
+            description: suggestion.description,
+            x: ((nodeA.x || 0) + (nodeB.x || 0)) / 2,
+            y: ((nodeA.y || 0) + (nodeB.y || 0)) / 2
+          });
+        }
 
-      setSelectedNodeIds([newNodeId]);
+        // Link from A
+        const linkAExists = nextLinks.some(l => {
+          const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+          const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+          return (currS === nodeA.id && currT === targetId) || (currS === targetId && currT === nodeA.id);
+        });
+        if (!linkAExists) {
+          nextLinks.push({ source: nodeA.id, target: targetId, relation: "contributes to" });
+        }
+
+        // Link from B
+        const linkBExists = nextLinks.some(l => {
+          const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+          const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+          return (currS === nodeB.id && currT === targetId) || (currS === targetId && currT === nodeB.id);
+        });
+        if (!linkBExists) {
+          nextLinks.push({ source: nodeB.id, target: targetId, relation: "contributes to" });
+        }
+
+        return { nodes: nextNodes, links: nextLinks };
+      });
     }
     setIsProcessing(false);
   };
@@ -1482,29 +1628,44 @@ function App() {
     setIsProcessing(true);
     recordHistory();
 
-    const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
-    const linksString = data.links.map(l => {
-      const source = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
-      const target = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
-      return `- ${source} --[${l.relation}]--> ${target}`;
-    }).join('\n');
-    const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+    const fullGraphContext = getGraphContext(data);
 
     try {
       const optimization = await optimizeConcept(aiSettings, node.label, node.description || "", fullGraphContext);
       if (optimization) {
-        const newNodeId = generateId();
-        const newNode: GraphNode = {
-          id: newNodeId,
-          label: optimization.label,
-          type: optimization.type,
-          description: optimization.description,
-          x: (node.x || 0) + 120,
-          y: (node.y || 0) - 120 // Position it above for contrast with evolution
-        };
-        const newLink = { source: node.id, target: newNodeId, relation: "optimized as" };
-        setData(prev => ({ nodes: [...prev.nodes, newNode], links: [...prev.links, newLink] }));
-        setSelectedNodeIds([newNodeId]);
+        setData(prev => {
+          const nextNodes = [...prev.nodes];
+          const nextLinks = [...prev.links];
+
+          const existingNode = nextNodes.find(n => n.label.toLowerCase() === optimization.label.toLowerCase());
+          let targetId: string;
+
+          if (existingNode) {
+            targetId = existingNode.id;
+          } else {
+            targetId = generateId();
+            nextNodes.push({
+              id: targetId,
+              label: optimization.label,
+              type: optimization.type,
+              description: optimization.description,
+              x: (node.x || 0) + 120,
+              y: (node.y || 0) - 120
+            });
+          }
+
+          const linkExists = nextLinks.some(l => {
+            const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+            const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+            return (currS === node.id && currT === targetId) || (currS === targetId && currT === node.id);
+          });
+
+          if (!linkExists) {
+            nextLinks.push({ source: node.id, target: targetId, relation: "optimized as" });
+          }
+
+          return { nodes: nextNodes, links: nextLinks };
+        });
       }
     } catch (e: any) {
       popError(e.message || "Optimization failed");
@@ -1517,32 +1678,46 @@ function App() {
     setIsProcessing(true);
     recordHistory();
 
-    const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
-    const linksString = data.links.map(l => {
-      const source = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
-      const target = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
-      return `- ${source} --[${l.relation}]--> ${target}`;
-    }).join('\n');
-    const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+    const fullGraphContext = getGraphContext(data);
 
     try {
       const failures = await stressTestConcept(aiSettings, node.label, node.description || "", fullGraphContext);
       if (failures && failures.length > 0) {
-        const newNodes: GraphNode[] = [];
-        const newLinks: any[] = [];
-        failures.forEach((fail, i) => {
-          const newNodeId = generateId();
-          newNodes.push({
-            id: newNodeId,
-            label: fail.label,
-            type: fail.type,
-            description: fail.description,
-            x: (node.x || 0) - 150,
-            y: (node.y || 0) + (i - 1) * 120
+        setData(prev => {
+          const nextNodes = [...prev.nodes];
+          const nextLinks = [...prev.links];
+
+          failures.forEach((fail, i) => {
+            const existingNode = nextNodes.find(n => n.label.toLowerCase() === fail.label.toLowerCase());
+            let targetId: string;
+
+            if (existingNode) {
+              targetId = existingNode.id;
+            } else {
+              targetId = generateId();
+              nextNodes.push({
+                id: targetId,
+                label: fail.label,
+                type: fail.type,
+                description: fail.description,
+                x: (node.x || 0) - 150,
+                y: (node.y || 0) + (i - 1) * 120
+              });
+            }
+
+            const linkExists = nextLinks.some(l => {
+              const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+              const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+              return (currS === node.id && currT === targetId) || (currS === targetId && currT === node.id);
+            });
+
+            if (!linkExists) {
+              nextLinks.push({ source: node.id, target: targetId, relation: fail.relationToParent });
+            }
           });
-          newLinks.push({ source: node.id, target: newNodeId, relation: fail.relationToParent });
+
+          return { nodes: nextNodes, links: nextLinks };
         });
-        setData(prev => ({ nodes: [...prev.nodes, ...newNodes], links: [...prev.links, ...newLinks] }));
       }
     } catch (e: any) {
       popError(e.message || "Stress test failed");
@@ -1555,29 +1730,44 @@ function App() {
     setIsProcessing(true);
     recordHistory();
 
-    const nodesString = data.nodes.map(n => `- ${n.label} (Type: ${n.type}): ${n.description}`).join('\n');
-    const linksString = data.links.map(l => {
-      const source = data.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as GraphNode).id : l.source))?.label;
-      const target = data.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as GraphNode).id : l.target))?.label;
-      return `- ${source} --[${l.relation}]--> ${target}`;
-    }).join('\n');
-    const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+    const fullGraphContext = getGraphContext(data);
 
     try {
       const impl = await generateImplementation(aiSettings, node.label, node.description || "", fullGraphContext);
       if (impl) {
-        const newNodeId = generateId();
-        const newNode: GraphNode = {
-          id: newNodeId,
-          label: impl.label,
-          type: impl.type,
-          description: impl.description,
-          x: (node.x || 0) + 150,
-          y: (node.y || 0)
-        };
-        const newLink = { source: node.id, target: newNodeId, relation: impl.relationToParent };
-        setData(prev => ({ nodes: [...prev.nodes, newNode], links: [...prev.links, newLink] }));
-        setSelectedNodeIds([newNodeId]);
+        setData(prev => {
+          const nextNodes = [...prev.nodes];
+          const nextLinks = [...prev.links];
+
+          const existingNode = nextNodes.find(n => n.label.toLowerCase() === impl.label.toLowerCase());
+          let targetId: string;
+
+          if (existingNode) {
+            targetId = existingNode.id;
+          } else {
+            targetId = generateId();
+            nextNodes.push({
+              id: targetId,
+              label: impl.label,
+              type: impl.type,
+              description: impl.description,
+              x: (node.x || 0) + 150,
+              y: (node.y || 0)
+            });
+          }
+
+          const linkExists = nextLinks.some(l => {
+            const currS = typeof l.source === 'object' ? (l.source as any).id : l.source;
+            const currT = typeof l.target === 'object' ? (l.target as any).id : l.target;
+            return (currS === node.id && currT === targetId) || (currS === targetId && currT === node.id);
+          });
+
+          if (!linkExists) {
+            nextLinks.push({ source: node.id, target: targetId, relation: impl.relationToParent });
+          }
+
+          return { nodes: nextNodes, links: nextLinks };
+        });
       }
     } catch (e: any) {
       popError(e.message || "Implementation generation failed");
@@ -2668,6 +2858,7 @@ function App() {
             currentSeedId={currentSeedFileId}
             askConfirm={askConfirm}
             onSelectMode={handleWelcomeModeSelect}
+            initialMode={currentMode}
           />
         )
       }

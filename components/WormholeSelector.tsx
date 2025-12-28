@@ -6,7 +6,7 @@ import { NodeType } from '../types';
 interface WormholeSelectorProps {
     isOpen: boolean;
     onClose: () => void;
-    onSelect: (sessionId: string, sessionName: string, nodeId: string, nodeLabel: string, relation: string) => void;
+    onSelect: (sessionId: string, sessionName: string, nodeId: string, nodeLabel: string, relation: string, reciprocalRelation?: string) => void;
     currentSeedId?: string;
     relationOptions: string[];
 }
@@ -21,6 +21,8 @@ const WormholeSelector: React.FC<WormholeSelectorProps> = ({ isOpen, onClose, on
     const [selectedRelation, setSelectedRelation] = useState(relationOptions[0]);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [selectedType, setSelectedType] = useState<NodeType | 'all'>('all');
+    const [customRelation, setCustomRelation] = useState('');
+    const [customReciprocal, setCustomReciprocal] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -149,22 +151,58 @@ const WormholeSelector: React.FC<WormholeSelectorProps> = ({ isOpen, onClose, on
                                                 {relationOptions.map(rel => (
                                                     <option key={rel} value={rel} className="bg-slate-900 text-slate-200">{rel}</option>
                                                 ))}
+                                                <option value="CUSTOM" className="bg-slate-900 text-indigo-400 font-bold">Custom...</option>
                                             </select>
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-indigo-400 transition-colors">
                                                 <ChevronDown size={14} />
                                             </div>
                                         </div>
 
+                                        {selectedRelation === 'CUSTOM' && (
+                                            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div className="space-y-1.5">
+                                                    <label className="block text-[9px] uppercase tracking-widest font-bold text-slate-500 text-left ml-1">Forward Relation</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g., Makes it happen"
+                                                        value={customRelation}
+                                                        onChange={(e) => setCustomRelation(e.target.value)}
+                                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-700"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="block text-[9px] uppercase tracking-widest font-bold text-slate-500 text-left ml-1">Reciprocal Relation</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g., Is made happen by"
+                                                        value={customReciprocal}
+                                                        onChange={(e) => setCustomReciprocal(e.target.value)}
+                                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-700"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <button
-                                            onClick={() => onSelect(selectedSeed, seeds.find(s => s.id === selectedSeed)?.name || 'Unknown Space', selectedNode.id, selectedNode.label, selectedRelation)}
-                                            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-900/20 hover:shadow-indigo-500/40 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                                            onClick={() => {
+                                                const relation = selectedRelation === 'CUSTOM' ? customRelation : selectedRelation;
+                                                const reciprocal = selectedRelation === 'CUSTOM' ? customReciprocal : undefined;
+                                                onSelect(selectedSeed, seeds.find(s => s.id === selectedSeed)?.name || 'Unknown Space', selectedNode.id, selectedNode.label, relation, reciprocal);
+                                            }}
+                                            disabled={selectedRelation === 'CUSTOM' && (!customRelation.trim() || !customReciprocal.trim())}
+                                            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-900/20 hover:shadow-indigo-500/40 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                                         >
                                             <Zap size={18} />
                                             Establish Wormhole
                                         </button>
                                     </div>
                                     <button
-                                        onClick={() => setSelectedNode(null)}
+                                        onClick={() => {
+                                            setSelectedNode(null);
+                                            setCustomRelation('');
+                                            setCustomReciprocal('');
+                                            setSelectedRelation(relationOptions[0]);
+                                        }}
                                         className="mt-6 text-[10px] text-slate-500 hover:text-indigo-400 font-bold uppercase tracking-widest transition-colors flex items-center gap-2 mx-auto pb-1 border-b border-transparent hover:border-indigo-400/30"
                                     >
                                         <X size={12} /> Change Selection

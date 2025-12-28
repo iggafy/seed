@@ -9,12 +9,13 @@ interface SeedsDashboardProps {
     currentSeedId?: string;
     askConfirm: (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info', confirmText?: string) => void;
     onSelectMode?: (mode: ExplorationMode) => void;
+    initialMode?: ExplorationMode;
 }
 
-const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, onClose, currentSeedId, askConfirm, onSelectMode }) => {
+const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, onClose, currentSeedId, askConfirm, onSelectMode, initialMode }) => {
     const [seeds, setSeeds] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<ExplorationMode>(ExplorationMode.INNOVATION);
+    const [activeTab, setActiveTab] = useState<ExplorationMode>(initialMode || ExplorationMode.INNOVATION);
 
     const loadList = async () => {
         setLoading(true);

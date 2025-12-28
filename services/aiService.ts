@@ -73,6 +73,7 @@ export const expandConcept = async (
     settings: AISettings,
     nodeLabel: string,
     nodeDescription: string,
+    fullGraphContext?: string,
     contextLineage?: string,
     mode: ExplorationMode = ExplorationMode.INNOVATION
 ): Promise<AISuggestion[]> => {
@@ -88,6 +89,13 @@ export const expandConcept = async (
     const prompt = `You are a ${persona}. Given the node "${nodeLabel}" (${nodeDescription}), suggest 3-5 distinct, meaningful connections.
 ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
 ${contextLineage ? `CRITICAL CONTEXTUAL CONSTRAINT: The node "${nodeLabel}" emerged from: [ ${contextLineage} ]. Interpret it strictly within this context.` : ''}
+
+FULL GRAPH CONTEXT:
+${fullGraphContext || 'Empty graph.'}
+
+SEED REUSABILITY RULE:
+Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
+
     ${modeSpecificGuidance}
     The relationships should be active verbs.`;
 
@@ -99,6 +107,7 @@ export const expandConceptTargeted = async (
     nodeLabel: string,
     nodeDescription: string,
     relationType: string,
+    fullGraphContext?: string,
     count: number = 1,
     contextLineage?: string,
     targetType?: NodeType,
@@ -113,6 +122,13 @@ export const expandConceptTargeted = async (
 ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
 ${targetType ? `TARGET NODE TYPE: ${targetType}. Ensure every generated node is strictly of this type.` : ''}
 ${contextLineage ? `CONTEXT LINEAGE: [ ${contextLineage} ]. Use this to maintain conceptual continuity.` : ''}
+
+FULL GRAPH CONTEXT:
+${fullGraphContext || 'Empty graph.'}
+
+SEED REUSABILITY RULE:
+Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
+
 Be specific and factually accurate.`;
 
     return await runIPCRequest(settings, prompt, count > 1, mode);
@@ -150,6 +166,7 @@ export const directedDiscovery = async (
     nodeLabel: string,
     nodeDescription: string,
     instruction: string,
+    fullGraphContext?: string,
     count: number = 1,
     contextLineage?: string,
     mode: ExplorationMode = ExplorationMode.INNOVATION
@@ -163,6 +180,13 @@ export const directedDiscovery = async (
     Generate exactly ${count} distinct node(s) as a result of this discovery.
     ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
     ${contextLineage ? `CONTEXT LINEAGE: [ ${contextLineage} ]. Use this to maintain conceptual continuity.` : ''}
+    
+    FULL GRAPH CONTEXT:
+    ${fullGraphContext || 'Empty graph.'}
+
+    SEED REUSABILITY RULE:
+    Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
+
     Be specific, factually accurate, and highly relevant to the instruction.`;
 
     return await runIPCRequest(settings, prompt, count > 1, mode);
@@ -437,6 +461,10 @@ export const quickExpand = async (
     
     Suggest 3 distinct discovery arcs.
         ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : KNOWLEDGE_RESEARCH_PRINCIPLES}
+    
+    SEED REUSABILITY RULE:
+    Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
+
     Response schema: array of suggestions.`;
 
     return await runIPCRequest(settings, prompt, true, mode);
@@ -466,6 +494,9 @@ ${fullGraphContext}
 TASK: Pick the most 'active' or 'dangling' node in the graph and grow it further.
 ${modeSpecificGuidance}
 
+SEED REUSABILITY RULE:
+Before proposing a new seed, check the CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
+
 Response schema: Single node with label, type, description, and relationToParent.`
         : `You are an Autonomous Scout working as a ${persona}. 
 CONTEXT:
@@ -473,6 +504,9 @@ ${fullGraphContext}
 
 TASK: Identify two seemingly unrelated nodes in the graph and propose a 'Ghost Link' (synergy, conflict, or dependency) between them.
 ${mode === ExplorationMode.KNOWLEDGE ? KNOWLEDGE_RESEARCH_PRINCIPLES : ''}
+
+SEED REUSABILITY RULE:
+Before proposing a new seed, check the CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
 
 Response schema: Single node (the bridging concept) connecting them, or just a relationship if applicable. 
 (For this implementation, we'll focus on creating a bridging node).`;
@@ -557,6 +591,9 @@ export const agenticDiscovery = async (
     GUIDANCE:
     ${specificityGuidance}
     
+    SEED REUSABILITY RULE:
+    Before proposing a new seed, check the CURRENT SYSTEM STATE. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
+
     Output a single node suggestion with a full ValueVector (0-1).`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
