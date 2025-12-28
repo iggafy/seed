@@ -62,4 +62,4 @@ Your ideas are yours alone.
     *Find your installers for Windows and Linux in the `/release` folder.*
 
 ---
-*Stop searching. Start discovering.*
+
