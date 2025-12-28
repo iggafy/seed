@@ -94,10 +94,28 @@ const NexusWikiBrowser: React.FC<NexusWikiBrowserProps> = ({
             if (link && contentRef.current?.contains(link)) {
                 e.preventDefault();
                 const href = link.getAttribute('href');
-                if (href && href.startsWith('/wiki/') && !href.includes(':')) {
-                    const title = decodeURIComponent(href.replace('/wiki/', '')).replace(/_/g, ' ');
-                    loadPage(title);
-                } else if (href && href.startsWith('http')) {
+                if (!href) return;
+
+                const isAbsoluteWiki = href.startsWith('https://en.wikipedia.org/wiki/');
+                const isRelativeWiki = href.startsWith('/wiki/');
+
+                if (isAbsoluteWiki || isRelativeWiki) {
+                    const path = isAbsoluteWiki
+                        ? href.replace('https://en.wikipedia.org/wiki/', '')
+                        : href.replace('/wiki/', '');
+
+                    // Only intercept if it's a main-namespace page (no ':' which denotes File:, Category:, etc)
+                    // and not a section link to the same page (or just handle it as a reload for now)
+                    if (!path.includes(':')) {
+                        const cleanPath = path.split('#')[0];
+                        const title = decodeURIComponent(cleanPath).replace(/_/g, ' ');
+                        loadPage(title);
+                        return;
+                    }
+                }
+
+                // Fallback for external links or special wiki pages
+                if (href.startsWith('http')) {
                     window.open(href, '_blank');
                 }
             }
