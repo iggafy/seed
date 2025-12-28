@@ -6,7 +6,7 @@ import {
     BookOpen, Lightbulb, CheckCircle2, ShieldCheck, GitMerge,
     History as HistoryIcon, Keyboard, Terminal, Globe,
     Activity, ArrowUpRight, Target, Shield, Fingerprint, Lock,
-    Maximize2, Plus, CornerDownRight, Microscope, Scan, MessageCircle
+    Maximize2, Plus, CornerDownRight, Microscope, Scan, MessageCircle, Info
 } from 'lucide-react';
 import { ExplorationMode, NodeType, AISettings } from '../types';
 import { NODE_COLORS } from '../constants';
@@ -16,10 +16,17 @@ interface SEEDManualProps {
     onClose: () => void;
     mode: ExplorationMode;
     aiSettings?: AISettings;
+    initialTab?: 'welcome' | 'autonomous' | 'protocols' | 'ontology' | 'shortcuts' | 'about';
 }
 
-const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettings }) => {
-    const [activeTab, setActiveTab] = useState<'welcome' | 'autonomous' | 'protocols' | 'ontology' | 'shortcuts'>('welcome');
+const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettings, initialTab }) => {
+    const [activeTab, setActiveTab] = useState<'welcome' | 'autonomous' | 'protocols' | 'ontology' | 'shortcuts' | 'about'>('welcome');
+
+    React.useEffect(() => {
+        if (isOpen && initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [isOpen, initialTab]);
 
     if (!isOpen) return null;
 
@@ -73,6 +80,7 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                                 { id: 'protocols', label: 'Protocols', icon: <Zap size={14} /> },
                                 { id: 'ontology', label: 'Ontology', icon: <BookOpen size={14} /> },
                                 { id: 'shortcuts', label: 'Keyboard', icon: <Keyboard size={14} /> },
+                                { id: 'about', label: 'About', icon: <Info size={14} /> },
                             ].map((tab) => (
                                 <button
                                     key={tab.id}
@@ -331,13 +339,65 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                         </div>
                     )}
 
+                    {/* 6. ABOUT / SYSTEM SECTION */}
+                    {activeTab === 'about' && (
+                        <div className="animate-in slide-in-from-bottom-4 duration-700">
+                            <div className="max-w-4xl text-center mx-auto py-12">
+                                <div className="mb-12 flex justify-center">
+                                    <div className="p-8 bg-sky-500/10 rounded-[3rem] border border-sky-500/20 shadow-2xl shadow-sky-500/10 group hover:scale-105 transition-transform duration-500">
+                                        <div className="relative">
+                                            <div className="absolute inset-0 bg-sky-500/20 blur-2xl rounded-full animate-pulse"></div>
+                                            <img
+                                                src="icon.png"
+                                                alt="SEED Logo"
+                                                className="w-32 h-32 md:w-40 md:h-40 object-contain relative z-10"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h2 className="text-5xl font-black text-white mb-2 tracking-tighter italic">SEED</h2>
+                                <p className="text-sky-400 font-bold tracking-[0.4em] uppercase text-xs mb-8">Shared Exploration & Emergent Discovery</p>
+
+                                <div className="inline-flex items-center gap-3 px-6 py-2 bg-slate-800/50 border border-white/10 rounded-full text-slate-400 mb-12">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span className="text-[10px] uppercase font-black tracking-widest">Version 1.0.0 (Stable)</span>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-16">
+                                    <div className="bg-slate-950/40 border border-white/5 p-8 rounded-[2.5rem] flex flex-col items-center group hover:bg-slate-900/60 transition-all">
+                                        <div className="p-3 bg-slate-900 rounded-xl mb-4 text-sky-400 group-hover:scale-110 transition-transform">
+                                            <Fingerprint size={24} />
+                                        </div>
+                                        <h4 className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase mb-1">Author</h4>
+                                        <p className="text-lg font-bold text-white tracking-tight">Igga Fitzsimons</p>
+                                    </div>
+                                    <div className="bg-slate-950/40 border border-white/5 p-8 rounded-[2.5rem] flex flex-col items-center group hover:bg-slate-900/60 transition-all">
+                                        <div className="p-3 bg-slate-900 rounded-xl mb-4 text-emerald-400 group-hover:scale-110 transition-transform">
+                                            <Globe size={24} />
+                                        </div>
+                                        <h4 className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase mb-1">Updates</h4>
+                                        <a
+                                            href="https://github.com/iggafy/seed/releases"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-lg font-bold text-white tracking-tight hover:text-sky-400 transition-colors"
+                                        >
+                                            Github
+                                        </a>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Bottom Status Bar */}
                 <div className="px-12 py-5 bg-slate-950/40 border-t border-white/5 flex justify-between items-center text-[10px] text-slate-600 font-mono tracking-widest uppercase font-black">
                     <div className="flex items-center gap-4">
                         <Activity size={12} className={getSystemStatus() === 'OFFLINE' ? 'text-rose-500' : 'text-emerald-500'} />
-                        <span>CORE_ENGINE_STATUS: {getSystemStatus() === 'READY' ? `READY [${aiSettings?.provider}]` : getSystemStatus()}</span>
+                        <span>STATUS: {getSystemStatus() === 'READY' ? `READY [${aiSettings?.provider}]` : getSystemStatus()}</span>
                     </div>
                     <span>Shared Exploration & Emergent Discovery</span>
                 </div>

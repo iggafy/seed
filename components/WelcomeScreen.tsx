@@ -6,7 +6,7 @@ interface WelcomeScreenProps {
     onSelectMode: (mode: ExplorationMode) => void;
     settings: AISettings;
     onUpdateSettings: (settings: AISettings) => void;
-    onShowManual: () => void;
+    onShowManual: (tab?: string) => void;
     onShowDashboard: () => void;
     hasSavedSeeds: boolean;
 }
@@ -198,12 +198,22 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSelectMode, settings, o
 
                     {/* Manual Link */}
                     <button
-                        onClick={onShowManual}
+                        onClick={() => onShowManual()}
                         className="text-slate-500 hover:text-sky-400 text-[10px] uppercase tracking-widest font-bold flex items-center gap-2 transition-colors group"
                     >
                         <span>SEED Documentation</span>
                         <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
                     </button>
+
+                    {/* Version & About Link */}
+                    <div className="mt-4 flex flex-col items-center gap-1">
+                        <button
+                            onClick={() => onShowManual('about')}
+                            className="text-[10px] text-slate-600 hover:text-sky-500 transition-colors font-bold uppercase tracking-[0.2em]"
+                        >
+                            SEED v1.0.0
+                        </button>
+                    </div>
                 </div>
 
             </div>

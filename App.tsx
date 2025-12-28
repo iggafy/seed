@@ -196,6 +196,16 @@ function App() {
 
   // Manual State
   const [showManual, setShowManual] = useState(false);
+  const [manualTab, setManualTab] = useState<'welcome' | 'autonomous' | 'protocols' | 'ontology' | 'shortcuts' | 'about'>('welcome');
+
+  const handleShowManual = (tab?: string) => {
+    if (tab) {
+      setManualTab(tab as any);
+    } else {
+      setManualTab('welcome');
+    }
+    setShowManual(true);
+  };
 
 
   // Provide default greeting if skipping welcome
@@ -2586,7 +2596,7 @@ function App() {
           };
         })}
         onToggleChat={() => setIsChatOpen(!isChatOpen)}
-        onToggleManual={() => setShowManual(!showManual)}
+        onToggleManual={() => handleShowManual()}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onHome={handleGoHome}
@@ -2604,6 +2614,7 @@ function App() {
         onClose={() => setShowManual(false)}
         mode={currentMode}
         aiSettings={aiSettings}
+        initialTab={manualTab}
       />
 
       <SettingsModal
@@ -2619,7 +2630,7 @@ function App() {
           onSelectMode={handleWelcomeModeSelect}
           settings={aiSettings}
           onUpdateSettings={handleSaveSettings}
-          onShowManual={() => setShowManual(true)}
+          onShowManual={handleShowManual}
           onShowDashboard={() => {
             setShowDashboard(true);
             setShowWelcome(false);
