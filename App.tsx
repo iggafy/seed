@@ -2180,7 +2180,7 @@ function App() {
 
         {/* Filter Menu Overlay */}
         {showFilterMenu && (
-          <div className="absolute left-36 bottom-24 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-28 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl w-48 ring-1 ring-white/5">
               <div className="flex justify-between items-center mb-3 pb-2 border-b border-white/5">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Seed Filters</span>

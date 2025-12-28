@@ -48,38 +48,39 @@ const Toolbar: React.FC<ToolbarProps> = ({
   isProcessing
 }) => {
   return (
-    <div className="absolute left-6 bottom-6 flex flex-col items-start gap-3 z-50 group/toolbar">
+    <div className="absolute left-1/2 -translate-x-1/2 bottom-6 flex flex-col items-center gap-3 z-50 group/toolbar">
 
       {/* 
-        UTILITY RAIL (Vertical)
+        UTILITY RAIL (Horizontal - appears on hover above main dock)
         Contains system-level tools. 
         Slightly smaller, more minimal.
       */}
-      <div className="flex flex-col bg-slate-950/40 backdrop-blur-3xl rounded-[24px] border border-white/10 p-1.5 gap-1 shadow-2xl transition-all duration-500 hover:bg-slate-950/60 group-hover/toolbar:translate-y-0 translate-y-2 opacity-0 group-hover/toolbar:opacity-100 pointer-events-none group-hover/toolbar:pointer-events-auto">
+
+      <div className="flex items-center bg-slate-950/40 backdrop-blur-3xl rounded-full border border-white/10 px-2 py-1.5 gap-1 shadow-2xl transition-all duration-500 hover:bg-slate-950/60 opacity-0 group-hover/toolbar:opacity-100 translate-y-4 group-hover/toolbar:translate-y-0 pointer-events-none group-hover/toolbar:pointer-events-auto">
         <button
           onClick={onDashboard}
-          className="p-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+          className="p-3 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all"
           title="Seed Spaces"
         >
           <LayoutGrid size={18} />
         </button>
         <button
           onClick={onSave}
-          className="p-3 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
+          className="p-3 rounded-full text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
           title="Save Current Seed"
         >
           <Save size={18} />
         </button>
         <button
           onClick={onStructureView}
-          className="p-3 rounded-xl text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 transition-all"
+          className="p-3 rounded-full text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 transition-all"
           title="Structure View"
         >
           <Network size={18} />
         </button>
         <button
           onClick={onToggleFilterMenu}
-          className={`p-3 rounded-xl transition-all ${isFilterActive
+          className={`p-3 rounded-full transition-all ${isFilterActive
             ? 'text-sky-400 bg-sky-500/10'
             : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
           title="Filter Seed Types"
@@ -88,7 +89,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </button>
         <button
           onClick={onToggleInfo}
-          className={`p-3 rounded-xl transition-all ${isInfoOpen
+          className={`p-3 rounded-full transition-all ${isInfoOpen
             ? 'text-indigo-400 bg-indigo-500/10'
             : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
           title="Legend & Info"
@@ -97,7 +98,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </button>
         <button
           onClick={onToggleSettings}
-          className="p-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+          className="p-3 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all"
           title="AI Settings"
         >
           <Cpu size={18} />

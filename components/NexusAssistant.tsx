@@ -43,7 +43,7 @@ const NexusAssistant: React.FC<NexusAssistantProps> = ({
     };
 
     return (
-        <div className="absolute right-4 top-4 w-96 max-h-[calc(100vh-2rem)] h-[calc(100vh-2rem)] z-30 flex flex-col bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in slide-in-from-right-10 duration-300 ring-1 ring-white/5">
+        <div className="absolute left-6 top-24 w-80 max-h-[calc(100vh-7rem)] h-[calc(100vh-7rem)] z-30 flex flex-col bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in slide-in-from-left-10 duration-300 ring-1 ring-white/5">
             {/* Header */}
             <div className="p-4 border-b border-white/5 bg-slate-800/20 flex items-center justify-between">
                 <div className="flex items-center gap-3">

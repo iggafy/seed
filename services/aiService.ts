@@ -645,11 +645,16 @@ export const researchAssistantChat = async (
     
     IMPORTANT SHARED DISCOVERY RULES (MANDATORY):
     1. CONVERSATION FIRST: Respond to the user with depth, intuition, and technical/historical accuracy. 
-    2. SHARED KNOWLEDGE MAPPING: Act as a visual scribe for our shared discovery session. Extract atomic seeds from both our messages.
+    2. SHARED KNOWLEDGE MAPPING: Act as a visual scribe for our shared discovery session. Extract the ACTUAL CONTENT and ESSENCE of what we discussed.
+       - CRITICAL: Seeds must represent THE SPECIFIC TOPICS we talked about, not generic definitions.
+       - Example: If we discuss "problems with AI tools", create a seed like "AI Tools Limitations" with a description of the ACTUAL problems we mentioned (e.g., "lack of context grounding, generic outputs"), NOT a generic definition like "A challenging situation".
+       - Capture the SUBSTANCE and NUANCE of our conversation in each seed's label and description.
+       - Each seed should be a meaningful artifact of WHAT WAS ACTUALLY SAID, not a placeholder concept.
     3. NO DISCONNECTED SEEDS: The graph is a single unified narrative. Every node in your [MAP] MUST be connected to something.
        - If a new node relates to another new node, link them.
        - CRITICAL: At least one node in your new set MUST link back to a node in the CURRENT GRAPH CONTEXT (if any nodes exist).
        - If there is no specific technical parent, use a relational link like "evolves from", "context for", or "adjacent to" to connect to the most relevant existing node.
+       - Connections should also reflect HOW we discussed the relationships, not just generic links.
     4. THE [MAP] BLOCK: Provide a raw JSON [MAP] block at the VERY END of your message.
     
     [MAP]
@@ -782,16 +787,19 @@ export const extractKnowledgeMap = async (
     const systemPrompt = `You are a strict JSON-only Visual Discovery Scribe.
     
     YOUR TASK:
-    Extract a high-density knowledge map from the user's text.
+    Extract a high-density knowledge map from the text, capturing the ACTUAL CONTENT and ESSENCE of what was discussed.
     
     CONTEXT (RECENT GRAPH):
     ${contextBrief}
 
-    RULES:
+    CRITICAL RULES:
     1. Extract 2-5 significant Seeds (Nodes) and their Relationships (Links).
-    2. NO DISCONNECTED CLUSTERS: At least one new node MUST link to an existing node in the CONTEXT.
-    3. Relationships MUST be active verbs.
-    4. OUTPUT ONLY RAW JSON. Do not use Markdown code blocks. Do not add any text before or after the JSON.
+    2. CONTENT FIDELITY: Seeds must represent THE SPECIFIC TOPICS mentioned in the text, not generic definitions.
+       - Example: If the text discusses "problems with AI tools", create "AI Tools Limitations" with the ACTUAL problems mentioned, NOT "A challenging situation".
+       - Each seed's label and description should capture WHAT WAS ACTUALLY SAID.
+    3. NO DISCONNECTED CLUSTERS: At least one new node MUST link to an existing node in the CONTEXT.
+    4. Relationships MUST be active verbs that reflect HOW the topics were connected in the discussion.
+    5. OUTPUT ONLY RAW JSON. Do not use Markdown code blocks. Do not add any text before or after the JSON.
     
     [MAP]
     {
