@@ -698,6 +698,15 @@ function App() {
                 history: [`Mapped Link: ${target?.label} -> ${existingNode.label}`, ...prev.history].slice(0, 10)
               }));
             }
+
+            // NESTING PIVOT for existing nodes
+            if (suggestion.shouldSeedIn && isActiveRef.current) {
+              setNotification({ message: `Diving into ${existingNode.label}...`, type: 'info' });
+              setTimeout(() => {
+                handleEnterNestedSession(existingNode);
+              }, 2000);
+              return;
+            }
           } else {
             // Create New Node
             const newNodeId = generateId();
@@ -730,6 +739,15 @@ function App() {
               activeNodeId: prev.isQuest ? newNodeId : prev.activeNodeId,
               history: [`[${nextPolicy}] ${suggestion.label}`, ...prev.history].slice(0, 10)
             }));
+
+            // NESTING PIVOT
+            if (suggestion.shouldSeedIn && isActiveRef.current) {
+              setNotification({ message: `Diving into ${suggestion.label}...`, type: 'info' });
+              setTimeout(() => {
+                handleEnterNestedSession(newNode);
+              }, 2000); // Give user time to see the node appear
+              return; // Stop current pulse loop, it will resume in the new space
+            }
           }
         }
       } catch (e) {
@@ -1982,7 +2000,8 @@ function App() {
     }
   };
 
-  const assimilateMapData = (map: { nodes: AISuggestion[], links: Array<{ sourceLabel: string, targetLabel: string, relation: string }> }) => {
+  const assimilateMapData = (map: { nodes: AISuggestion[], links: Array<{ sourceLabel: string, targetLabel: string, relation: string }> }): GraphNode | null => {
+    let pivotNode: GraphNode | null = null;
     if ((map.nodes && map.nodes.length > 0) || (map.links && map.links.length > 0)) {
       recordHistory();
       setData(prev => {
@@ -2117,9 +2136,19 @@ function App() {
 
         return { nodes: nextNodes, links: nextLinks };
       });
+
+      // Find the pivot node in the SUGGESTIONS batch to return for automatic "Seed In"
+      const pivotSuggestion = map.nodes.find(s => s.shouldSeedIn);
+      if (pivotSuggestion) {
+        // We need to find the actual node in the updated state (which might be the existing one or the new one)
+        // Since we don't have the updated state here synchronously, we check our current data + logic
+        pivotNode = data.nodes.find(n => n.label.toLowerCase() === pivotSuggestion.label.toLowerCase()) || null;
+      }
+
       setNotification({ message: "Knowledge map updated", type: 'success' });
       setTimeout(() => setNotification(null), 3000);
     }
+    return pivotNode;
   };
 
   const handleChatSendMessage = async (content: string) => {
@@ -2165,11 +2194,18 @@ function App() {
 
       // Process User-driven mapping in background
       const userMapData = await userMapPromise;
-      assimilateMapData(userMapData);
+      const userPivot = assimilateMapData(userMapData);
+      if (userPivot) {
+        setTimeout(() => handleEnterNestedSession(userPivot), 1500); // Slight delay for clarity
+        return; // Don't do the next one if we already pivoted
+      }
 
       // Task 4: Background Mapping (Extract from AI reply)
       const aiMapData = await extractKnowledgeMap(aiSettings, aiResponseText, fullGraphContext, currentMode);
-      assimilateMapData(aiMapData);
+      const aiPivot = assimilateMapData(aiMapData);
+      if (aiPivot) {
+        setTimeout(() => handleEnterNestedSession(aiPivot), 2500);
+      }
 
     } catch (e: any) {
       popError(e.message || "Nexus chat failed");
