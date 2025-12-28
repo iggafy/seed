@@ -2,17 +2,17 @@ import { AISuggestion, NodeType, AIProvider, AISettings, GraphNode, ChatMessage,
 import { getModeConfig } from '../constants';
 
 const INNOVATION_RESEARCH_PRINCIPLES = `
-INNOVATION RESEARCH PRINCIPLES:
-1. EPISTEMIC GROUNDING: Be concrete. Use specific technical terms, architectural patterns, biological mechanisms, or industrial processes.
-2. EXPERIENTIAL ANCHORING: Describe concepts through the lens of real interaction. Mention "the practitioner," "the end-user," "the operator," or "the system bottleneck."
-3. HUMAN RELEVANCE: Connect abstract ideas to real-world friction, cost, time, or safety. Why does it matter right now?
-4. FALSIFIABILITY: Avoid buzzwords. Be specific enough that a physical or technical implementation could be validated or stress-tested.
-5. CURRENT TECHNOLOGY: Focus on what can be started or prototyped today (0-5 years). Avoid purely theoretical sci-fi (like broad-market starships).
-6. FOUNDER-GRADE PAIN: Focus on high-intent problems. Concrete, costly, and recognizable. Identify "clear losers" and "massive inefficiency" where a breakthrough would create immediate value.
-7. SHARP & GROUNDED: Avoid institutional white-paper tone. Be direct, pragmatic, and slightly skeptical of "magic" solutions.
-8. REAL-WORLD VIABILITY: When proposing solutions, constraints (energy, bandwidth, cost, physics) must be acknowledged. Improvements should be incremental and specific rather than magical.
-9. ANTI-HYPE: Do not use marketing fluff. If a solution is boring but effective, state it.
-10. CONTEXTUAL INTEGRITY: MATCH THE LAYER. If the user's graph is about software/web (e.g. "API", "React", "User Flow"), your suggestions MUST be software-based. Do not jump to hardware/bio/quantum unless the graph ALREADY contains those elements. If the context is ambiguous, favor software/digital product solutions as the default baseline.
+INNOVATION_PRINCIPLES (GROUNDED PRODUCT THINKING):
+1. PRODUCT-FIRST: Focus on the user experience and utility before infrastructure. Think: "How does this feel?" and "Why do they care?"
+2. THE "MOM TEST": Describe concepts in language a smart non-engineer can understand. Avoid jargon-heavy architectural hallucinations.
+3. ABSTRACTION LAYERING: Do not skip to deep backend complexity (like clock sync or distributed edge nodes) unless the graph is already focused on that specific layer.
+4. FIRST PRINCIPLES: Break innovations down into their core physical or psychological logic rather than using tech buzzwords.
+5. PRAGMATIC SPECIFICITY: Be specific about the "innovation," but don't hide behind speculative complexity to sound "advanced."
+6. EVOLUTIONARY STEPS: Prioritize the immediate next breakthrough (Years 0-3) over distant sci-fi infrastructure.
+7. GROUNDED FEASIBILITY: A feasibility score of 1.0 means it can be prototyped this week. 0.1 means it requires new physics.
+8. ANTI-JARGON: If a 10-syllable word can be replaced by a 1-syllable word, do it. Clarity is the highest status.
+9. THE FOUNDER'S EYE: Look for unsexy but high-value improvements in cost, time, and human effort.
+10. CONTEXTUAL MIRRORING: If the user is talking about a consumer app, don't suggest a kernel-level driver optimization. Match their mental layer.
 `;
 
 const KNOWLEDGE_RESEARCH_PRINCIPLES = `
@@ -31,11 +31,21 @@ const NODE_SCHEMA_OPENAI = {
     type: "object",
     properties: {
         label: { type: "string", description: "Name of the new concept" },
-        type: { type: "string", enum: [NodeType.CONCEPT, NodeType.TECHNOLOGY, NodeType.PROBLEM, NodeType.PAIN_POINT, NodeType.INNOVATION, NodeType.CONSTRAINT, NodeType.FRICTION, NodeType.ENTITY, NodeType.QUESTION, NodeType.TRACE, NodeType.EVENT, NodeType.PERSON, NodeType.PLACE, NodeType.THEORY, NodeType.ARTIFACT, NodeType.MOVEMENT, NodeType.DISCOVERY, NodeType.RELATIONSHIP, NodeType.CONTRADICTION, NodeType.IMPLEMENTATION, NodeType.USER_SEGMENT] },
+        type: { type: "string", enum: [NodeType.CONCEPT, NodeType.TECHNOLOGY, NodeType.PROBLEM, NodeType.PAIN_POINT, NodeType.INNOVATION, NodeType.CONSTRAINT, NodeType.FRICTION, NodeType.ENTITY, NodeType.QUESTION, NodeType.TRACE, NodeType.EVENT, NodeType.PERSON, NodeType.PLACE, NodeType.THEORY, NodeType.ARTIFACT, NodeType.MOVEMENT, NodeType.DISCOVERY, NodeType.RELATIONSHIP, NodeType.CONTRADICTION, NodeType.IMPLEMENTATION, NodeType.USER_SEGMENT, NodeType.ANALOGY, NodeType.REGULATION, NodeType.MARKET, NodeType.ETHICS, NodeType.MENTAL_MODEL] },
         description: { type: "string", description: "Short description" },
-        relationToParent: { type: "string", description: "Relationship verb" }
+        relationToParent: { type: "string", description: "Relationship verb" },
+        valueVector: {
+            type: "object",
+            properties: {
+                feasibility: { type: "number", description: "0-1" },
+                novelty: { type: "number", description: "0-1" },
+                friction: { type: "number", description: "0-1" },
+                impact: { type: "number", description: "0-1" }
+            },
+            required: ["feasibility", "novelty", "friction", "impact"]
+        }
     },
-    required: ["label", "type", "description", "relationToParent"],
+    required: ["label", "type", "description", "relationToParent", "valueVector"],
     additionalProperties: false
 };
 
@@ -453,89 +463,80 @@ Response schema: Single node (the bridging concept) connecting them, or just a r
 export const agenticDiscovery = async (
     settings: AISettings,
     fullGraphContext: string,
-    activeNode?: GraphNode,
+    activeNode: GraphNode,
+    goalNode: GraphNode | null,
+    globalConstraints: GraphNode[],
+    policy: 'EXPLOIT' | 'EXPLORE' | 'PROBE' | 'RE_ANCHOR',
     mode: ExplorationMode = ExplorationMode.INNOVATION
 ): Promise<AISuggestion | null> => {
     if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const modeConfig = getModeConfig(mode);
     const persona = modeConfig.aiPersona;
-    const isConstraint = activeNode && (
-        activeNode.type === NodeType.CONSTRAINT ||
-        activeNode.type === NodeType.FRICTION ||
-        (mode === ExplorationMode.KNOWLEDGE && activeNode.type === NodeType.CONTRADICTION)
-    );
-    const isProblematic = activeNode && (
-        activeNode.type === NodeType.PROBLEM ||
-        activeNode.type === NodeType.PAIN_POINT ||
-        (mode === ExplorationMode.KNOWLEDGE && activeNode.type === NodeType.QUESTION)
-    );
-    const isQuestion = activeNode && activeNode.type === NodeType.QUESTION;
 
-    let intent;
-    if (isConstraint) {
-        // Roadblock hit: Mitigation or Pivot?
-        intent = Math.random() > 0.4 ? "MITIGATE" : "PIVOT";
-    } else if (isProblematic) {
-        intent = mode === ExplorationMode.INNOVATION ? "SOLVE" : "RESOLVE";
-    } else if (isQuestion) {
-        intent = "ANSWER";
-    } else {
-        intent = Math.random() > 0.3 ? "EXPAND" : "CHALLENGE";
+    const constraintContext = globalConstraints.length > 0
+        ? `GLOBAL CONSTRAINTS (Laws of this space):\n${globalConstraints.map(c => `- ${c.label}: ${c.description} [STRENGTH: ${c.constraintProps?.strength || 'hard'}]`).join('\n')}`
+        : "No explicit global constraints active.";
+
+    const goalContext = goalNode
+        ? `NORTH STAR GOAL:\nLabel: ${goalNode.label}\nDescription: ${goalNode.description}`
+        : "No explicit North Star defined. Aim for general innovation.";
+
+    // Strategy Selection Guidance
+    let policyGuidance = "";
+    let intent = "EXPAND";
+
+    switch (policy) {
+        case 'EXPLOIT':
+            intent = "DEEPEN";
+            policyGuidance = "FOCUSED REFINEMENT: Take the current active node and double down. Improve its feasibility, reduce technical risk, or specify the implementation. Move closer to a working prototype.";
+            break;
+        case 'EXPLORE':
+            intent = "LATERIAL_JUMP";
+            policyGuidance = "FRONTIER EXPANSION: Look away from the current cluster. Propose a new primitive, an ANALOGY from a distant domain, or a technological capability not yet mentioned. Increase ENTIRE SYSTEM entropy.";
+            break;
+        case 'PROBE':
+            intent = "STRESS_TEST";
+            policyGuidance = "BOUNDARY TESTING: Deliberately propose something that pushes against the ACTIVE CONSTRAINTS. Find the edge cases or the failure modes. What breaks this idea?";
+            break;
+        case 'RE_ANCHOR':
+            intent = "GOAL_ALIGNMENT";
+            policyGuidance = "RE-ANCHORING: Explicitly pull the discovery back towards the NORTH STAR GOAL. If we have drifted into technical trivia, find the shortest path back to solving the primary objective.";
+            break;
     }
 
-    const expandGuidance = mode === ExplorationMode.INNOVATION
-        ? "Grow the graph by proposing a non-obvious next step (TECHNOLOGY, INNOVATION, or ENTITY)."
-        : "Grow the graph by proposing a non-obvious next step (EVENT, PERSON, THEORY, or DISCOVERY).";
-
-    const challengeGuidance = mode === ExplorationMode.INNOVATION
-        ? "Challenge the current path by proposing an unavoidable CONSTRAINT or FRICTION node."
-        : "Challenge assumptions by proposing a QUESTION or alternative THEORY node.";
-
-    const solveGuidance = mode === ExplorationMode.INNOVATION
-        ? "Target is a technical problem or pain point. Propose a specific SOLUTION or mitigation approach. DO NOT be generic. Consider the architectural trade-offs."
-        : "Target is a historical contradiction or gap. Provide a RESOLUTION or evidence-based synthesis that reconciles conflicting artifacts or accounts.";
-
-    const answerGuidance = "Target is a question. Synthesize an evidence-based ANSWER or resolution.";
-
-    const mitigateGuidance = mode === ExplorationMode.INNOVATION
-        ? "Target is a ROADBLOCK (Constraint/Friction). Propose a technical way to OVERCOME or circumvent this specific limitation."
-        : "Target is a CONTRADICTION. Synthesize a higher-level perspective that reconciles the conflicting accounts or evidence.";
-
-    const pivotGuidance = mode === ExplorationMode.INNOVATION
-        ? "Target is a ROADBLOCK. This path might be a dead end. PIVOT: Propose an alternative solution or approach that avoids this specific constraint."
-        : "Target is a CONTRADICTION. This line of reasoning is conflicting. PIVOT: Propose an alternative theory or historical perspective that avoids this specific contradiction.";
-
     const specificityGuidance = mode === ExplorationMode.INNOVATION
-        ? `1. DO NOT be generic. Be technically specific.
-    2. AVOID LOOPS: If the surrounding graph is mostly TECHNOLOGIES, look for a PAIN_POINT, USER_SEGMENT, or ETHICS node. If it is all PROBLEMS, look for an ENTITY, MARKET driver, or ANALOGY.
-    3. BALANCE: For every two forward steps, provide one grounding step (CONSTRAINT, FRICTION, REGULATION, or QUESTION).
-    4. PERSPECTIVE: Occasionally challenge the underlying MENTAL_MODEL or propose a cross-disciplinary ANALOGY.
+        ? `1. TECHNICALLY SPECIFIC: Use domain-specific terminology (e.g., "Vector Clocks", "Phase-Change Memory", "CRISPR-Cas9").
+    2. VALUE GRADIENT: Ensure the suggestion adds measurable value to the graph.
+    3. CONSTRAINT RESPECT: If a HARD constraint exists, DO NOT violate it unless in PROBE mode.
+    4. CITATION: Mention why this move makes sense given the GOAL and CONSTRAINTS.
     ${INNOVATION_RESEARCH_PRINCIPLES}`
-        : `1. DO NOT be generic. Be historically and factually accurate.
-    2. AVOID LOOPS: Do not just chain EVENTS. Link them to the PERSON who influenced them or the ARTIFACT they left behind.
-    3. CURIOSITY: Look for the CONTRADICTION or QUESTION that remains unanswered in this lineage.
+        : `1. FACTUALLY ANCHORED: Link to specific historical entities or theories.
+    2. CURIOSITY DRIVEN: Find the contradiction or the missing link in the narrative.
     ${KNOWLEDGE_RESEARCH_PRINCIPLES}`;
 
-    const prompt = `You are a SEED Discovery Agent working as a ${persona}. 
-    ${activeNode ? `Focusing on: "${activeNode.label}" [${activeNode.type}]` : "Scanning the entire system."}
+    const prompt = `You are a Scientific Discovery Engine working as a ${persona}.
     
-    Current System State:
+    POLICY: ${policy} (${policyGuidance})
+    ACTIVE SEED: "${activeNode.label}" [${activeNode.type}]
+    
+    ${goalContext}
+    
+    ${constraintContext}
+
+    CURRENT SYSTEM STATE (The Discovery Map):
     ${fullGraphContext}
 
-    Objective (${intent}):
-    ${intent === "EXPAND" ? expandGuidance :
-            intent === "CHALLENGE" ? challengeGuidance :
-                intent === "SOLVE" ? solveGuidance :
-                    intent === "RESOLVE" ? solveGuidance :
-                        intent === "ANSWER" ? answerGuidance :
-                            intent === "MITIGATE" ? mitigateGuidance : pivotGuidance
-        }
+    YOUR OBJECTIVE:
+    ${intent === "DEEPEN" ? "Grow the branch into higher feasibility." :
+            intent === "LATERIAL_JUMP" ? "Propose a novel, distant connection or analogy." :
+                intent === "STRESS_TEST" ? "Identify a fundamental friction or constraint." :
+                    "Re-connect current findings to the North Star Goal."}
 
-    Constraint:
+    GUIDANCE:
     ${specificityGuidance}
     
-    Output a single node suggestion. If PIVOTING, ensure the 'relationToParent' field clearly identifies what it is pivoting 'from' or 'instead of'.`;
+    Output a single node suggestion with a full ValueVector (0-1).`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
     return result[0] || null;
@@ -1031,7 +1032,8 @@ async function runIPCRequest(
         label: n.label || n.title || "Unknown",
         type: n.type || "CONCEPT",
         description: n.description || "No description",
-        relationToParent: n.relationToParent || n.relation || "related"
+        relationToParent: n.relationToParent || n.relation || "related",
+        valueVector: n.valueVector || undefined
     });
 
     if (isArray) {

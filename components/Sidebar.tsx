@@ -23,6 +23,8 @@ interface SidebarProps {
   onAnswer: (node: GraphNode) => void;
   onAssimilate: (nodeId: string) => void;
   onPrune: (nodeId: string) => void;
+  onSetGoalNode: (nodeId: string) => void;
+  onSetConstraintNode: (nodeId: string, strength: 'hard' | 'soft') => void;
   onDirectedDiscovery: (node: GraphNode, instruction: string, count: number) => void;
   onOpenWiki: (node: GraphNode) => void;
   onCreateNewSpace: (node: GraphNode) => void;
@@ -54,6 +56,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAnswer,
   onAssimilate,
   onPrune,
+  onSetGoalNode,
+  onSetConstraintNode,
   onDirectedDiscovery,
   onOpenWiki,
   onCreateNewSpace,
@@ -272,6 +276,60 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {node.description || <span className="text-slate-600 italic">No description provided.</span>}
               </p>
             )}
+          </div>
+
+          {/* VALUE VECTOR (Material Discovery Style) */}
+          {node.valueVector && (
+            <div className="bg-slate-950/40 rounded-2xl p-4 border border-white/5 space-y-3">
+              <h3 className="text-[10px] font-bold uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                <Binary size={12} className="text-sky-400" /> Value Vector
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: 'Feasibility', val: node.valueVector.feasibility, color: 'bg-emerald-500' },
+                  { label: 'Novelty', val: node.valueVector.novelty, color: 'bg-violet-500' },
+                  { label: 'Friction', val: node.valueVector.friction, color: 'bg-amber-500' },
+                  { label: 'Impact', val: node.valueVector.impact, color: 'bg-rose-500' }
+                ].map(v => (
+                  <div key={v.label} className="space-y-1">
+                    <div className="flex justify-between text-[9px] uppercase font-bold text-slate-400">
+                      <span>{v.label}</span>
+                      <span>{Math.round(v.val * 100)}%</span>
+                    </div>
+                    <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${v.color} transition-all duration-1000`}
+                        style={{ width: `${v.val * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Goal / Constraint Toolset */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => onSetGoalNode(node.id)}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border
+                ${node.isGoalNode
+                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-lg shadow-amber-900/20'
+                  : 'bg-slate-900/50 text-slate-500 border-white/5 hover:border-white/10'}`}
+            >
+              <Orbit size={14} className={node.isGoalNode ? 'animate-spin-slow' : ''} />
+              {node.isGoalNode ? 'Active Goal' : 'Set as Goal'}
+            </button>
+            <button
+              onClick={() => onSetConstraintNode(node.id, 'hard')}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border
+                 ${node.type === NodeType.CONSTRAINT
+                  ? 'bg-red-500/20 text-red-400 border-red-500/40'
+                  : 'bg-slate-900/50 text-slate-500 border-white/5 hover:border-white/10'}`}
+            >
+              <AlertCircle size={14} />
+              {node.type === NodeType.CONSTRAINT ? 'Law active' : 'Set as Law'}
+            </button>
           </div>
 
           {/* Wikipedia Context Section */}

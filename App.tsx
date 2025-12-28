@@ -12,6 +12,7 @@ import NexusConfirmDialog from './components/NexusConfirmDialog';
 import ConfirmDialog from './components/ConfirmDialog';
 import WormholeSelector from './components/WormholeSelector';
 import WelcomeScreen from './components/WelcomeScreen';
+import SEEDManual from './components/SEEDManual';
 import NexusWikiBrowser from './components/NexusWikiBrowser';
 import { searchWikipedia } from './services/wikipediaService';
 import { ChatMessage, AISuggestion, DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile, GraphLink, ExplorationMode, WikiBrowserState } from './types';
@@ -106,7 +107,6 @@ function App() {
   // Filtering & Info
   const [hiddenTypes, setHiddenTypes] = useState<NodeType[]>([]);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
   const [layoutTrigger, setLayoutTrigger] = useState(0);
 
   // Context / Lineage Mode
@@ -131,7 +131,10 @@ function App() {
   const [discoveryState, setDiscoveryState] = useState<DiscoveryState>({
     isActive: false,
     activeNodeId: null,
-    history: []
+    history: [],
+    stepCount: 0,
+    currentPolicy: 'EXPLOIT',
+    goalNodeId: null
   });
 
   const [discardedLuckySeeds, setDiscardedLuckySeeds] = useState<string[]>([]);
@@ -161,6 +164,9 @@ function App() {
     title: '',
     sourceNodeId: null
   });
+
+  // Manual State
+  const [showManual, setShowManual] = useState(false);
 
   // Load Settings from LocalStorage
   useEffect(() => {
@@ -498,31 +504,87 @@ function App() {
       const currentNodes = dataRef.current.nodes.filter(n => !n.isGhost);
       if (currentNodes.length === 0) return;
 
+      // --- DISCOVERY STEERING LOGIC ---
+      const currentState = discoveryStateRef.current;
+      const stepCount = currentState.stepCount || 0;
+      let nextPolicy = currentState.currentPolicy || 'EXPLOIT';
+
+      // Policy Rotation (Material Discovery Style)
+      // Every 5 steps, Re-Anchor to the goal.
+      // Otherwise cycle between Exploit, Explore, and Probe.
+      if (stepCount > 0 && stepCount % 6 === 0) {
+        nextPolicy = 'RE_ANCHOR';
+      } else if (stepCount % 3 === 0) {
+        nextPolicy = 'EXPLORE';
+      } else if (stepCount % 4 === 0) {
+        nextPolicy = 'PROBE';
+      } else {
+        nextPolicy = 'EXPLOIT';
+      }
+
+      // FIND ANCHORS
+      const goalNode = dataRef.current.nodes.find(n => n.isGoalNode) || dataRef.current.nodes.find(n => n.isRoot) || null;
+      const globalConstraints = dataRef.current.nodes.filter(n => n.type === NodeType.CONSTRAINT || n.type === NodeType.FRICTION);
+
+      // --- RE-ANCHOR: CLEANUP GHOSTS ---
+      // If re-anchoring, prune ghosts with low novelty/impact or high friction
+      if (nextPolicy === 'RE_ANCHOR') {
+        const lowValueNodeIds = dataRef.current.nodes
+          .filter(n => n.isGhost && n.valueVector && (n.valueVector.impact < 0.3 || n.valueVector.friction > 0.8))
+          .map(n => n.id);
+
+        if (lowValueNodeIds.length > 0) {
+          setData(prev => ({
+            nodes: prev.nodes.filter(n => !lowValueNodeIds.includes(n.id)),
+            links: prev.links.filter(l => {
+              const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+              const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+              return !lowValueNodeIds.includes(s) && !lowValueNodeIds.includes(t);
+            })
+          }));
+          setDiscoveryState(prev => ({
+            ...prev,
+            history: [`Cleaned ${lowValueNodeIds.length} low-value paths`, ...prev.history].slice(0, 10)
+          }));
+        }
+      }
+
       // TARGET SELECTION LOGIC
       // 1. Check if we have a focus node from state
-      let targetId = discoveryStateRef.current.activeNodeId;
+      let targetId = currentState.activeNodeId;
       let target = targetId ? currentNodes.concat(dataRef.current.nodes.filter(n => n.isGhost)).find(n => n.id === targetId) : null;
 
       // 2. If no target or target is gone, and we are in quest mode, stop quest
-      if (!target && discoveryStateRef.current.isQuest) {
+      if (!target && currentState.isQuest) {
         setDiscoveryState(prev => ({ ...prev, isQuest: false, activeNodeId: null }));
         return;
       }
 
-      // 3. If no target, pick a purposeful one (prioritize problems/questions if in innovation mode)
+      // 3. If no target, pick a purposeful one
       if (!target) {
-        const priorityNodes = modeRef.current === ExplorationMode.INNOVATION
-          ? currentNodes.filter(n => [NodeType.PROBLEM, NodeType.PAIN_POINT, NodeType.QUESTION, NodeType.FRICTION, NodeType.CONSTRAINT, NodeType.ETHICS, NodeType.REGULATION, NodeType.MARKET, NodeType.MENTAL_MODEL].includes(n.type))
-          : currentNodes.filter(n => [NodeType.QUESTION, NodeType.CONTRADICTION].includes(n.type));
-
-        if (priorityNodes.length > 0) {
-          target = priorityNodes[Math.floor(Math.random() * priorityNodes.length)];
+        if (nextPolicy === 'RE_ANCHOR' && goalNode) {
+          target = goalNode;
         } else {
-          target = currentNodes[Math.floor(Math.random() * currentNodes.length)];
+          const priorityNodes = modeRef.current === ExplorationMode.INNOVATION
+            ? currentNodes.filter(n => [NodeType.PROBLEM, NodeType.PAIN_POINT, NodeType.QUESTION, NodeType.FRICTION, NodeType.CONSTRAINT, NodeType.ETHICS, NodeType.REGULATION, NodeType.MARKET, NodeType.MENTAL_MODEL].includes(n.type))
+            : currentNodes.filter(n => [NodeType.QUESTION, NodeType.CONTRADICTION].includes(n.type));
+
+          if (priorityNodes.length > 0) {
+            target = priorityNodes[Math.floor(Math.random() * priorityNodes.length)];
+          } else {
+            target = currentNodes[Math.floor(Math.random() * currentNodes.length)];
+          }
         }
       }
 
-      setDiscoveryState(prev => ({ ...prev, activeNodeId: target!.id }));
+      if (!target) return; // Fallback
+
+      setDiscoveryState(prev => ({
+        ...prev,
+        activeNodeId: target!.id,
+        currentPolicy: nextPolicy,
+        stepCount: stepCount + 1
+      }));
 
       const nodesString = dataRef.current.nodes.map(n => `- ${n.label} (${n.type})`).join('\n');
       const linksString = dataRef.current.links.map(l => {
@@ -530,6 +592,7 @@ function App() {
         const targetLabel = dataRef.current.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as any).id : l.target))?.label;
         return `- ${sourceLabel} --[${l.relation}]--> ${targetLabel}`;
       }).join('\n');
+
       const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}\n\nCURRENT DISCOVERY SESSION HISTORY:\n${discoveryStateRef.current.history.slice(0, 5).reverse().join(' -> ')}`;
 
       try {
@@ -539,29 +602,30 @@ function App() {
         // LOYAL STOP: Check again before AI call
         if (!isActiveRef.current) return;
 
-        const suggestion = await agenticDiscovery(settingsRef.current, fullGraphContext, target!, modeRef.current);
+        const suggestion = await agenticDiscovery(
+          settingsRef.current,
+          fullGraphContext,
+          target!,
+          goalNode,
+          globalConstraints,
+          nextPolicy,
+          modeRef.current
+        );
 
         if (suggestion && isActiveRef.current) {
           // Check for Duplicates (Smart Match)
-          // Logic: Remove special chars, split, remove stop words, remove trailing 's', join, check equality
           const cleanWords = (str: string) => {
             return str.toLowerCase()
-              .replace(/[^a-z0-9 ]/g, '') // remove special chars context
+              .replace(/[^a-z0-9 ]/g, '')
               .split(/\s+/)
               .filter(w => !['the', 'a', 'an', 'of', 'in', 'on', 'at', 'to', 'for'].includes(w))
               .map(w => w.endsWith('s') && w.length > 3 ? w.slice(0, -1) : w);
           };
 
           const suggestionWords = cleanWords(suggestion.label).join('');
-
-          const existingNode = dataRef.current.nodes.find(n => {
-            const nodeWords = cleanWords(n.label).join('');
-            // Exact match on cleaned "meaning core"
-            return nodeWords === suggestionWords && nodeWords.length > 0;
-          });
+          const existingNode = dataRef.current.nodes.find(n => cleanWords(n.label).join('') === suggestionWords && suggestionWords.length > 0);
 
           if (existingNode) {
-            // Duplicate found: Just link to it if not already linked
             const alreadyLinked = dataRef.current.links.some(l => {
               const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
               const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
@@ -578,7 +642,7 @@ function App() {
               setData(prev => ({ ...prev, links: [...prev.links, newLink] }));
               setDiscoveryState(prev => ({
                 ...prev,
-                history: [`Reconnected: ${existingNode.label}`, ...prev.history].slice(0, 10)
+                history: [`Mapped Link: ${target?.label} -> ${existingNode.label}`, ...prev.history].slice(0, 10)
               }));
             }
           } else {
@@ -591,33 +655,13 @@ function App() {
               description: suggestion.description,
               isGhost: true,
               isNew: true,
+              valueVector: suggestion.valueVector,
               x: (target!.x || 0) + (Math.random() - 0.5) * 400,
               y: (target!.y || 0) + (Math.random() - 0.5) * 400
             };
 
-            // SCIENTIFIC PIVOT LOGIC: 
-            // If the suggestion is a pivot, we want to find the grandparent 
-            // (e.g., connect the new solution to the original problem, not the constraint)
-            let finalSourceId = target!.id;
-            const relation = (suggestion.relationToParent || "").toLowerCase();
-            const isPivot = relation.includes("pivot") || relation.includes("instead") || relation.includes("alternative");
-
-            if (isPivot) {
-              const parentLink = dataRef.current.links.find(l => {
-                const tId = typeof l.target === 'object' ? (l.target as any).id : l.target;
-                return tId === target!.id;
-              });
-              if (parentLink) {
-                const parentId = typeof parentLink.source === 'object' ? (parentLink.source as any).id : parentLink.source;
-                // If we are pivoting from a Constraint, we want to connect to the node that BROUGHT us to the constraint
-                // Usually: Problem -> Implementation -> Constraint. 
-                // Focused on Constraint, we pivot back to Implementation or even Problem.
-                finalSourceId = parentId;
-              }
-            }
-
             const newLink = {
-              source: finalSourceId,
+              source: target!.id,
               target: newNodeId,
               relation: suggestion.relationToParent || "hypothesized",
               isGhost: true
@@ -630,8 +674,8 @@ function App() {
 
             setDiscoveryState(prev => ({
               ...prev,
-              activeNodeId: prev.isQuest ? newNodeId : prev.activeNodeId, // Move focus if in quest mode
-              history: [`Discovered: ${suggestion.label} (${suggestion.type})`, ...prev.history].slice(0, 10)
+              activeNodeId: prev.isQuest ? newNodeId : prev.activeNodeId,
+              history: [`[${nextPolicy}] ${suggestion.label}`, ...prev.history].slice(0, 10)
             }));
           }
         }
@@ -643,7 +687,6 @@ function App() {
           return;
         }
 
-        // If we aren't in quest mode, clear active node for next random pick
         if (!discoveryStateRef.current.isQuest) {
           setDiscoveryState(prev => ({ ...prev, activeNodeId: null }));
         }
@@ -1497,6 +1540,38 @@ function App() {
     }));
   };
 
+  const handleSetGoalNode = (nodeId: string) => {
+    recordHistory();
+    setData(prev => ({
+      ...prev,
+      nodes: prev.nodes.map(n => ({
+        ...n,
+        isGoalNode: n.id === nodeId ? !n.isGoalNode : false // Only one goal at a time
+      }))
+    }));
+    setDiscoveryState(prev => ({
+      ...prev,
+      goalNodeId: prev.goalNodeId === nodeId ? null : nodeId,
+      stepCount: 0 // Reset steps to prioritize new goal
+    }));
+  };
+
+  const handleSetConstraintNode = (nodeId: string, strength: 'hard' | 'soft' = 'hard') => {
+    recordHistory();
+    setData(prev => ({
+      ...prev,
+      nodes: prev.nodes.map(n => n.id === nodeId ? {
+        ...n,
+        type: NodeType.CONSTRAINT,
+        constraintProps: {
+          strength,
+          scope: 'global',
+          type: 'technical'
+        }
+      } : n)
+    }));
+  };
+
   const handleUpdateLink = (sourceId: string, targetId: string, relation: string) => {
     recordHistory();
     setData(prev => ({
@@ -2211,123 +2286,6 @@ function App() {
           </div>
         )}
 
-        {/* Legend / Info Overlay */}
-        {showInfo && (
-          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowInfo(false)}>
-            <div className="bg-slate-900/95 border border-white/10 rounded-3xl p-8 max-w-2xl w-full shadow-2xl animate-in fade-in zoom-in duration-300 ring-1 ring-white/5" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-1">
-                    {data.nodes.length === 0 && !currentSeedFileId ? "SEED" : (currentSeedFileName || (data.nodes.length > 0 ? data.nodes[0].label : "Untethered Seed"))}
-                  </h2>
-                  <p className="text-sky-400 text-sm font-semibold tracking-wider uppercase">
-                    {data.nodes.length === 0 && !currentSeedFileId ? "Shared Exploration & Emergent Discovery" : "Active Seed Space"}
-                  </p>
-                </div>
-                <button onClick={() => setShowInfo(false)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-8 mb-8">
-                <div>
-                  <h3 className="text-xs font-bold uppercase text-slate-500 tracking-wider mb-4 border-b border-white/5 pb-2">Seed Ontology</h3>
-                  <div className="space-y-3">
-                    {modeConfig.nodeTypes.map(type => (
-                      <div key={type} className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: `${NODE_COLORS[type]}20`, border: `1px solid ${NODE_COLORS[type]}60` }}>
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS[type] }}></div>
-                        </div>
-                        <div>
-                          <div className="text-sm font-bold text-slate-200">{type}</div>
-                          <div className="text-[10px] text-slate-500 leading-tight">
-                            {type === NodeType.CONCEPT && "Abstract ideas & theories"}
-                            {type === NodeType.TECHNOLOGY && "Existing tools & platforms"}
-                            {type === NodeType.PROBLEM && "Technical bottlenecks & risks"}
-                            {type === NodeType.PAIN_POINT && "Real-world friction & needs"}
-                            {type === NodeType.INNOVATION && "Breakthrough solutions"}
-                            {type === NodeType.ENTITY && "People, companies, orgs"}
-                            {type === NodeType.QUESTION && "Research inquiries & unknowns"}
-                            {type === NodeType.IMPLEMENTATION && "Practical apps & products"}
-                            {type === NodeType.USER_SEGMENT && "Target audience & personas"}
-                            {type === NodeType.TRACE && "Historical analysis path"}
-                            {type === NodeType.EVENT && "Historical occurrences & milestones"}
-                            {type === NodeType.PERSON && "Influential individuals & figures"}
-                            {type === NodeType.PLACE && "Geographic locations & civilizations"}
-                            {type === NodeType.THEORY && "Philosophies, laws & frameworks"}
-                            {type === NodeType.ARTIFACT && "Objects, documents & creations"}
-                            {type === NodeType.MOVEMENT && "Social & cultural shifts"}
-                            {type === NodeType.DISCOVERY && "Revelations & scientific findings"}
-                            {type === NodeType.RELATIONSHIP && "Significant interconnections"}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-xs font-bold uppercase text-slate-500 tracking-wider mb-4 border-b border-white/5 pb-2">Interaction Guide</h3>
-                    <ul className="space-y-3 text-sm text-slate-400">
-                      <li className="flex items-start gap-2">
-                        <div className="mt-0.5 bg-slate-800 p-1 rounded"><Sparkles size={12} className="text-sky-400" /></div>
-                        <span><b>Right-click</b> any seed to access the AI menu (Expand, Trace, Deepen).</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="mt-0.5 bg-slate-800 p-1 rounded"><GitMerge size={12} className="text-violet-400" /></div>
-                        <span><b>Shift-click</b> to select multiple seeds for synergy analysis.</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="mt-0.5 bg-slate-800 p-1 rounded"><Layers size={12} className="text-emerald-400" /></div>
-                        <span><b>Double-click</b> or use context menu to <b>Seed In</b> and explore internal space.</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-xs font-bold uppercase text-slate-500 tracking-wider mb-3 border-b border-white/5 pb-2">Power Shortcuts</h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">{currentMode === ExplorationMode.INNOVATION ? 'Innovate' : 'Synthesize'}</span>
-                          <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-violet-400 font-mono">I</kbd>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">{currentMode === ExplorationMode.INNOVATION ? 'Solve Problem' : 'Resolve'}</span>
-                          <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-emerald-400 font-mono">S</kbd>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">{currentMode === ExplorationMode.INNOVATION ? 'Answer Question' : 'Answer'}</span>
-                          <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-amber-400 font-mono">A</kbd>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Quick Expand</span>
-                          <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-sky-400 font-mono">E</kbd>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Delete Seed</span>
-                          <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-red-400 font-mono">DEL</kbd>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-800/30 rounded-xl p-4 border border-white/5">
-                      <h4 className="text-xs font-bold text-white mb-2">About Context Mode</h4>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        When <span className="text-violet-400">Context Lineage</span> is active, the AI is aware of the path you took to reach a node.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-center pt-6 border-t border-white/5 text-xs text-slate-600">
-                Shared Exploration & Emergent Discovery
-              </div>
-            </div>
-          </div>
-        )}
 
         {contextMenuNode && (
           <div
@@ -2576,7 +2534,6 @@ function App() {
         onStructureView={() => setLayoutTrigger(prev => prev + 1)}
         onToggleSettings={() => setShowSettings(true)}
         onToggleFilterMenu={() => setShowFilterMenu(!showFilterMenu)}
-        onToggleInfo={() => setShowInfo(!showInfo)}
         onToggleContextMode={() => setIsContextMode(!isContextMode)}
         onDashboard={() => setShowDashboard(true)}
         onSave={handleSaveSeed}
@@ -2593,17 +2550,23 @@ function App() {
           };
         })}
         onToggleChat={() => setIsChatOpen(!isChatOpen)}
+        onToggleManual={() => setShowManual(!showManual)}
         onUndo={handleUndo}
         onRedo={handleRedo}
         canUndo={past.length > 0}
         canRedo={future.length > 0}
         isFilterActive={hiddenTypes.length > 0}
-        isInfoOpen={showInfo}
         isContextMode={isContextMode}
         isDiscoveryActive={discoveryState.isActive}
         isChatOpen={isChatOpen}
         isProcessing={isProcessing}
-        activeTypeCount={0}
+      />
+
+      <SEEDManual
+        isOpen={showManual}
+        onClose={() => setShowManual(false)}
+        mode={currentMode}
+        aiSettings={aiSettings}
       />
 
       <SettingsModal
@@ -2657,6 +2620,8 @@ function App() {
         onAssimilate={handleAssimilateNode}
         onPrune={handlePruneNode}
         onOpenWiki={handleOpenWikiBrowser}
+        onSetGoalNode={handleSetGoalNode}
+        onSetConstraintNode={handleSetConstraintNode}
         allLinks={data.links}
         relationOptions={RELATION_OPTIONS}
         expansionBlueprints={EXPANSION_BLUEPRINTS}

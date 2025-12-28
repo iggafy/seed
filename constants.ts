@@ -38,7 +38,7 @@ export const MODE_CONFIGS: Record<ExplorationMode, ModeConfig> = {
       "imposes",
       "requires"
     ],
-    aiPersona: "pragmatic technologist, hands-on innovation architect, and systems skeptic",
+    aiPersona: "pragmatic product strategist, hands-on innovation architect, and systems-thinker who values clarity over jargon",
     seedExamples: [
       { label: 'The AI Context Tax', type: NodeType.PAIN_POINT, description: 'Senior devs spend 2.5 hours daily manually pasting code context, library docs, and schema definitions into LLM windows because automated RAG pipelines keep missing the technical nuance.' },
       { label: 'Cold Chain Integrity Gaps', type: NodeType.PROBLEM, description: 'Up to 25% of temperature-sensitive vaccines are wasted in last-mile transit because passive cooling containers lack real-time predictive failure alerts and adaptive insulation.' },

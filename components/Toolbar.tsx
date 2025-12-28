@@ -1,28 +1,26 @@
 import React from 'react';
-import { Plus, Network, Filter, Info, GitMerge, Cpu, LayoutGrid, Save, BrainCircuit, MessageSquare, Undo2, Redo2 } from 'lucide-react';
+import { Plus, Network, Filter, Info, GitMerge, Cpu, LayoutGrid, Save, BrainCircuit, MessageSquare, Undo2, Redo2, HelpCircle } from 'lucide-react';
 
 interface ToolbarProps {
   onAddNode: () => void;
   onStructureView: () => void;
   onToggleSettings: () => void;
   onToggleFilterMenu: () => void;
-  onToggleInfo: () => void;
   onToggleContextMode: () => void;
   onDashboard: () => void;
   onSave: () => void;
   onToggleDiscovery: () => void;
   onToggleChat: () => void;
+  onToggleManual: () => void;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
   isFilterActive: boolean;
-  isInfoOpen: boolean;
   isContextMode: boolean;
   isDiscoveryActive: boolean;
   isChatOpen: boolean;
   isProcessing: boolean;
-  activeTypeCount: number;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -30,18 +28,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onStructureView,
   onToggleSettings,
   onToggleFilterMenu,
-  onToggleInfo,
   onToggleContextMode,
   onDashboard,
   onSave,
   onToggleDiscovery,
   onToggleChat,
+  onToggleManual,
   onUndo,
   onRedo,
   canUndo,
   canRedo,
   isFilterActive,
-  isInfoOpen,
   isContextMode,
   isDiscoveryActive,
   isChatOpen,
@@ -59,7 +56,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <div className="flex items-center bg-slate-950/40 backdrop-blur-3xl rounded-full border border-white/10 px-2 py-1.5 gap-1 shadow-2xl transition-all duration-500 hover:bg-slate-950/60 opacity-0 group-hover/toolbar:opacity-100 translate-y-4 group-hover/toolbar:translate-y-0 pointer-events-none group-hover/toolbar:pointer-events-auto">
         <button
           onClick={onDashboard}
-          className="p-3 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+          className="p-3 rounded-full text-fuchsia-400 hover:text-white hover:bg-fuchsia-500/10 transition-all"
           title="Seed Spaces"
         >
           <LayoutGrid size={18} />
@@ -81,27 +78,25 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <button
           onClick={onToggleFilterMenu}
           className={`p-3 rounded-full transition-all ${isFilterActive
-            ? 'text-sky-400 bg-sky-500/10'
-            : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+            ? 'text-cyan-400 bg-cyan-500/10 border border-cyan-500/20'
+            : 'text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10'}`}
           title="Filter Seed Types"
         >
           <Filter size={18} />
         </button>
         <button
-          onClick={onToggleInfo}
-          className={`p-3 rounded-full transition-all ${isInfoOpen
-            ? 'text-indigo-400 bg-indigo-500/10'
-            : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
-          title="Legend & Info"
-        >
-          <Info size={18} />
-        </button>
-        <button
           onClick={onToggleSettings}
-          className="p-3 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+          className="p-3 rounded-full text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
           title="AI Settings"
         >
           <Cpu size={18} />
+        </button>
+        <button
+          onClick={onToggleManual}
+          className="p-3 rounded-full text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all shadow-[0_0_10px_rgba(245,158,11,0.1)]"
+          title="SEED Manual"
+        >
+          <HelpCircle size={18} />
         </button>
       </div>
 
@@ -141,13 +136,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <button
           onClick={onToggleDiscovery}
           className={`relative group/discovery p-3.5 rounded-full transition-all duration-500 ${isDiscoveryActive
-            ? 'bg-red-500 text-white shadow-lg shadow-red-900/40'
-            : 'text-slate-400 hover:text-white hover:bg-white/5'
+            ? 'bg-orange-500 text-white shadow-lg shadow-orange-900/40'
+            : 'text-slate-400 hover:text-orange-400 hover:bg-orange-500/10 shadow-inner'
             }`}
           title={isDiscoveryActive ? "Stop Discovery" : "Start Discovery"}
         >
           {isDiscoveryActive && (
-            <div className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-25" />
+            <div className="absolute inset-0 rounded-full bg-orange-500 animate-ping opacity-25" />
           )}
           <BrainCircuit size={20} className={`${isDiscoveryActive ? 'animate-spin-slow' : 'group-hover/discovery:rotate-12'} transition-transform`} />
 
@@ -164,7 +159,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           onClick={onToggleChat}
           className={`p-3.5 rounded-full transition-all group/nexus ${isChatOpen
             ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40'
-            : 'text-slate-400 hover:text-white hover:bg-white/5'
+            : 'text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10'
             }`}
           title="Nexus Research Assistant"
         >
@@ -179,7 +174,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             onClick={onUndo}
             disabled={!canUndo}
             className={`p-3.5 rounded-full transition-all ${canUndo
-              ? 'text-slate-200 hover:text-white hover:bg-white/10 active:scale-90'
+              ? 'text-slate-200 hover:text-amber-400 hover:bg-amber-500/10 active:scale-90'
               : 'text-slate-600 cursor-not-allowed opacity-50'
               }`}
             title="Undo (Ctrl+Z)"
@@ -190,7 +185,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             onClick={onRedo}
             disabled={!canRedo}
             className={`p-3.5 rounded-full transition-all ${canRedo
-              ? 'text-slate-200 hover:text-white hover:bg-white/10 active:scale-90'
+              ? 'text-slate-200 hover:text-emerald-400 hover:bg-emerald-500/10 active:scale-90'
               : 'text-slate-600 cursor-not-allowed opacity-50'
               }`}
             title="Redo (Ctrl+Y)"

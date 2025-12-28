@@ -84,6 +84,22 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("stdDeviation", "6") // Sharper glow
       .attr("result", "blur");
 
+    // Goal Glow (North Star)
+    const goalGlow = defs.append("filter")
+      .attr("id", "goal-glow")
+      .attr("x", "-100%")
+      .attr("y", "-100%")
+      .attr("width", "300%")
+      .attr("height", "300%");
+
+    goalGlow.append("feGaussianBlur")
+      .attr("stdDeviation", "12")
+      .attr("result", "coloredBlur");
+
+    const feMergeGoal = goalGlow.append("feMerge");
+    feMergeGoal.append("feMergeNode").attr("in", "coloredBlur");
+    feMergeGoal.append("feMergeNode").attr("in", "SourceGraphic");
+
     // Gradients for each Node Type (Sphere effect)
     Object.keys(NODE_COLORS).forEach((key) => {
       const type = key as NodeType;
@@ -406,6 +422,17 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("stroke-width", 1.5)
       .style("pointer-events", "none");
 
+    // Goal Halo (Pulsing Star)
+    nodeEnter.append("circle")
+      .attr("class", "node-goal-halo")
+      .attr("r", 0)
+      .attr("fill", "none")
+      .attr("stroke", "#fbbf24") // Amber 400
+      .attr("stroke-width", 4)
+      .attr("opacity", 0)
+      .style("pointer-events", "none")
+      .style("filter", "url(#goal-glow)");
+
     // Icon
     nodeEnter.append("path")
       .attr("class", "node-icon")
@@ -562,6 +589,34 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         glow.attr("data-pulsing", "false");
         glow.attr("opacity", 0);
       }
+
+      // 2. Goal Pulse (Celestial Anchor)
+      const goalHalo = d3.select(this).select("circle.node-goal-halo");
+      if (d.isGoalNode) {
+        if (goalHalo.attr("data-pulsing") !== "true") {
+          goalHalo.attr("data-pulsing", "true")
+            .attr("opacity", 0.6);
+          const goalPulse = () => {
+            goalHalo.transition()
+              .duration(2000)
+              .attr("r", d => (d.type === NodeType.TRACE ? 40 : 60))
+              .attr("stroke-width", 1)
+              .attr("opacity", 0.2)
+              .transition()
+              .duration(2000)
+              .attr("r", d => (d.type === NodeType.TRACE ? 20 : 35))
+              .attr("stroke-width", 6)
+              .attr("opacity", 0.8)
+              .on("end", goalPulse);
+          };
+          goalPulse();
+        }
+      } else {
+        goalHalo.interrupt();
+        goalHalo.attr("data-pulsing", "false")
+          .attr("opacity", 0)
+          .attr("r", 0);
+      }
     });
 
 
@@ -586,7 +641,9 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     allNodes.select("circle.node-body")
       .attr("r", d => {
         const r = d.type === NodeType.TRACE ? 16 : 28;
-        return d.isRoot ? r * 1.2 : r;
+        let finalR = d.isRoot ? r * 1.2 : r;
+        if (d.isGoalNode) finalR *= 1.35; // Goal nodes are significantly larger
+        return finalR;
       })
       .attr("fill", d => `url(#grad-${d.type})`)
       .attr("stroke", "transparent")
@@ -658,7 +715,9 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     simulation.on("tick", () => {
       const getNodeRadius = (d: GraphNode) => {
         const baseR = d.type === NodeType.TRACE ? 16 : 28;
-        return d.isRoot ? baseR * 1.2 : baseR;
+        let r = d.isRoot ? baseR * 1.2 : baseR;
+        if (d.isGoalNode) r *= 1.35;
+        return r;
       };
 
       allLinks

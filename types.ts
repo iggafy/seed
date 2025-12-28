@@ -26,6 +26,23 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   // Wikipedia Integration
   wikiUrl?: string;
   isWikipediaSource?: boolean;
+  // --- INNOVATION DISCOVERY ENHANCEMENTS ---
+  valueVector?: ValueVector;
+  isGoalNode?: boolean;
+  constraintProps?: ConstraintProperties;
+}
+
+export interface ValueVector {
+  feasibility: number; // 0-1
+  novelty: number;     // 0-1
+  friction: number;    // 0-1 (Adoption/Behavior change)
+  impact: number;      // 0-1
+}
+
+export interface ConstraintProperties {
+  strength: 'hard' | 'soft';
+  scope: 'global' | 'local';
+  type: 'technical' | 'economic' | 'regulatory' | 'behavioral';
 }
 
 export interface WikiBrowserState {
@@ -111,13 +128,18 @@ export interface AISuggestion {
   type: NodeType;
   description: string;
   relationToParent: string;
+  valueVector?: ValueVector;
 }
 
 export interface DiscoveryState {
   isActive: boolean;
   activeNodeId: string | null;
   history: string[];
-  isQuest?: boolean; // If true, discovery moves to the newly created node recursively
+  isQuest?: boolean;
+  // --- AUTONOMOUS NAVIGATION STEERING ---
+  stepCount: number;
+  currentPolicy: 'EXPLOIT' | 'EXPLORE' | 'PROBE' | 'RE_ANCHOR';
+  goalNodeId: string | null;
 }
 
 export enum AIProvider {
