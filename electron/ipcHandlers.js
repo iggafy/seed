@@ -37,14 +37,13 @@ async function handleGemini(apiKey, model, messages, jsonSchema, systemPrompt) {
         config.responseSchema = jsonSchema;
     }
 
-    const genModel = client.getGenerativeModel({ model: modelId });
-    const result = await genModel.generateContent({
+    const result = await client.models.generateContent({
+        model: modelId,
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: config
+        config: config
     });
 
-    const response = await result.response;
-    return { content: response.text() };
+    return { content: result.text };
 }
 
 async function handleOpenAI(provider, apiKey, model, messages, jsonSchema, systemPrompt) {
