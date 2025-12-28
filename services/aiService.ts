@@ -169,26 +169,34 @@ export const traceLineageAnalysis = async (
     nodeDescription: string,
     fullPathContext: string,
     mode: ExplorationMode = ExplorationMode.INNOVATION
-): Promise<AISuggestion | null> => {
+): Promise<AISuggestion[]> => {
     if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const modeConfig = getModeConfig(mode);
     const persona = modeConfig.aiPersona;
 
-    const modeSpecificObjective = mode === ExplorationMode.INNOVATION
-        ? "Extract the most critical underlying challenge or breakthrough opportunity hidden within this specific lineage."
-        : "Extract the most significant historical connection, causal relationship, or thematic pattern within this lineage.";
-
-    const prompt = `You are a ${persona}. 
-    Analyze this discovery path: [ ${fullPathContext} ].
-    Current node: "${nodeLabel}" (${nodeDescription}).
+    const prompt = `You are a forensic researcher and Epistemic Architect working as a ${persona}.
     
-    Objective: ${modeSpecificObjective}
-    ${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
-    Response schema: single node.`;
+    TASK: Perform a deep TRACE of this discovery lineage.
+    LINEAGE PATH: [ ${fullPathContext} ]
+    TARGET SEED: "${nodeLabel}" (${nodeDescription})
 
-    const result = await runIPCRequest(settings, prompt, false, mode);
-    return result[0] || null;
+    OBJECTIVE:
+    Break down the 'Epistemic Value' of this target seed by creating 2-3 smaller, interconnected TRACE seeds.
+    Each TRACE seed should analyze a different dimension of the lineage:
+    1. THE ROOT ORIGIN: What fundamental theory or problem started this chain?
+    2. THE LOGICAL PIVOT: Where did the research take its most significant turn?
+    3. THE EPISTEMIC WEIGHT: How robust is the current conclusion given the path taken?
+
+    CRITICAL RULES:
+    - Every suggested node MUST be of type: TRACE.
+    - Labels should be sharp and analytical (e.g., "Origin: [Concept]", "Pivot: [Logic]", "Epistemic Weight").
+    - Descriptions must explain the specific relationship between the target seed and the lineage history.
+    - Treat this as a forensic audit of the discovery.
+
+    Response schema: array of 2-3 suggestions.`;
+
+    return await runIPCRequest(settings, prompt, true, mode);
 };
 
 export const innovateConcept = async (
@@ -209,6 +217,7 @@ export const innovateConcept = async (
     Propose a specific, high-viability INNOVATION that pushes this technology into its next architectural evolution.
     
     Label: "${nodeLabel} Evolution".
+    Type: INNOVATION
     Description: A detailed technical proposal (150-200 words) for a structural breakthrough. 
     ${INNOVATION_RESEARCH_PRINCIPLES}
     Describe the unique mechanism, the theoretical basis, and how it dramatically overcomes current limitations mentioned in the graph.
@@ -217,6 +226,7 @@ export const innovateConcept = async (
     Propose a DEEPER SYNTHESIS or EMERGENT PATTERN that connects this node to seemingly unrelated areas of the graph or broader history.
     
     Label: "Synthesis: ${nodeLabel}".
+    Type: THEORY
     Description: A detailed interdisciplinary analysis (150-200 words) revealing hidden causal links, recurring historical patterns, or philosophical implications.
     Explain the source basis for this connection and its significance in the broader tapestry of knowledge.`;
 
@@ -251,6 +261,7 @@ export const solveProblem = async (
     Propose a specific, high-viability TECHNOLOGY or INNOVATION that solves this problem.
     
     Label: "${nodeLabel} Solution".
+    Type: INNOVATION
     Description: A detailed technical proposal (150-200 words) for an app or system. 
     ${INNOVATION_RESEARCH_PRINCIPLES}
     Describe the core features, the unique value proposition, and why it specifically solves the target pain point better than existing solutions.
@@ -259,6 +270,7 @@ export const solveProblem = async (
     Provide a comprehensive HISTORICAL RESOLUTION or THEMATIC SUMMARY that clarifies the ambiguity or settles the debate using evidence.
     
     Label: "Resolution: ${nodeLabel}".
+    Type: EVENT
     Description: A detailed evidence-based response (150-200 words) that synthesizes contradictory views or clarifies historical outcomes.
     Reference key artifacts, people, or movements that provide the resolution's foundation.`;
 
@@ -293,11 +305,13 @@ export const answerQuestion = async (
            Use the surrounding context if available.
 
         Label: "Resolution: ${nodeLabel}".
+        Type: CONCEPT
             Description: A direct answer(100 - 150 words) that clarifies the technical or conceptual uncertainty.
                 ${INNOVATION_RESEARCH_PRINCIPLES} `
         : `Provide a historically accurate answer to the question: "${nodeLabel}".
 
         Label: "Historical Answer: ${nodeLabel}".
+        Type: EVENT
             Description: A direct answer(100 - 150 words) referencing artifacts, events, or people in the graph.`;
 
     const prompt = `You are a ${persona}.
@@ -334,6 +348,7 @@ export const optimizeConcept = async (
     Focus on making it 10x faster, cheaper, or more sustainable WITHOUT changing the core breakthrough.
 
     Label: "${nodeLabel} Optimization".
+    Type: INNOVATION
     Description: A detailed plan (150-200 words) for efficiency gains.
     ${INNOVATION_RESEARCH_PRINCIPLES}
     Include specific technical levers (e.g., algorithmic complexity, material science, or resource distribution).`;
@@ -1053,13 +1068,27 @@ async function runIPCRequest(
     }
 
     // Normalizer
-    const normalizeNode = (n: any) => ({
-        label: n.label || n.title || "Unknown",
-        type: n.type || "CONCEPT",
-        description: n.description || "No description",
-        relationToParent: n.relationToParent || n.relation || "related",
-        valueVector: n.valueVector || undefined
-    });
+    const normalizeNode = (n: any) => {
+        let nodeType = n.type || "CONCEPT";
+        // DeepSeek/other models might return lowercase or slightly different strings
+        const normalizedType = nodeType.toUpperCase();
+        const validTypes = Object.values(NodeType) as string[];
+
+        if (!validTypes.includes(normalizedType)) {
+            console.warn(`[AI-Service] Invalid NodeType received: ${nodeType}. Fallback to CONCEPT.`);
+            nodeType = NodeType.CONCEPT;
+        } else {
+            nodeType = normalizedType as NodeType;
+        }
+
+        return {
+            label: n.label || n.title || "Unknown",
+            type: nodeType,
+            description: n.description || "No description",
+            relationToParent: n.relationToParent || n.relation || "related",
+            valueVector: n.valueVector || undefined
+        };
+    };
 
     if (isArray) {
         let items: any[] = [];

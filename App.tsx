@@ -288,6 +288,10 @@ function App() {
         else if (e.key.toLowerCase() === 'e') {
           handleExpandNode(node);
         }
+        // 't' for Trace
+        else if (e.key.toLowerCase() === 't') {
+          handleTraceLineage(node);
+        }
       }
 
       // 'Delete' or 'Backspace' to delete selected nodes
@@ -1240,27 +1244,38 @@ function App() {
     const fullPath = ancestry ? `${ancestry} -> ${node.label}` : node.label;
 
     try {
-      const analysis = await traceLineageAnalysis(aiSettings, node.label, node.description || "", fullPath, currentMode);
+      const suggestions = await traceLineageAnalysis(aiSettings, node.label, node.description || "", fullPath, currentMode);
 
-      if (analysis) {
-        const newNodeId = generateId();
-        const newNode: GraphNode = {
-          id: newNodeId,
-          label: analysis.label,
-          type: analysis.type,
-          description: analysis.description,
-          x: (node.x || 0) + 50,
-          y: (node.y || 0) + 50
-        };
+      if (suggestions && suggestions.length > 0) {
+        const createdNodeIds: string[] = [];
 
-        const newLink = { source: node.id, target: newNodeId, relation: "analyzed by" };
+        setData(prev => {
+          const newNodes: GraphNode[] = suggestions.map((s, i) => {
+            const id = generateId();
+            createdNodeIds.push(id);
+            return {
+              id: id,
+              label: s.label,
+              type: s.type || NodeType.TRACE,
+              description: s.description,
+              x: (node.x || 0) + 100,
+              y: (node.y || 0) + (i - 1) * 120
+            };
+          });
 
-        setData(prev => ({
-          nodes: [...prev.nodes, newNode],
-          links: [...prev.links, newLink]
-        }));
+          const newLinks = newNodes.map((newNode, i) => ({
+            source: node.id,
+            target: newNode.id,
+            relation: suggestions[i].relationToParent || "traced to"
+          }));
 
-        setSelectedNodeIds([newNodeId]);
+          return {
+            nodes: [...prev.nodes, ...newNodes],
+            links: [...prev.links, ...newLinks]
+          };
+        });
+
+        setSelectedNodeIds(createdNodeIds);
       }
     } catch (e: any) {
       popError(e.message || "Lineage analysis failed");
