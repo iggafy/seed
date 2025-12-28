@@ -2110,15 +2110,13 @@ function App() {
       const selectedNodes = data.nodes.filter(n => selectedNodeIds.includes(n.id));
 
       // --- PARALLEL EXECUTION ---
+      const fullGraphContext = getGraphContext(data);
+
       // Task 1: Persona Reply (The visible part)
       const replyPromise = researchAssistantTextReply(aiSettings, newMessages, selectedNodes, data.nodes, currentMode);
 
       // Task 3: Background Mapping (Extract from USER input)
-      const focusNodes = selectedNodes.length > 0 ? selectedNodes : data.nodes.slice(-5);
-      const userContextBrief = focusNodes.length > 0
-        ? `Focusing on recent/selected context: ${focusNodes.map(n => n.label).join(', ')}`
-        : `Start of a new discovery thread.`;
-      const userMapPromise = extractKnowledgeMap(aiSettings, content, userContextBrief, currentMode);
+      const userMapPromise = extractKnowledgeMap(aiSettings, content, fullGraphContext, currentMode);
 
       // Task 2: Wait for Text Reply
       const aiResponseText = await replyPromise;
@@ -2140,7 +2138,7 @@ function App() {
       assimilateMapData(userMapData);
 
       // Task 4: Background Mapping (Extract from AI reply)
-      const aiMapData = await extractKnowledgeMap(aiSettings, aiResponseText, `Follow-up to: ${content}`, currentMode);
+      const aiMapData = await extractKnowledgeMap(aiSettings, aiResponseText, fullGraphContext, currentMode);
       assimilateMapData(aiMapData);
 
     } catch (e: any) {

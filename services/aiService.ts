@@ -770,25 +770,22 @@ export const researchAssistantTextReply = async (
     const modeConfig = getModeConfig(mode);
     const persona = modeConfig.aiPersona;
 
-    // 1. Construct Lightweight Context (Optimized for speed)
-    const focusNodes = selectedNodes.length > 0 ? selectedNodes : allNodes.slice(-3); // Reduced from 5 to 3 for speed
-    let contextBrief = "NO NODES SELECTED.";
-
-    if (focusNodes.length > 0) {
-        const nodeDescriptions = focusNodes.map(n => `- ${n.label} (${n.type})`).join('\n'); // Dropped description for speed unless essential
-        contextBrief = `FOCUS: \n${nodeDescriptions}`;
-    }
+    // 1. Construct Contextual Brief (Using full graph context for awareness)
+    const fullGraphContext = allNodes.length > 0
+        ? allNodes.map(n => `- ${n.label} (${n.type})`).join('\n')
+        : "Empty graph.";
 
     const systemPrompt = `You are the Nexus Research Assistant, a ${persona}.
     
-    CONTEXT:
-    ${contextBrief}
+    FULL GRAPH CONTEXT:
+    ${fullGraphContext}
 
     IMPORTANT RULES:
     1. Respond to the user with depth and intuition but BE CONCISE. 
     2. DO NOT output any structured data, [MAP], or structural tags. 
     3. Just talk. Be an intellectual brainstorming partner.
-    4. Keep your response under 100 words unless complex explanation is requested.`;
+    4. Keep your response under 100 words unless complex explanation is requested.
+    5. SEED REUSABILITY RULE: Be aware of existing seeds in the FULL GRAPH CONTEXT. If you discuss them, refer to them by their exact labels.`;
 
     const formattedMessages = chatHistory.map(m => ({
         role: m.role,
@@ -836,7 +833,7 @@ export const researchAssistantTextReply = async (
 export const extractKnowledgeMap = async (
     settings: AISettings,
     textToAnalyze: string,
-    contextBrief: string,
+    fullGraphContext: string,
     mode: ExplorationMode = ExplorationMode.INNOVATION
 ): Promise<{ nodes: AISuggestion[], links: Array<{ sourceLabel: string, targetLabel: string, relation: string }> }> => {
     const activeSettings = settings.providers[settings.provider];
@@ -850,17 +847,16 @@ export const extractKnowledgeMap = async (
     YOUR TASK:
     Extract a high-density knowledge map from the text, capturing the ACTUAL CONTENT and ESSENCE of what was discussed.
     
-    CONTEXT (RECENT GRAPH):
-    ${contextBrief}
+    FULL GRAPH CONTEXT:
+    ${fullGraphContext}
 
     CRITICAL RULES:
     1. Extract 2-5 significant Seeds (Nodes) and their Relationships (Links).
     2. CONTENT FIDELITY: Seeds must represent THE SPECIFIC TOPICS mentioned in the text, not generic definitions.
-       - Example: If the text discusses "problems with AI tools", create "AI Tools Limitations" with the ACTUAL problems mentioned, NOT "A challenging situation".
-       - Each seed's label and description should capture WHAT WAS ACTUALLY SAID.
-    3. NO DISCONNECTED CLUSTERS: At least one new node MUST link to an existing node in the CONTEXT.
-    4. Relationships MUST be active verbs that reflect HOW the topics were connected in the discussion.
-    5. OUTPUT ONLY RAW JSON. Do not use Markdown code blocks. Do not add any text before or after the JSON.
+    3. SEED REUSABILITY RULE: Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept mentioned in the text, you MUST use that exact label in your JSON nodes. Do not create duplicates.
+    4. NO DISCONNECTED CLUSTERS: At least one new node MUST link to an existing node in the FULL GRAPH CONTEXT (if any exist).
+    5. Relationships MUST be active verbs that reflect HOW the topics were connected in the discussion.
+    6. OUTPUT ONLY RAW JSON. Do not use Markdown code blocks. Do not add any text before or after the JSON.
     
     [MAP]
     {
