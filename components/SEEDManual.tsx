@@ -6,7 +6,7 @@ import {
     BookOpen, Lightbulb, CheckCircle2, ShieldCheck, GitMerge,
     History as HistoryIcon, Keyboard, Terminal, Globe,
     Activity, ArrowUpRight, Target, Shield, Fingerprint, Lock,
-    Maximize2, Plus, CornerDownRight, Microscope, Scan, MessageCircle, Info
+    Maximize2, Plus, CornerDownRight, Microscope, Scan, MessageCircle, Info, Anchor, Share2
 } from 'lucide-react';
 import { ExplorationMode, NodeType, AISettings } from '../types';
 import { NODE_COLORS } from '../constants';
@@ -167,15 +167,16 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                 </p>
                             </div>
 
-                            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
+                            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 mb-16">
                                 {[
-                                    { title: 'Path Discovery', label: 'EXPLOIT', desc: 'The engine walks the existing graph to find missing links and inferred relationships between your Seeds.', icon: <Target className="text-emerald-400" /> },
-                                    { title: 'Fog Expansion', label: 'EXPLORE', desc: 'The AI pushes into the "unknown" to suggest entirely new categories of information you haven\'t considered.', icon: <Sparkles className="text-sky-400" /> },
-                                    { title: 'Constraint Probe', label: 'PROBE', desc: 'A stress-test pulse that hunts for frictions, bottlenecks, or logical contradictions in your theory.', icon: <Shield className="text-rose-400" /> },
-                                    { title: 'North Star', label: 'RE-ANCHOR', desc: 'If active, the engine pulls all new discoveries toward your primary Goal Node.', icon: <RefreshCw className="text-amber-400" /> },
+                                    { title: 'Fog Expansion', label: 'EXPLORE', desc: 'The AI pushes into the "unknown" to suggest entirely new categories of information.', icon: <Sparkles className="text-sky-400" /> },
+                                    { title: 'Path Discovery', label: 'EXPLOIT', desc: 'The engine walks the existing graph to find missing links and inferred relationships.', icon: <Target className="text-emerald-400" /> },
+                                    { title: 'Synergetic Weaver', label: 'CONNECT', desc: 'Finds semantic overlaps between distant seeds and weaves them together with ghost links.', icon: <GitMerge className="text-indigo-400" /> },
+                                    { title: 'Constraint Probe', label: 'PROBE', desc: 'A pulse that hunts for frictions, bottlenecks, or logical contradictions in your theory.', icon: <Shield className="text-rose-400" /> },
+                                    { title: 'Context Re-Anchor', label: 'ANCHOR', desc: 'Prevents drift by refocusing the AI on your Goal Node or the Root of the session.', icon: <Anchor className="text-amber-400" size={16} /> },
                                 ].map((step, i) => (
                                     <div key={i} className="bg-slate-800/40 border border-white/5 p-6 rounded-[2.5rem] flex flex-col items-center text-center group hover:bg-slate-800/60 transition-all">
-                                        <div className="p-3 bg-slate-900 rounded-2xl mb-4 shadow-xl group-hover:scale-110 transition-transform">
+                                        <div className="p-3 bg-slate-900 rounded-2xl mb-4 shadow-xl group-hover:scale-110 transition-transform flex items-center justify-center">
                                             {step.icon}
                                         </div>
                                         <h4 className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase mb-1">{step.label}</h4>
@@ -257,15 +258,15 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                     </div>
                                 </div>
                                 <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-indigo-500/10 to-transparent border border-white/10 p-10 rounded-[3.5rem] flex flex-col justify-center">
-                                    <h3 className="text-2xl font-black text-white mb-4 tracking-tighter">The "Quest" Protocol</h3>
+                                    <h3 className="text-2xl font-black text-white mb-4 tracking-tighter">Seed Multiplicity (Parallel Discovery)</h3>
                                     <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                                        {renderBoldText("When Discovery is active and a node is **Selected**, the engine enters **Quest Mode**. It focuses all its parallel processing power on that single Seed, branching it out until it finds a breakthrough or meets a constraint.")}
+                                        {renderBoldText("When Discovery is active, the engine enters a **Parallel Loop**. It analyzes the structural integrity of your entire SeedSpace, spinning up background threads to propose Ghost Links (synergies) and lateral leaps. This makes the graph feel alive—growing as you think.")}
                                     </p>
                                     <div className="flex items-center gap-4">
                                         <div className="flex -space-x-3">
                                             {[1, 2, 3].map(i => <div key={i} className="w-8 h-8 rounded-full border border-slate-900 bg-indigo-500/30 flex items-center justify-center text-[10px] text-white font-bold">{i}</div>)}
                                         </div>
-                                        <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black">Parallel Processing Active</span>
+                                        <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black">Active Context Synthesis Enabled</span>
                                     </div>
                                 </div>
                             </div>
@@ -284,15 +285,17 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
                                 {[
-                                    { icon: <Plus size={24} />, title: "The Expand", desc: "Select a node and click 'Expand' to generate 3-5 logically connected neighbors. Perfect for fast brainstorming." },
-                                    { icon: <CornerDownRight size={24} />, title: "Directed Branching", desc: "Use the Sidebar 'Ask' field. Type a specific direction (e.g., 'How does this scale?') to force the AI to branch in that direction." },
-                                    { icon: <GitMerge size={24} />, title: "Contextual Lineage", desc: "Toggle Lineage view to see a node's full family tree. Understand exactly which parent Seed triggered this discovery." },
-                                    { icon: <Binary size={24} />, title: "Wormhole Seeds", desc: "Double-click any node to 'Seed In'. This creates a nested sub-graph inside that node, allowing for infinite depth." },
-                                    { icon: <Globe size={24} />, title: "Wikipedia Nexus", desc: "Enter a URL or search term to harvest live web knowledge. SEED will summarize and ground new nodes in real-world facts." },
-                                    { icon: <Scan size={24} />, title: "Trace Seed", desc: "A deep analysis that calculates the 'Epistemic Value' of a node, tracing its lineage back to the root theory." },
-                                    { icon: <MessageCircle size={24} />, title: "Co-Research Chat", desc: "The sidebar chat isn't just for talking. Ask it to 'Add a node about X' or 'Optimize this connection' to update the graph directly." },
-                                    { icon: <Microscope size={24} />, title: "Stress Test", desc: "Attempts to break your concept. Identifies failure modes, market risks, or historical inconsistencies." },
-                                    { icon: <Zap size={24} />, title: "Synergy Analysis", desc: "Shift-click 2+ nodes and trigger Synergy. The AI will hunt for a 'Third Way' or a hidden connection between them." },
+                                    { icon: <Plus size={24} />, title: "Quick Expand", desc: "Found in Path Discovery. Generates 3-5 logically connected neighbors. Perfect for fast brainstorming." },
+                                    { icon: <Binary size={24} />, title: "Seed In (Wormholes)", desc: "Double-click any node to 'Seed In'. This creates a nested sub-graph view for infinite depth." },
+                                    { icon: <Maximize2 size={24} />, title: "Trace Seed", desc: "Right-click or press 'T' to analyze the entire causal lineage of a concept, revealing its origins." },
+                                    { icon: <Zap size={24} />, title: "Explore", desc: "The primary button in Directed Branching. Uses your density selection to grow path immediately." },
+                                    { icon: <CornerDownRight size={24} />, title: "Custom Branching", desc: "Type a natural-language prompt in the Discovery field to force a targeted evolution." },
+                                    { icon: <Globe size={24} />, title: "Wikipedia Nexus", desc: "Open a live browser to harvest knowledge. Highlighting text creates seeds with citations." },
+                                    { icon: <Zap size={24} />, title: "Synergy Analysis", desc: "Shift-click two nodes to find the 'Third Way'—a bridging concept between unrelated areas." },
+                                    { icon: <CheckCircle2 size={24} />, title: "Solve & Innovate", desc: "High-intelligence prompts for Problem or Technology nodes that generate detailed proposals." },
+                                    { icon: <MessageCircle size={24} />, title: "Co-Research Chat", desc: "The chat isn't just for talk. Use it to update the graph. Ask it to 'Add a node about X'." },
+                                    { icon: <GitMerge size={24} />, title: "Contextual Lineage", desc: "Toggle pulsing energy lines in the toolbar to visualize the semantic chain of thought." },
+                                    { icon: <Share2 size={24} />, title: "External Linkage", desc: "Right-click any node to link it to a different Seed Space, creating a persistent cross-file portal." },
                                 ].map((item, i) => (
                                     <div key={i} className="bg-slate-800/30 border border-white/5 p-8 rounded-[2.5rem] hover:bg-slate-800/50 hover:border-white/20 transition-all group">
                                         <div className="text-sky-400 mb-6 group-hover:scale-110 group-hover:text-white transition-all">{item.icon}</div>
@@ -310,7 +313,7 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                 <div className="flex-1">
                                     <h3 className="text-2xl font-black text-white mb-3 italic tracking-tight underline decoration-fuchsia-500/50 decoration-4">The Wikipedia Nexus</h3>
                                     <p className="text-slate-400 text-sm leading-relaxed">
-                                        {renderBoldText("Bypass the search engine. Use the **Wiki Browser** inside SEED to find grounded information. Highlighting text in the browser allows you to instantly **Harvest** that context into new Seeds, complete with source metadata.")}
+                                        {renderBoldText("Bypass the standard Web. Use the **Nexus Browser** to find grounded information. Highlighting any text segment allows you to **Harvest** that specific insight into a new Seed. Every Harvest node contains the source URL and a metadata snapshot of the original context.")}
                                     </p>
                                 </div>
                             </div>
@@ -337,20 +340,20 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                         </div>
                                         <div className="grid md:grid-cols-4 gap-4">
                                             {[
-                                                { title: "Concept", desc: "Theoretical breakthroughs.", type: NodeType.CONCEPT },
-                                                { title: "Technology", desc: "Existing tools or frameworks.", type: NodeType.TECHNOLOGY },
-                                                { title: "Problem", desc: "Technical bottlenecks.", type: NodeType.PROBLEM },
-                                                { title: "Pain Point", desc: "User frustrations and needs.", type: NodeType.PAIN_POINT },
-                                                { title: "Innovation", desc: "Novel bridging solutions.", type: NodeType.INNOVATION },
-                                                { title: "Implementation", desc: "Practical product applications.", type: NodeType.IMPLEMENTATION },
-                                                { title: "User Segment", desc: "Target audiences & personas.", type: NodeType.USER_SEGMENT },
-                                                { title: "Constraint", desc: "System/Systemic boundaries.", type: NodeType.CONSTRAINT },
-                                                { title: "Friction", desc: "Adoption or efficiency drag.", type: NodeType.FRICTION },
-                                                { title: "Market", desc: "Economic & business drivers.", type: NodeType.MARKET },
-                                                { title: "Regulation", desc: "Policy and legal context.", type: NodeType.REGULATION },
-                                                { title: "Ethics", desc: "Moral & societal impact.", type: NodeType.ETHICS },
-                                                { title: "Mental Model", desc: "Assumptions being challenged.", type: NodeType.MENTAL_MODEL },
-                                                { title: "Analogy", desc: "Cross-disciplinary parallels.", type: NodeType.ANALOGY },
+                                                { title: "Concept", desc: "Abstract breakthroughs or foundational ideas.", type: NodeType.CONCEPT },
+                                                { title: "Technology", desc: "Specific tools, frameworks, or engineering systems.", type: NodeType.TECHNOLOGY },
+                                                { title: "Problem", desc: "Structural bottlenecks and technical challenges.", type: NodeType.PROBLEM },
+                                                { title: "Pain Point", desc: "User-facing frustrations and psychological barriers.", type: NodeType.PAIN_POINT },
+                                                { title: "Innovation", desc: "Novel technical resolutions or creative leaps.", type: NodeType.INNOVATION },
+                                                { title: "Implementation", desc: "Practical product specs and deployment plans.", type: NodeType.IMPLEMENTATION },
+                                                { title: "User Segment", desc: "The human element: Personas and audiences.", type: NodeType.USER_SEGMENT },
+                                                { title: "Constraint", desc: "Hard boundaries like physics or resource limits.", type: NodeType.CONSTRAINT },
+                                                { title: "Friction", desc: "Systemic resistance to adoption or efficiency.", type: NodeType.FRICTION },
+                                                { title: "Market", desc: "GTM strategies and economic growth drivers.", type: NodeType.MARKET },
+                                                { title: "Regulation", desc: "The legal and policy framework for discovery.", type: NodeType.REGULATION },
+                                                { title: "Ethics", desc: "Moral implications of any advancement.", type: NodeType.ETHICS },
+                                                { title: "Mental Model", desc: "Philosophical assumptions being challenged.", type: NodeType.MENTAL_MODEL },
+                                                { title: "Analogy", desc: "Transferring logic from one field to another.", type: NodeType.ANALOGY },
                                             ].map((item, i) => (
                                                 <div key={i} className="flex flex-col gap-4 bg-slate-800/20 border border-white/5 p-6 rounded-[2.5rem] hover:bg-slate-800/40 transition-all group">
                                                     <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform" style={{ backgroundColor: `${NODE_COLORS[item.type]}20`, color: NODE_COLORS[item.type] }}>
@@ -375,17 +378,17 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                         </div>
                                         <div className="grid md:grid-cols-4 gap-4">
                                             {[
-                                                { title: "Theory", desc: "Philosophies & frameworks.", type: NodeType.THEORY },
-                                                { title: "Event", desc: "Historical occurrences.", type: NodeType.EVENT },
-                                                { title: "Person", desc: "Influential figures.", type: NodeType.PERSON },
-                                                { title: "Place", desc: "Geography & civilizations.", type: NodeType.PLACE },
-                                                { title: "Artifact", desc: "Physical objects or records.", type: NodeType.ARTIFACT },
-                                                { title: "Movement", desc: "Cultural or social shifts.", type: NodeType.MOVEMENT },
-                                                { title: "Discovery", desc: "Scientific revelations.", type: NodeType.DISCOVERY },
-                                                { title: "Contradiction", desc: "Conflicting accounts & debates.", type: NodeType.CONTRADICTION },
-                                                { title: "Relationship", desc: "Inter-entity connections.", type: NodeType.RELATIONSHIP },
-                                                { title: "Question", desc: "Open research inquiries.", type: NodeType.QUESTION },
-                                                { title: "Entity", desc: "Organizations or groups.", type: NodeType.ENTITY },
+                                                { title: "Theory", desc: "Core philosophies and scientific hypotheses.", type: NodeType.THEORY },
+                                                { title: "Event", desc: "Moments in time that altered trajectory.", type: NodeType.EVENT },
+                                                { title: "Person", desc: "Key individuals who drove the narrative.", type: NodeType.PERSON },
+                                                { title: "Place", desc: "Geographic catalysts and civilizations.", type: NodeType.PLACE },
+                                                { title: "Artifact", desc: "Tangible objects or primary records.", type: NodeType.ARTIFACT },
+                                                { title: "Movement", desc: "Collective shifts in thought or culture.", type: NodeType.MOVEMENT },
+                                                { title: "Discovery", desc: "Inflexion points in human understanding.", type: NodeType.DISCOVERY },
+                                                { title: "Contradiction", desc: "Points of friction where accounts differ.", type: NodeType.CONTRADICTION },
+                                                { title: "Relationship", desc: "Direct ties between historical entities.", type: NodeType.RELATIONSHIP },
+                                                { title: "Question", desc: "Unanswered mysteries in the knowledge map.", type: NodeType.QUESTION },
+                                                { title: "Entity", desc: "Groups, states, or collective organizations.", type: NodeType.ENTITY },
                                             ].map((item, i) => (
                                                 <div key={i} className="flex flex-col gap-4 bg-slate-800/20 border border-white/5 p-6 rounded-[2.5rem] hover:bg-slate-800/40 transition-all group">
                                                     <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform" style={{ backgroundColor: `${NODE_COLORS[item.type]}20`, color: NODE_COLORS[item.type] }}>
@@ -421,12 +424,15 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                     { key: 'A', action: 'Answer Node Question' },
                                     { key: 'E', action: 'Quick Expand (1 Depth)' },
                                     { key: 'T', action: 'Trace Full Lineage' },
+                                    { key: 'K', action: 'Toggle Nexus Chat' },
                                     { key: 'M', action: 'Toggle Manual' },
-                                    { key: 'SHIFT+CLICK', action: 'Multi-select for Analysis' },
-                                    { key: 'DBL CLICK', action: 'Seed In (Sub-Graph View)' },
+                                    { key: 'CTRL+S', action: 'Save Seed Space' },
+                                    { key: 'SHIFT+CLICK', action: 'Multi-select Nodes' },
+                                    { key: 'DBL CLICK', action: 'Seed In (Sub-Graph)' },
+                                    { key: 'SPACE', action: 'Structure Relayout' },
                                     { key: 'DEL', action: 'Prune / Delete' },
                                     { key: 'CTRL+Z', action: 'Undo Protocol' },
-                                    { key: 'SPACE', action: 'Recenter Graph' },
+                                    { key: 'ESC', action: 'Deselect / Close All' },
                                 ].map((shortcut, i) => (
                                     <div key={i} className="flex justify-between items-center py-4 border-b border-white/5">
                                         <div className="flex items-center gap-3">

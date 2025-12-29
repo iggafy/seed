@@ -317,12 +317,24 @@ function App() {
         }
       }
 
-      if (e.key === 'k' || e.key === 'K') setIsChatOpen(prev => !prev);
+      if (e.key.toLowerCase() === 'k') setIsChatOpen(prev => !prev);
+      if (e.key.toLowerCase() === 'm') setShowManual(prev => !prev);
+      if (e.key === ' ') {
+        setLayoutTrigger(prev => prev + 1);
+        e.preventDefault();
+      }
       if (e.key === 'Escape') {
         setSelectedNodeIds([]);
         setContextMenuNode(null);
         setIsChatOpen(false);
         setShowFilterMenu(false);
+        setShowManual(false);
+      }
+
+      // Ctrl+S to save
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSaveSeed();
       }
 
       // Ctrl+Z for Undo, Ctrl+Y for Redo
