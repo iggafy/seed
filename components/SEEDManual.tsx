@@ -15,11 +15,12 @@ interface SEEDManualProps {
     isOpen: boolean;
     onClose: () => void;
     mode: ExplorationMode;
+    isPreSelection?: boolean;
     aiSettings?: AISettings;
     initialTab?: 'welcome' | 'autonomous' | 'protocols' | 'ontology' | 'shortcuts' | 'about';
 }
 
-const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettings, initialTab }) => {
+const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSelection, aiSettings, initialTab }) => {
     const [activeTab, setActiveTab] = useState<'welcome' | 'autonomous' | 'protocols' | 'ontology' | 'shortcuts' | 'about'>('welcome');
 
     React.useEffect(() => {
@@ -114,11 +115,18 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                     {activeTab === 'welcome' && (
                         <div className="animate-in slide-in-from-bottom-4 duration-700">
                             <div className="max-w-4xl">
-                                <span className={`px-3 py-1 border rounded-full text-[10px] font-black tracking-[0.3em] uppercase mb-6 inline-block ${isInnovation ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'}`}>
-                                    {isInnovation ? 'Innovation Mode Active' : 'Knowledge Mode Active'}
-                                </span>
+                                {!isPreSelection && (
+                                    <span className={`px-3 py-1 border rounded-full text-[10px] font-black tracking-[0.3em] uppercase mb-6 inline-block ${isInnovation ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'}`}>
+                                        {isInnovation ? 'Innovation Mode Active' : 'Knowledge Mode Active'}
+                                    </span>
+                                )}
+                                {isPreSelection && (
+                                    <span className="px-3 py-1 border border-white/20 bg-white/5 rounded-full text-[10px] font-black tracking-[0.3em] uppercase mb-6 inline-block text-slate-400">
+                                        Exploration Architecture: Multi-Mode
+                                    </span>
+                                )}
                                 <h1 className="text-6xl font-black text-white mb-6 tracking-tighter leading-[0.9]">
-                                    Map the <span className={isInnovation ? 'text-sky-500' : 'text-indigo-500'}>Unseen</span>.<br />
+                                    Map the <span className={!isPreSelection ? (isInnovation ? 'text-sky-500' : 'text-indigo-500') : 'text-white'}>Unseen</span>.<br />
                                     Bypass the <span className="text-rose-500">Known</span>.
                                 </h1>
                                 <p className="text-xl text-slate-400 font-light leading-relaxed mb-12 max-w-2xl">
@@ -126,8 +134,8 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                                 </p>
 
                                 <div className="grid md:grid-cols-2 gap-8">
-                                    <div className={`group bg-slate-800/30 border p-8 rounded-[3.5rem] transition-all hover:bg-slate-800/50 ${isInnovation ? 'border-sky-500/30 shadow-[0_0_30px_rgba(14,165,233,0.1)]' : 'border-white/5 opacity-60'}`}>
-                                        <div className={`p-4 rounded-2xl w-fit mb-6 ${isInnovation ? 'bg-sky-500/10 text-sky-400' : 'bg-slate-900 text-slate-500'}`}>
+                                    <div className={`group bg-slate-800/30 border p-8 rounded-[3.5rem] transition-all hover:bg-slate-800/50 ${isInnovation || isPreSelection ? 'border-sky-500/30 shadow-[0_0_30px_rgba(14,165,233,0.1)]' : 'border-white/5 opacity-60'}`}>
+                                        <div className={`p-4 rounded-2xl w-fit mb-6 ${isInnovation || isPreSelection ? 'bg-sky-500/10 text-sky-400' : 'bg-slate-900 text-slate-500'}`}>
                                             <BrainCircuit size={32} />
                                         </div>
                                         <h3 className="text-2xl font-bold text-white mb-3">Innovation Mode</h3>
@@ -135,8 +143,8 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                                             {renderBoldText("Experience **emergent innovation** as the AI proactively suggests breakthroughs and strategic paths, helping you brainstorm solutions to complex problems in real-time.")}
                                         </p>
                                     </div>
-                                    <div className={`group bg-slate-800/30 border p-8 rounded-[3.5rem] transition-all hover:bg-slate-800/50 ${!isInnovation ? 'border-indigo-500/30 shadow-[0_0_30px_rgba(99,102,241,0.1)]' : 'border-white/5 opacity-60'}`}>
-                                        <div className={`p-4 rounded-2xl w-fit mb-6 ${!isInnovation ? 'bg-indigo-500/10 text-indigo-400' : 'bg-slate-900 text-slate-500'}`}>
+                                    <div className={`group bg-slate-800/30 border p-8 rounded-[3.5rem] transition-all hover:bg-slate-800/50 ${!isInnovation || isPreSelection ? 'border-indigo-500/30 shadow-[0_0_30px_rgba(99,102,241,0.1)]' : 'border-white/5 opacity-60'}`}>
+                                        <div className={`p-4 rounded-2xl w-fit mb-6 ${!isInnovation || isPreSelection ? 'bg-indigo-500/10 text-indigo-400' : 'bg-slate-900 text-slate-500'}`}>
                                             <Orbit size={32} />
                                         </div>
                                         <h3 className="text-2xl font-bold text-white mb-3">Knowledge Mode</h3>
@@ -177,6 +185,44 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                                 ))}
                             </div>
 
+                            {/* Steering Section */}
+                            <div className="mb-12 pt-8 border-t border-white/5">
+                                <h3 className="text-2xl font-black text-white mb-6 tracking-tighter italic">Steering the Discovery</h3>
+                                <div className="grid md:grid-cols-2 gap-8">
+                                    <div className="bg-slate-800/20 border border-white/5 p-8 rounded-[3rem]">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <Target className="text-amber-400" size={24} />
+                                            <h4 className="text-lg font-bold text-white uppercase tracking-tighter">Main Goal</h4>
+                                        </div>
+                                        <p className="text-slate-400 text-xs leading-relaxed">
+                                            {renderBoldText("Setting a Seed as your **Main Goal** defines the orbital center of your research. The Autonomous Discovery will prioritize paths that lead toward this objective, transforming a broad search into a high-precision quest.")}
+                                        </p>
+                                    </div>
+                                    <div className="bg-slate-800/20 border border-white/5 p-8 rounded-[3rem]">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <ShieldCheck className="text-emerald-400" size={24} />
+                                            <h4 className="text-lg font-bold text-white uppercase tracking-tighter">Laws (Constraints)</h4>
+                                        </div>
+                                        <p className="text-slate-400 text-xs leading-relaxed mb-4">
+                                            {renderBoldText("Seeds explicitly marked with the **Law** type (Constraint) serve as global boundary conditions. We recommend creating them as **unlinked** nodes to maintain a clean 'policy layer' for the AI:")}
+                                        </p>
+                                        <ul className="space-y-3">
+                                            <li className="text-[11px] text-slate-500 leading-relaxed italic">
+                                                <span className="text-rose-400 font-bold not-italic">Negative Constraints:</span> "A Law like 'Exclude Blockchain' or 'Exclude Quantum Mechanics' tells the AI to steer out of those territories."
+                                            </li>
+                                            <li className="text-[11px] text-slate-500 leading-relaxed italic">
+                                                <span className="text-sky-400 font-bold not-italic">Positive Constraints:</span> "Laws like 'Focus on low-cost materials' or 'Only mobile-first technology' force the AI to filter all findings through those framework lenses."
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div className="mt-8 mb-4 p-6 bg-slate-950/40 border border-white/5 rounded-3xl">
+                                    <p className="text-slate-400 text-xs leading-relaxed text-center">
+                                        {renderBoldText("**Strategic Note**: In **Innovation Mode**, applying Laws and a Main Goal ensures practical feasibility. Removing them enables unbounded **Blue-Sky Exploration**, though the engine may surface theoretical or futuristic technologies. In **Knowledge Mode**, we recommend no constraints to enable **Unconstrained Serendipity**, following natural lineages of history and concepts wherever they lead.")}
+                                    </p>
+                                </div>
+                            </div>
+
                             <div className="grid md:grid-cols-3 gap-8">
                                 <div className="col-span-1 md:col-span-1 bg-slate-800/20 border border-white/5 p-8 rounded-[3rem]">
                                     <div className="flex items-center gap-3 mb-6">
@@ -186,9 +232,28 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                                     <p className="text-slate-400 text-xs leading-relaxed mb-6">
                                         {renderBoldText("Toggle the **Discovery Brain** in the toolbar. Once active, the AI will autonomously generate new nodes based on the **Gravity** of your current graph.")}
                                     </p>
-                                    <div className="flex flex-col gap-2">
-                                        <div className="text-[10px] font-bold text-sky-500 uppercase tracking-widest bg-sky-500/5 p-3 rounded-xl border border-sky-500/10">Policy: Smart Balancing</div>
-                                        <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10">Mode: {isInnovation ? 'Pragmatic Synthesis' : 'Forensic Research'}</div>
+                                    <div className="space-y-6 mt-4">
+                                        <div className="border-l-2 border-sky-500/30 pl-4">
+                                            <h4 className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-2">Automated Policy Engine</h4>
+                                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                                                {renderBoldText("The Discovery Brain is **Policy-Driven**. It dynamically oscillates between **Exploiting** your current ideas to find deep logic and **Exploring** lateral categories to prevent echo chambers.")}
+                                            </p>
+                                        </div>
+                                        <div className="border-l-2 border-emerald-500/30 pl-4">
+                                            <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Contextual Personalization</h4>
+                                            <div className="space-y-4">
+                                                {(isInnovation || isPreSelection) && (
+                                                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                                                        {renderBoldText("**Innovation Persona**: Acts as a **Pragmatic Architect**, prioritizing technical feasibility, market friction, and implementation bottlenecks.")}
+                                                    </p>
+                                                )}
+                                                {(!isInnovation || isPreSelection) && (
+                                                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                                                        {renderBoldText("**Knowledge Persona**: Acts as a **Forensic Historian**, prioritizing causal depth, primary source logic, and interdisciplinary weaving.")}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-indigo-500/10 to-transparent border border-white/10 p-10 rounded-[3.5rem] flex flex-col justify-center">
@@ -258,43 +323,83 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                             <div className="mb-12">
                                 <h2 className="text-4xl font-black text-white tracking-tighter mb-4">Seed Ontology</h2>
                                 <p className="text-slate-400 text-lg max-w-2xl font-light italic">
-                                    Current Perspective: {isInnovation ? "Innovation Mode" : "Knowledge Mode"}
+                                    {isPreSelection ? "Showing all potential Seed types across both modes" : `Current Perspective: ${isInnovation ? "Innovation Mode" : "Knowledge Mode"}`}
                                 </p>
                             </div>
 
-                            <div className="grid md:grid-cols-4 gap-4">
-                                {(isInnovation ? [
-                                    { title: "Concept", desc: "Abstract ideas and theoretical breakthroughs.", type: NodeType.CONCEPT },
-                                    { title: "Technology", desc: "Existing tools, hardware, or platforms.", type: NodeType.TECHNOLOGY },
-                                    { title: "Problem", desc: "Technical bottlenecks or engineering gaps.", type: NodeType.PROBLEM },
-                                    { title: "Pain Point", desc: "Real-world friction or market needs.", type: NodeType.PAIN_POINT },
-                                    { title: "Innovation", desc: "Novel solutions that bridge needs.", type: NodeType.INNOVATION },
-                                    { title: "Implementation", desc: "Practical products and applications.", type: NodeType.IMPLEMENTATION },
-                                    { title: "User Segment", desc: "Personas and target audiences.", type: NodeType.USER_SEGMENT },
-                                    { title: "Constraint/Law", desc: "Boundaries of the system's physics.", type: NodeType.CONSTRAINT },
-                                ] : [
-                                    { title: "Theory", desc: "Philosophies, laws, and frameworks.", type: NodeType.THEORY },
-                                    { title: "Event", desc: "Historical occurrences and milestones.", type: NodeType.EVENT },
-                                    { title: "Person", desc: "Influential historical figures.", type: NodeType.PERSON },
-                                    { title: "Place", desc: "Geographic locations or civilizations.", type: NodeType.PLACE },
-                                    { title: "Artifact", desc: "Physical objects or documents.", type: NodeType.ARTIFACT },
-                                    { title: "Movement", desc: "Broad cultural or social shifts.", type: NodeType.MOVEMENT },
-                                    { title: "Discovery", desc: "Scientific revelations.", type: NodeType.DISCOVERY },
-                                    { title: "Context Law", desc: "Epistemic rules and source rigor.", type: NodeType.CONSTRAINT },
-                                ]).map((item, i) => (
-                                    <div key={i} className="flex flex-col gap-4 bg-slate-800/20 border border-white/5 p-6 rounded-[2.5rem] hover:bg-slate-800/40 transition-all group">
-                                        <div
-                                            className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.05)] border border-white/10 group-hover:scale-110 transition-transform"
-                                            style={{ backgroundColor: `${NODE_COLORS[item.type]}20`, color: NODE_COLORS[item.type] }}
-                                        >
-                                            <div className="w-5 h-5 rounded-full" style={{ backgroundColor: NODE_COLORS[item.type] }}></div>
+                            <div className="space-y-12">
+                                {/* Group 1: Innovation Suite */}
+                                {(isPreSelection || isInnovation) && (
+                                    <div className="animate-in slide-in-from-bottom-4 duration-500">
+                                        <div className="flex items-center gap-4 mb-8">
+                                            <div className="p-2 bg-sky-500/20 rounded-xl text-sky-400"><BrainCircuit size={20} /></div>
+                                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">Innovation Suite <span className="text-[10px] text-slate-500 not-italic ml-2 font-black tracking-widest">PRAGMATIC PRIMITIVES</span></h3>
                                         </div>
-                                        <div>
-                                            <h4 className="text-base font-bold text-white mb-1">{item.title}</h4>
-                                            <p className="text-[10px] text-slate-500 leading-normal uppercase font-black tracking-widest">{item.desc}</p>
+                                        <div className="grid md:grid-cols-4 gap-4">
+                                            {[
+                                                { title: "Concept", desc: "Theoretical breakthroughs.", type: NodeType.CONCEPT },
+                                                { title: "Technology", desc: "Existing tools or frameworks.", type: NodeType.TECHNOLOGY },
+                                                { title: "Problem", desc: "Technical bottlenecks.", type: NodeType.PROBLEM },
+                                                { title: "Pain Point", desc: "User frustrations and needs.", type: NodeType.PAIN_POINT },
+                                                { title: "Innovation", desc: "Novel bridging solutions.", type: NodeType.INNOVATION },
+                                                { title: "Implementation", desc: "Practical product applications.", type: NodeType.IMPLEMENTATION },
+                                                { title: "User Segment", desc: "Target audiences & personas.", type: NodeType.USER_SEGMENT },
+                                                { title: "Constraint", desc: "System/Systemic boundaries.", type: NodeType.CONSTRAINT },
+                                                { title: "Friction", desc: "Adoption or efficiency drag.", type: NodeType.FRICTION },
+                                                { title: "Market", desc: "Economic & business drivers.", type: NodeType.MARKET },
+                                                { title: "Regulation", desc: "Policy and legal context.", type: NodeType.REGULATION },
+                                                { title: "Ethics", desc: "Moral & societal impact.", type: NodeType.ETHICS },
+                                                { title: "Mental Model", desc: "Assumptions being challenged.", type: NodeType.MENTAL_MODEL },
+                                                { title: "Analogy", desc: "Cross-disciplinary parallels.", type: NodeType.ANALOGY },
+                                            ].map((item, i) => (
+                                                <div key={i} className="flex flex-col gap-4 bg-slate-800/20 border border-white/5 p-6 rounded-[2.5rem] hover:bg-slate-800/40 transition-all group">
+                                                    <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform" style={{ backgroundColor: `${NODE_COLORS[item.type]}20`, color: NODE_COLORS[item.type] }}>
+                                                        <div className="w-5 h-5 rounded-full" style={{ backgroundColor: NODE_COLORS[item.type] }}></div>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-base font-bold text-white mb-1">{item.title}</h4>
+                                                        <p className="text-[10px] text-slate-500 leading-normal uppercase font-black tracking-widest">{item.desc}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
-                                ))}
+                                )}
+
+                                {/* Group 2: Knowledge Suite */}
+                                {(isPreSelection || !isInnovation) && (
+                                    <div className="animate-in slide-in-from-bottom-4 duration-700">
+                                        <div className="flex items-center gap-4 mb-8">
+                                            <div className="p-2 bg-indigo-500/20 rounded-xl text-indigo-400"><Orbit size={20} /></div>
+                                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">Knowledge Suite <span className="text-[10px] text-slate-500 not-italic ml-2 font-black tracking-widest">EPISTEMIC PRIMITIVES</span></h3>
+                                        </div>
+                                        <div className="grid md:grid-cols-4 gap-4">
+                                            {[
+                                                { title: "Theory", desc: "Philosophies & frameworks.", type: NodeType.THEORY },
+                                                { title: "Event", desc: "Historical occurrences.", type: NodeType.EVENT },
+                                                { title: "Person", desc: "Influential figures.", type: NodeType.PERSON },
+                                                { title: "Place", desc: "Geography & civilizations.", type: NodeType.PLACE },
+                                                { title: "Artifact", desc: "Physical objects or records.", type: NodeType.ARTIFACT },
+                                                { title: "Movement", desc: "Cultural or social shifts.", type: NodeType.MOVEMENT },
+                                                { title: "Discovery", desc: "Scientific revelations.", type: NodeType.DISCOVERY },
+                                                { title: "Contradiction", desc: "Conflicting accounts & debates.", type: NodeType.CONTRADICTION },
+                                                { title: "Relationship", desc: "Inter-entity connections.", type: NodeType.RELATIONSHIP },
+                                                { title: "Question", desc: "Open research inquiries.", type: NodeType.QUESTION },
+                                                { title: "Entity", desc: "Organizations or groups.", type: NodeType.ENTITY },
+                                            ].map((item, i) => (
+                                                <div key={i} className="flex flex-col gap-4 bg-slate-800/20 border border-white/5 p-6 rounded-[2.5rem] hover:bg-slate-800/40 transition-all group">
+                                                    <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform" style={{ backgroundColor: `${NODE_COLORS[item.type]}20`, color: NODE_COLORS[item.type] }}>
+                                                        <div className="w-5 h-5 rounded-full" style={{ backgroundColor: NODE_COLORS[item.type] }}></div>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-base font-bold text-white mb-1">{item.title}</h4>
+                                                        <p className="text-[10px] text-slate-500 leading-normal uppercase font-black tracking-widest">{item.desc}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -401,8 +506,8 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, aiSettin
                     </div>
                     <span>Shared Exploration & Emergent Discovery</span>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

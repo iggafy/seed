@@ -13,6 +13,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 import WormholeSelector from './components/WormholeSelector';
 import WelcomeScreen from './components/WelcomeScreen';
 import SEEDManual from './components/SEEDManual';
+import DiscoveryRecommendation from './components/DiscoveryRecommendation';
 import NexusWikiBrowser from './components/NexusWikiBrowser';
 import { searchWikipedia } from './services/wikipediaService';
 import { ChatMessage, AISuggestion, DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile, GraphLink, ExplorationMode, WikiBrowserState } from './types';
@@ -200,6 +201,7 @@ function App() {
   // Manual State
   const [showManual, setShowManual] = useState(false);
   const [manualTab, setManualTab] = useState<'welcome' | 'autonomous' | 'protocols' | 'ontology' | 'shortcuts' | 'about'>('welcome');
+  const [showDiscoveryRecommendation, setShowDiscoveryRecommendation] = useState(false);
 
   const handleShowManual = (tab?: string) => {
     if (tab) {
@@ -2819,18 +2821,29 @@ function App() {
         onToggleContextMode={() => setIsContextMode(!isContextMode)}
         onDashboard={() => setShowDashboard(true)}
         onSave={handleSaveSeed}
-        onToggleDiscovery={() => setDiscoveryState(prev => {
-          const isActivating = !prev.isActive;
-          const selectedNodes = getSelectedNodes();
-          const shouldBeQuest = isActivating && selectedNodes.length === 1;
+        onToggleDiscovery={() => {
+          if (!discoveryState.isActive) {
+            const shouldSkipCheck = localStorage.getItem('skipDiscoveryRecommendation') === 'true';
+            if (!shouldSkipCheck) {
+              setShowDiscoveryRecommendation(true);
+              return;
+            }
+          }
 
-          return {
-            ...prev,
-            isActive: isActivating,
-            isQuest: shouldBeQuest,
-            activeNodeId: shouldBeQuest ? selectedNodes[0].id : null
-          };
-        })}
+          setDiscoveryState(prev => {
+            const isActivating = !prev.isActive;
+            const selectedNodes = getSelectedNodes();
+            const shouldBeQuest = isActivating && selectedNodes.length === 1;
+
+            return {
+              ...prev,
+              isActive: isActivating,
+              isQuest: shouldBeQuest,
+              activeNodeId: shouldBeQuest ? selectedNodes[0].id : null,
+              stepCount: 0
+            };
+          });
+        }}
         onToggleChat={() => setIsChatOpen(!isChatOpen)}
         onToggleManual={() => handleShowManual()}
         onUndo={handleUndo}
@@ -2849,6 +2862,7 @@ function App() {
         isOpen={showManual}
         onClose={() => setShowManual(false)}
         mode={currentMode}
+        isPreSelection={showWelcome}
         aiSettings={aiSettings}
         initialTab={manualTab}
       />
@@ -3198,6 +3212,30 @@ function App() {
           cancelText={confirmState.cancelText}
         />
       )}
+      {/* Discovery Recommendation Dialog */}
+      <DiscoveryRecommendation
+        isOpen={showDiscoveryRecommendation}
+        onClose={() => setShowDiscoveryRecommendation(false)}
+        onConfirm={() => {
+          setShowDiscoveryRecommendation(false);
+          setDiscoveryState(prev => {
+            const selectedNodes = getSelectedNodes();
+            const shouldBeQuest = true && selectedNodes.length === 1; // Logic mirrored from direct toggle
+
+            return {
+              ...prev,
+              isActive: true,
+              isQuest: shouldBeQuest,
+              activeNodeId: shouldBeQuest ? selectedNodes[0].id : null,
+              stepCount: 0
+            };
+          });
+        }}
+        onReadDocs={() => {
+          setShowDiscoveryRecommendation(false);
+          handleShowManual('autonomous');
+        }}
+      />
     </div>
   );
 }
