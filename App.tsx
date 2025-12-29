@@ -2483,8 +2483,8 @@ function App() {
   return (
     <div className="relative w-full h-full flex flex-col font-sans text-slate-200">
       {/* Header / Nav - Floating Glass Panel - Increased Z-Index */}
-      <div className="absolute top-4 left-0 w-full pointer-events-none z-50 flex items-center justify-between px-6">
-        <div className="pointer-events-auto flex items-center gap-4 bg-slate-900/60 backdrop-blur-xl border border-white/10 p-3 rounded-2xl shadow-2xl max-w-[60vw] overflow-hidden transition-all duration-500">
+      <div className="absolute top-4 left-0 w-full pointer-events-none z-50 flex flex-col items-start gap-3 px-6">
+        <div className="pointer-events-auto flex items-center gap-4 bg-slate-900/40 backdrop-blur-lg border border-white/10 p-3 rounded-2xl shadow-2xl max-w-[80vw] overflow-hidden transition-all duration-500">
 
           {/* Main Logo & Breadcrumb Hybrid */}
           <div className="flex flex-col overflow-hidden">
@@ -2540,10 +2540,10 @@ function App() {
 
         </div>
 
-        {/* Discovery Monitor Pill - Integrated into Header Row */}
+        {/* Discovery Monitor Pill - Stacked underneath to avoid Sidebar/Breadcrumb collisions */}
         {discoveryState.isActive && (
-          <div className="pointer-events-auto animate-in slide-in-from-right-10 duration-700">
-            <div className="bg-slate-900/60 backdrop-blur-xl border border-sky-500/30 rounded-2xl p-3 shadow-2xl flex items-center gap-5 ring-1 ring-white/10">
+          <div className="pointer-events-auto animate-in slide-in-from-top-2 duration-700">
+            <div className="bg-slate-900/40 backdrop-blur-lg border border-sky-500/20 rounded-2xl p-3 shadow-2xl flex items-center gap-5 ring-1 ring-white/5">
               <div className="flex items-center gap-3 border-r border-white/5 pr-4">
                 <div className="relative">
                   <div className="absolute inset-0 bg-sky-500 rounded-full animate-ping opacity-20"></div>
@@ -2551,13 +2551,13 @@ function App() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[9px] uppercase tracking-widest font-bold text-sky-500/70 leading-none">{currentMode === ExplorationMode.INNOVATION ? 'Autonomous Gardener' : 'Knowledge Curator'}</span>
-                  <span className="text-[11px] text-white font-medium truncate max-w-[150px]">{currentMode === ExplorationMode.INNOVATION ? 'Scanning Innovation Fog...' : 'Exploring Knowledge Horizon...'}</span>
+                  <span className="text-[11px] text-white font-medium truncate max-w-[150px]">{currentMode === ExplorationMode.INNOVATION ? 'Scanning...' : 'Exploring...'}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 overflow-hidden">
                 {discoveryState.history.slice(0, 1).map((item, i) => (
-                  <span key={i} className="text-xs text-slate-400 animate-in fade-in slide-in-from-right-5 line-clamp-1 max-w-[180px] italic">
+                  <span key={i} className="text-xs text-slate-400 animate-in fade-in slide-in-from-left-5 line-clamp-1 max-w-[180px] italic">
                     {item}
                   </span>
                 ))}
