@@ -173,7 +173,7 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                     { title: 'Path Discovery', label: 'EXPLOIT', desc: 'The engine walks the existing graph to find missing links and inferred relationships.', icon: <Target className="text-emerald-400" /> },
                                     { title: 'Synergetic Weaver', label: 'CONNECT', desc: 'Finds semantic overlaps between distant seeds and weaves them together with ghost links.', icon: <GitMerge className="text-indigo-400" /> },
                                     { title: 'Constraint Probe', label: 'PROBE', desc: 'A pulse that hunts for frictions, bottlenecks, or logical contradictions in your theory.', icon: <Shield className="text-rose-400" /> },
-                                    { title: 'Context Re-Anchor', label: 'ANCHOR', desc: 'Prevents drift by refocusing the AI on your Goal Node or the Root of the session.', icon: <Anchor className="text-amber-400" size={16} /> },
+                                    { title: 'Context Re-Anchor', label: 'ANCHOR', desc: 'Prevents drift by refocusing the AI on your Goal Node or the Root of the session.', icon: <Anchor className="text-amber-400" /> },
                                 ].map((step, i) => (
                                     <div key={i} className="bg-slate-800/40 border border-white/5 p-6 rounded-[2.5rem] flex flex-col items-center text-center group hover:bg-slate-800/60 transition-all">
                                         <div className="p-3 bg-slate-900 rounded-2xl mb-4 shadow-xl group-hover:scale-110 transition-transform flex items-center justify-center">
