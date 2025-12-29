@@ -138,8 +138,10 @@ export interface DiscoveryState {
   isQuest?: boolean;
   // --- AUTONOMOUS NAVIGATION STEERING ---
   stepCount: number;
-  currentPolicy: 'EXPLOIT' | 'EXPLORE' | 'PROBE' | 'RE_ANCHOR';
+  currentPolicy: 'EXPLOIT' | 'EXPLORE' | 'PROBE' | 'RE_ANCHOR' | 'CONNECT' | 'PRUNE'; // Added new policies
   goalNodeId: string | null;
+  visitedNodeIds: string[]; // Track nodes we've processed as "Gardener"
+  latestCreatedNodeId?: string | null; // Track momentum
 }
 
 export enum AIProvider {

@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('api', {
     // AI Request Bridge
     aiRequest: (payload) => ipcRenderer.invoke('ai:generate', payload),
 
+    // Terminal Logging
+    log: (message) => ipcRenderer.invoke('log:terminal', message),
+
     // Persistence Layer
     db: {
         saveSeed: (seed) => ipcRenderer.invoke('seed:save', seed),

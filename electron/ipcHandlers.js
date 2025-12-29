@@ -20,6 +20,10 @@ export function setupIpcHandlers() {
             return { error: error.message || "Unknown Error", details: error.response ? error.response.data : null };
         }
     });
+    ipcMain.handle('log:terminal', (event, message) => {
+        console.log(`[Renderer Log] ${message}`);
+        return { success: true };
+    });
 }
 
 async function handleGemini(apiKey, model, messages, jsonSchema, systemPrompt) {

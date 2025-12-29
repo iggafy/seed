@@ -167,7 +167,8 @@ function App() {
     history: [],
     stepCount: 0,
     currentPolicy: 'EXPLOIT',
-    goalNodeId: null
+    goalNodeId: null,
+    visitedNodeIds: [] // Track processed nodes to prevent loops
   });
 
   const [discardedLuckySeeds, setDiscardedLuckySeeds] = useState<string[]>([]);
@@ -572,153 +573,121 @@ function App() {
       // LOYAL STOP: Exit immediately if inactive
       if (!isActiveRef.current) return;
 
-      const currentNodes = dataRef.current.nodes.filter(n => !n.isGhost);
-      if (currentNodes.length === 0) return;
+      try {
+        const currentNodes = dataRef.current.nodes.filter(n => !n.isGhost);
+        if (currentNodes.length === 0) return;
 
-      // --- DISCOVERY STEERING LOGIC ---
-      const currentState = discoveryStateRef.current;
-      const stepCount = currentState.stepCount || 0;
-      let nextPolicy = currentState.currentPolicy || 'EXPLOIT';
+        // --- STEP 1: THE SELECTOR (Smart Node Selection) ---
+        const recentHistory = discoveryStateRef.current.visitedNodeIds.slice(-20);
+        let targetNode: GraphNode | null = null;
+        let nextPolicy: 'EXPLOIT' | 'EXPLORE' | 'PROBE' | 'RE_ANCHOR' | 'CONNECT' = 'EXPLOIT';
 
-      // Policy Rotation (Material Discovery Style)
-      // Every 5 steps, Re-Anchor to the goal.
-      // Otherwise cycle between Exploit, Explore, and Probe.
-      if (stepCount > 0 && stepCount % 6 === 0) {
-        nextPolicy = 'RE_ANCHOR';
-      } else if (stepCount % 3 === 0) {
-        nextPolicy = 'EXPLORE';
-      } else if (stepCount % 4 === 0) {
-        nextPolicy = 'PROBE';
-      } else {
-        nextPolicy = 'EXPLOIT';
-      }
-
-      // FIND ANCHORS
-      const goalNode = dataRef.current.nodes.find(n => n.isGoalNode) || dataRef.current.nodes.find(n => n.isRoot) || null;
-      const globalConstraints = dataRef.current.nodes.filter(n => n.type === NodeType.CONSTRAINT || n.type === NodeType.FRICTION);
-
-      // --- RE-ANCHOR: CLEANUP GHOSTS ---
-      // If re-anchoring, prune ghosts with low novelty/impact or high friction
-      if (nextPolicy === 'RE_ANCHOR') {
-        const lowValueNodeIds = dataRef.current.nodes
-          .filter(n => n.isGhost && n.valueVector && (n.valueVector.impact < 0.3 || n.valueVector.friction > 0.8))
-          .map(n => n.id);
-
-        if (lowValueNodeIds.length > 0) {
-          setData(prev => ({
-            nodes: prev.nodes.filter(n => !lowValueNodeIds.includes(n.id)),
-            links: prev.links.filter(l => {
-              const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
-              const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
-              return !lowValueNodeIds.includes(s) && !lowValueNodeIds.includes(t);
-            })
-          }));
-          setDiscoveryState(prev => ({
-            ...prev,
-            history: [`Cleaned ${lowValueNodeIds.length} low-value paths`, ...prev.history].slice(0, 10)
-          }));
-        }
-      }
-
-      // TARGET SELECTION LOGIC
-      // 1. Check if we have a focus node from state
-      let targetId = currentState.activeNodeId;
-      let target = targetId ? currentNodes.concat(dataRef.current.nodes.filter(n => n.isGhost)).find(n => n.id === targetId) : null;
-
-      // 2. If no target or target is gone, and we are in quest mode, stop quest
-      if (!target && currentState.isQuest) {
-        setDiscoveryState(prev => ({ ...prev, isQuest: false, activeNodeId: null }));
-        return;
-      }
-
-      // 3. If no target, pick a purposeful one
-      if (!target) {
-        if (nextPolicy === 'RE_ANCHOR' && goalNode) {
-          target = goalNode;
-        } else {
-          const priorityNodes = modeRef.current === ExplorationMode.INNOVATION
-            ? currentNodes.filter(n => [NodeType.PROBLEM, NodeType.PAIN_POINT, NodeType.QUESTION, NodeType.FRICTION, NodeType.CONSTRAINT, NodeType.ETHICS, NodeType.REGULATION, NodeType.MARKET, NodeType.MENTAL_MODEL].includes(n.type))
-            : currentNodes.filter(n => [NodeType.QUESTION, NodeType.CONTRADICTION].includes(n.type));
-
-          if (priorityNodes.length > 0) {
-            target = priorityNodes[Math.floor(Math.random() * priorityNodes.length)];
-          } else {
-            target = currentNodes[Math.floor(Math.random() * currentNodes.length)];
+        // A. MOMENTUM DRIVER (The "Follow Through")
+        // 40% Chance to continue the chain (Reduced from 60% to prevent infinite tunneling)
+        const momentumNodeId = discoveryStateRef.current.latestCreatedNodeId;
+        if (momentumNodeId && Math.random() < 0.4) {
+          // Look in ALL nodes (including Ghosts) for momentum
+          const momentumNode = dataRef.current.nodes.find(n => n.id === momentumNodeId);
+          if (momentumNode && !recentHistory.includes(momentumNodeId)) {
+            targetNode = momentumNode;
+            nextPolicy = 'EXPLOIT'; // Continue the thought
           }
         }
-      }
 
-      if (!target) return; // Fallback
+        // B. SCATTER MODE (If Momentum didn't trigger)
+        if (!targetNode) {
+          // 20% Root Jump (Start new branch)
+          if (Math.random() < 0.2 && currentNodes.some(n => n.isRoot)) {
+            targetNode = currentNodes.find(n => n.isRoot) || null;
+            nextPolicy = 'EXPLORE';
+          }
 
-      setDiscoveryState(prev => ({
-        ...prev,
-        activeNodeId: target!.id,
-        currentPolicy: nextPolicy,
-        stepCount: stepCount + 1
-      }));
+          if (!targetNode) {
+            // Leaf Hunting (Deepen existing dangling thoughts)
+            const leafNodes = currentNodes.filter(n => {
+              const linkCount = dataRef.current.links.filter(l =>
+                (typeof l.source === 'object' ? (l.source as any).id === n.id : l.source === n.id) ||
+                (typeof l.target === 'object' ? (l.target as any).id === n.id : l.target === n.id)
+              ).length;
+              return linkCount <= 1 && !recentHistory.includes(n.id);
+            });
 
-      const nodesString = dataRef.current.nodes.map(n => `- ${n.label} (${n.type})`).join('\n');
-      const linksString = dataRef.current.links.map(l => {
-        const sourceLabel = dataRef.current.nodes.find(n => n.id === (typeof l.source === 'object' ? (l.source as any).id : l.source))?.label;
-        const targetLabel = dataRef.current.nodes.find(n => n.id === (typeof l.target === 'object' ? (l.target as any).id : l.target))?.label;
-        return `- ${sourceLabel} --[${l.relation}]--> ${targetLabel}`;
-      }).join('\n');
+            // Reduced from 70% to 50% to allow more Random Walking
+            if (leafNodes.length > 0 && Math.random() < 0.5) {
+              targetNode = leafNodes[Math.floor(Math.random() * leafNodes.length)];
+              nextPolicy = 'EXPLOIT';
+            } else {
+              // Random Walk / Weaver
+              const unvisited = currentNodes.filter(n => !recentHistory.includes(n.id));
+              const candidates = unvisited.length > 0 ? unvisited : currentNodes;
+              targetNode = candidates[Math.floor(Math.random() * candidates.length)];
 
-      const fullGraphContext = `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}\n\nCURRENT DISCOVERY SESSION HISTORY:\n${discoveryStateRef.current.history.slice(0, 5).reverse().join(' -> ')}`;
+              const policies: any[] = ['EXPLORE', 'PROBE', 'RE_ANCHOR'];
 
-      try {
-        // AI Thinking delay simulation
-        await new Promise(r => setTimeout(r, 2000));
+              // Double weight for CONNECT if we have enough nodes
+              if (currentNodes.length > 4) {
+                policies.push('CONNECT');
+                policies.push('CONNECT');
+              }
 
-        // LOYAL STOP: Check again before AI call
-        if (!isActiveRef.current) return;
+              nextPolicy = policies[Math.floor(Math.random() * policies.length)] as any;
+            }
+          }
+        }
+
+        if (!targetNode) return;
+
+        // Update UI State for selection
+        setDiscoveryState(prev => ({ ...prev, activeNodeId: targetNode!.id, currentPolicy: nextPolicy }));
+
+        // --- STEP 2: EXECUTE AGENTIC DISCOVERY ---
+        const fullGraphContext = getGraphContext(dataRef.current);
+        const globalConstraints = dataRef.current.nodes.filter(n => n.type === NodeType.CONSTRAINT && n.constraintProps?.scope === 'global');
+        const goalNode = dataRef.current.nodes.find(n => n.isGoalNode) || null;
+        const rootNode = dataRef.current.nodes.find(n => n.isRoot) || null;
 
         const suggestion = await agenticDiscovery(
-          settingsRef.current,
+          aiSettings,
           fullGraphContext,
-          target!,
+          targetNode,
           goalNode,
+          rootNode,
           globalConstraints,
           nextPolicy,
-          modeRef.current
+          currentMode
         );
 
-        if (suggestion && isActiveRef.current) {
-          // Check for Duplicates (Smart Match)
-          const cleanWords = (str: string) => {
-            return str.toLowerCase()
-              .replace(/[^a-z0-9 ]/g, '')
-              .split(/\s+/)
-              .filter(w => !['the', 'a', 'an', 'of', 'in', 'on', 'at', 'to', 'for'].includes(w))
-              .map(w => w.endsWith('s') && w.length > 3 ? w.slice(0, -1) : w);
-          };
-
-          const suggestionWords = cleanWords(suggestion.label).join('');
-          const existingNode = dataRef.current.nodes.find(n => cleanWords(n.label).join('') === suggestionWords && suggestionWords.length > 0);
+        if (suggestion) {
+          const existingNode = dataRef.current.nodes.find(n => n.label.toLowerCase() === suggestion.label.toLowerCase());
 
           if (existingNode) {
             const alreadyLinked = dataRef.current.links.some(l => {
               const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
               const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
-              return (s === target!.id && t === existingNode.id) || (s === existingNode.id && t === target!.id);
+              return (s === targetNode!.id && t === existingNode.id) || (s === existingNode.id && t === targetNode!.id);
             });
 
-            if (!alreadyLinked && existingNode.id !== target!.id) {
-              const newLink = {
-                source: target!.id,
-                target: existingNode.id,
-                relation: suggestion.relationToParent || "connects to",
-                isGhost: true
-              };
-              setData(prev => ({ ...prev, links: [...prev.links, newLink] }));
+            if (!alreadyLinked && existingNode.id !== targetNode!.id) {
+              setData(prev => ({
+                ...prev,
+                links: [...prev.links, {
+                  source: targetNode!.id,
+                  target: existingNode.id,
+                  relation: suggestion.relationToParent || "connects to",
+                  isGhost: true
+                }]
+              }));
               setDiscoveryState(prev => ({
                 ...prev,
-                history: [`Mapped Link: ${target?.label} -> ${existingNode.label}`, ...prev.history].slice(0, 10)
+                history: [`Mapped Link: ${targetNode?.label} -> ${existingNode.label}`, ...prev.history].slice(0, 10),
+                visitedNodeIds: [...prev.visitedNodeIds, targetNode!.id]
               }));
             }
           } else {
-            // Create New Node
             const newNodeId = generateId();
+            const theta = Math.random() * 2 * Math.PI;
+            const radius = 150 + Math.random() * 100;
+
             const newNode: GraphNode = {
               id: newNodeId,
               label: suggestion.label,
@@ -727,49 +696,37 @@ function App() {
               isGhost: true,
               isNew: true,
               valueVector: suggestion.valueVector,
-              x: (isNaN(target!.x || 0) ? 0 : (target!.x || 0)) + (Math.random() - 0.5) * 400,
-              y: (isNaN(target!.y || 0) ? 0 : (target!.y || 0)) + (Math.random() - 0.5) * 400
-            };
-
-            const newLink = {
-              source: target!.id,
-              target: newNodeId,
-              relation: suggestion.relationToParent || "hypothesized",
-              isGhost: true
+              x: (targetNode!.x || 0) + (Math.cos(theta) * radius),
+              y: (targetNode!.y || 0) + (Math.sin(theta) * radius)
             };
 
             setData(prev => ({
               nodes: [...clearNewFlags(prev.nodes), newNode],
-              links: [...prev.links, newLink]
+              links: [...prev.links, { source: targetNode!.id, target: newNodeId, relation: suggestion.relationToParent || "hypothesized", isGhost: true }]
             }));
 
             setDiscoveryState(prev => ({
               ...prev,
-              activeNodeId: prev.isQuest ? newNodeId : prev.activeNodeId,
-              history: [`[${nextPolicy}] ${suggestion.label}`, ...prev.history].slice(0, 10)
+              history: [`[${nextPolicy}] ${suggestion.label}`, ...prev.history].slice(0, 10),
+              visitedNodeIds: [...prev.visitedNodeIds, targetNode!.id],
+              latestCreatedNodeId: newNodeId, // Prime momentum for next turn
+              activeNodeId: newNodeId // Visual focus follows the growth
             }));
           }
         }
       } catch (e) {
         console.error("Discovery Pulse Error:", e);
       } finally {
-        if (!isActiveRef.current) {
-          setDiscoveryState(prev => ({ ...prev, activeNodeId: null }));
-          return;
-        }
-
-        if (!discoveryStateRef.current.isQuest) {
+        if (isActiveRef.current) {
+          timer = setTimeout(runPulse, 6000);
+        } else {
           setDiscoveryState(prev => ({ ...prev, activeNodeId: null }));
         }
-
-        timer = setTimeout(runPulse, 6000);
       }
     };
 
     timer = setTimeout(runPulse, 1500);
-    return () => {
-      clearTimeout(timer);
-    };
+    return () => clearTimeout(timer);
   }, [discoveryState.isActive]);
 
   const handleAssimilateNode = (nodeId: string) => {
@@ -1156,7 +1113,18 @@ function App() {
       return `- ${source} --[${l.relation}]--> ${target}`;
     }).join('\n');
 
-    return `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}`;
+    // --- NOVELTY FILTER (PHASE 3) ---
+    // Extract recent concepts to ban them from reappearing immediately
+    const recentLabels = currentData.nodes.slice(-15).map(n => n.label);
+    const banList = recentLabels.length > 0
+      ? `NOVELTY FILTER (BAN LIST):
+    To ensure diversity, you are STRICTLY FORBIDDEN from using the following terms or concepts in your new suggestion, either as the main label or the core mechanism:
+    [${recentLabels.join(', ')}]
+    
+    Penalty for reusing these terms: The suggestion will be discarded.`
+      : "";
+
+    return `NODES:\n${nodesString}\n\nRELATIONSHIPS:\n${linksString}\n\n${banList}`;
   };
 
 

@@ -1,19 +1,27 @@
 import { AISuggestion, NodeType, AIProvider, AISettings, GraphNode, ChatMessage, GraphLink, ExplorationMode } from '../types';
 import { getModeConfig } from '../constants';
 
+const logToTerminal = (message: string) => {
+    // @ts-ignore
+    if (window.api && window.api.log) {
+        // @ts-ignore
+        window.api.log(message);
+    } else {
+        console.log(`[Terminal Log Fallback] ${message}`);
+    }
+};
+
 const INNOVATION_RESEARCH_PRINCIPLES = `
-INNOVATION_PRINCIPLES (GROUNDED PRODUCT THINKING):
-1. PRODUCT-FIRST: Focus on the user experience and utility before infrastructure. Think: "How does this feel?" and "Why do they care?"
-2. THE "MOM TEST": Describe concepts in language a smart non-engineer can understand. Avoid jargon-heavy architectural hallucinations.
-3. ABSTRACTION LAYERING: Do not skip to deep backend complexity (like clock sync or distributed edge nodes) unless the graph is already focused on that specific layer.
-4. FIRST PRINCIPLES: Break innovations down into their core physical or psychological logic rather than using tech buzzwords.
-5. PRAGMATIC SPECIFICITY: Be specific about the "innovation," but don't hide behind speculative complexity to sound "advanced."
-6. EVOLUTIONARY STEPS: Prioritize the immediate next breakthrough (Years 0-3) over distant sci-fi infrastructure.
-7. GROUNDED FEASIBILITY: A feasibility score of 1.0 means it can be prototyped this week. 0.1 means it requires new physics.
-8. ANTI-JARGON: If a 10-syllable word can be replaced by a 1-syllable word, do it. Clarity is the highest status.
-9. THE FOUNDER'S EYE: Look for unsexy but high-value improvements in cost, time, and human effort.
-10. CONTEXTUAL MIRRORING: If the user is talking about a consumer app, don't suggest a kernel-level driver optimization. Match their mental layer.
-11. SCOPE CONSTRAINT: Avoid proposing or relying on Quantum Computing, Entanglement-based technologies, or Blockchain/Distributed Ledger technologies. Focus on higher-impact, non-speculative structural innovations.
+INNOVATION_PRINCIPLES (FOUNDER MODE - PRAGMATIC PRODUCT THINKING):
+1. UTILITY OVER NOVELTY: Do not suggest "new" things just to be clever. Suggest things that SOLVE A PROBLEM.
+2. KILL THE SCI-FI: If it involves "neural links," "bio-hacking," "quantum computing," or "entanglement," DELETE IT. Stick to software, mechanics, and psychology that exist TODAY.
+3. TANGIBLE TOOLS: Suggest buttons, workflows, interfaces, dashboards, and algorithms. Things you can BUILD.
+4. THE "FOUNDER'S EYE": Look for what is broken, slow, or expensive. Fix it.
+5. NO MAGIC WANDS: Do not use words like "dynamically adjusts," "seamlessly integrates," or "automatically optimizes" without explaining HOW.
+6. PLAIN ENGLISH: Write for a smart 12-year-old. No "synergistic paradigm shifts."
+7. FEASIBILITY MATTERS: If a solo developer can't prototype it in a weekend, it's probably too complex for this graph.
+8. INTERACTION, NOT INFRASTRUCTURE: Focus on how the HUMAN interacts with the system, not the backend database architecture.
+9. CLARITY IS KING: A boring, clear idea is better than a confusing, brilliant one.
 `;
 
 const KNOWLEDGE_RESEARCH_PRINCIPLES = `
@@ -477,6 +485,7 @@ export const autonomousDiscovery = async (
     dieToGrow: boolean = true,
     mode: ExplorationMode = ExplorationMode.INNOVATION
 ): Promise<AISuggestion | null> => {
+    logToTerminal(`[AUTONOMOUS LOOP] Starting ${dieToGrow ? 'GARDENER' : 'SCOUT'} cycle...`);
     if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const modeConfig = getModeConfig(mode);
@@ -521,10 +530,12 @@ export const agenticDiscovery = async (
     fullGraphContext: string,
     activeNode: GraphNode,
     goalNode: GraphNode | null,
+    rootNode: GraphNode | null,
     globalConstraints: GraphNode[],
-    policy: 'EXPLOIT' | 'EXPLORE' | 'PROBE' | 'RE_ANCHOR',
+    policy: 'EXPLOIT' | 'EXPLORE' | 'PROBE' | 'RE_ANCHOR' | 'CONNECT' | 'PRUNE',
     mode: ExplorationMode = ExplorationMode.INNOVATION
 ): Promise<AISuggestion | null> => {
+    logToTerminal(`[AGENTIC POLICY] Selection: ${policy} | Active Node: ${activeNode.label}`);
     if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
 
     const modeConfig = getModeConfig(mode);
@@ -538,6 +549,10 @@ export const agenticDiscovery = async (
         ? `NORTH STAR GOAL:\nLabel: ${goalNode.label}\nDescription: ${goalNode.description}`
         : "No explicit North Star defined. Aim for general innovation.";
 
+    const rootContext = rootNode
+        ? `ROOT ANCHOR (The Origin): "${rootNode.label}" (${rootNode.description}).\n    Use this to ground your exploration. Ensure new ideas aren't just related to the Active Node, but ultimately serve this Root Concept.`
+        : "";
+
     const isInnovation = mode === ExplorationMode.INNOVATION;
 
     // Strategy Selection Guidance
@@ -548,20 +563,20 @@ export const agenticDiscovery = async (
         case 'EXPLOIT':
             intent = "DEEPEN";
             policyGuidance = isInnovation
-                ? "FOCUSED REFINEMENT: Take the current active node and double down. Improve its feasibility, reduce technical risk, or specify the implementation. Move closer to a working prototype."
-                : "CONTEXTUAL DEEPENING: Drill down into the current concept. Uncover primary source details, specific causal mechanisms, or the internal logic of this historical/theoretical node.";
+                ? "SYSTEMIC DEEPENING: Don't just add features. Identify the subjective friction of the current node (e.g., latency, disconnect, cognitive load) and solve it by making the system SMARTER or MORE INTEGRATED. Evolve the tool into a collaborator. Preferred Types: IMPLEMENTATION, FEATURE, ALGORITHM."
+                : "CONTEXTUAL DEEPENING: Drill down into the current concept. Uncover primary source details, specific causal mechanisms, or the internal logic of this historical/theoretical node. Preferred Types: EVENT, PERSON, ARTIFACT.";
             break;
         case 'EXPLORE':
             intent = "LATERIAL_JUMP";
             policyGuidance = isInnovation
-                ? "FRONTIER EXPANSION: Look away from the current cluster. Propose a new primitive, an ANALOGY from a distant domain, or a technological capability not yet mentioned. Increase ENTIRE SYSTEM entropy."
-                : "INTERDISCIPLINARY BRIDGE: Look for a connection to a seemingly unrelated field (e.g., link this economic event to a psychological theory or a geographic condition). Find a high-entropy 'missing link' in the knowledge map.";
+                ? "LATERAL MUTATION: Assert the Core Value Prop but change the Angle of Attack. Switch the medium, the sense (visual/audio), or the timeframe (predictive vs reactive) to bypass a fundamental limitation of the current approach. Preferred Types: USER_SEGMENT, MARKET, ANALOGY, MENTAL_MODEL."
+                : "INTERDISCIPLINARY BRIDGE: Look for a connection to a seemingly unrelated field (e.g., link this economic event to a psychological theory or a geographic condition). Find a high-entropy 'missing link' in the knowledge map. Preferred Types: THEORY, MOVEMENT, PLACE.";
             break;
         case 'PROBE':
             intent = "STRESS_TEST";
             policyGuidance = isInnovation
-                ? "BOUNDARY TESTING: Deliberately propose something that pushes against the ACTIVE CONSTRAINTS. Find the edge cases or the failure modes. What breaks this idea?"
-                : "EPISTEMIC SKEPTICISM: Challenge the current narrative. Propose a contradiction, a historical outlier, or a conflicting perspective that complicates the existing understanding.";
+                ? "BOUNDARY TESTING: Deliberately propose something that pushes against the ACTIVE CONSTRAINTS. Find the edge cases or the failure modes. What breaks this idea? Preferred Types: CONSTRAINT, FRICTION, PROBLEM, QUESTION."
+                : "EPISTEMIC SKEPTICISM: Challenge the current narrative. Propose a contradiction, a historical outlier, or a conflicting perspective that complicates the existing understanding. Preferred Types: CONTRADICTION, QUESTION, DISCORY.";
             break;
         case 'RE_ANCHOR':
             intent = "GOAL_ALIGNMENT";
@@ -569,10 +584,18 @@ export const agenticDiscovery = async (
                 ? "RE-ANCHORING: Explicitly pull the discovery back towards the NORTH STAR GOAL. If we have drifted into technical trivia, find the shortest path back to solving the primary objective."
                 : "NARRATIVE COHERENCE: Re-align with the central research question. If the exploration has become anecdotal, pull it back to the core historical mystery or theoretical objective.";
             break;
+        case 'CONNECT':
+            intent = "SYNERGY_MAPPING";
+            policyGuidance = "WEAVER PROTOCOL: Do NOT create a new node. Look at the FULL GRAPH CONTEXT. Find a connection between the ACTIVE SEED and an EXISTING node. The goal is SYSTEM DENSITY. Preferred Types: RELATIONSHIP, CONTRADICTION, SYNERGY.";
+            break;
+        case 'PRUNE':
+            intent = "GARDENING";
+            policyGuidance = "PRUNING PROTOCOL: Evaluate the current branch. If it is low-value, hallucinatory, OR REPETITIVE, suggest marking it for PRUNING. Be ruthless. (Response should indicate a 'critical_failure' or 'dead_end').";
+            break;
     }
 
     const specificityGuidance = mode === ExplorationMode.INNOVATION
-        ? `1. TECHNICALLY SPECIFIC: Use domain-specific terminology (e.g., "Vector Clocks", "Phase-Change Memory", "CRISPR-Cas9").
+        ? `1. CONCRETE SPECS: Use real-world terms (e.g., "React Component", "SQL Query", "User Onboarding Flow").
     2. VALUE GRADIENT: Ensure the suggestion adds measurable value to the graph.
     3. CONSTRAINT RESPECT: If a HARD constraint exists, DO NOT violate it unless in PROBE mode.
     4. CITATION: Mention why this move makes sense given the GOAL and CONSTRAINTS.
@@ -581,12 +604,14 @@ export const agenticDiscovery = async (
     2. CURIOSITY DRIVEN: Find the contradiction or the missing link in the narrative.
     ${KNOWLEDGE_RESEARCH_PRINCIPLES}`;
 
-    const prompt = `You are a Scientific Discovery Engine working as a ${persona}.
+    const prompt = `You are a Strategic Product Engine - Founder Mode. Your persona: ${persona}.
     
     POLICY: ${policy} (${policyGuidance})
     ACTIVE SEED: "${activeNode.label}" [${activeNode.type}]
     
     ${goalContext}
+    
+    ${rootContext}
     
     ${constraintContext}
 
@@ -1088,6 +1113,10 @@ async function runIPCRequest(
         throw new Error("IPC API not found. Is preload.js configured?");
     }
 
+    logToTerminal(`>>> [AI ENGINE] DISCOVERY REQUEST - Provider: ${settings.provider} | Model: ${activeSettings.model || 'Default'} | Mode: ${mode}`);
+    logToTerminal(`[SYSTEM PROMPT] ${systemPrompt}`);
+    logToTerminal(`[USER PROMPT] ${prompt}`);
+
     // @ts-ignore
     const response = await window.api.aiRequest({
         provider: settings.provider,
@@ -1099,10 +1128,12 @@ async function runIPCRequest(
     });
 
     if (response.error) {
+        logToTerminal(`!!! [AI ENGINE] ERROR: ${response.error}`);
         throw new Error(response.error || "Unknown AI Request Error");
     }
 
     const content = response.content;
+    logToTerminal(`<<< [AI ENGINE] RAW RESPONSE: ${content}`);
     if (!content) return [];
 
     // Parsing Logic (Shared)
