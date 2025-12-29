@@ -40,12 +40,12 @@ export const MODE_CONFIGS: Record<ExplorationMode, ModeConfig> = {
     ],
     aiPersona: "pragmatic product strategist, hands-on innovation architect, and systems-thinker who values clarity over jargon",
     seedExamples: [
-      { label: 'The Silent Meeting Protocol', type: NodeType.PROBLEM, description: 'High-stakes decisions are stalled because synchronous meetings favor the loudest voices, while deep thinkers lack the real-time bandwidth to synthesize complex arguments.' },
-      { label: 'Cognitive Load Balancer', type: NodeType.INNOVATION, description: 'An OS-level daemon that monitors biometric stress indicators and automatically toggles notification filters, routing non-critical alerts to a digest during flow states.' },
-      { label: 'Legacy Code Archaeologist', type: NodeType.PAIN_POINT, description: 'Engineering teams lose 30% of velocity fearing "Chesterton\'s Fence"—refusing to delete dead code because no one knows why the original founder wrote it 5 years ago.' },
-      { label: 'Asynchronous Reality Consensus', type: NodeType.TECHNOLOGY, description: 'A decentralized ledger for AR spatial anchors that allows multiple users to leave persistent digital artifacts in physical space without relying on a centralized "World Cloud" provider.' },
-      { label: 'The Infinite Canvas Paradox', type: NodeType.FRICTION, description: 'Whiteboard tools offer infinite space, but human creativity requires constraints; users feel paralyzed by the lack of structural affordances when starting a new project.' },
-      { label: 'Synthetic Data Foundry', type: NodeType.MARKET, description: 'As public web data triggers copyright collapse, the value of bespoke, ethically-sourced synthetic datasets for training specialized vertical models is skyrocketing.' }
+      { label: 'The Modular Professional Network', type: NodeType.INNOVATION, description: 'A project-centric replacement for LinkedIn that focuses on verified artifacts and collaborative "proof of work" rather than static resumes and corporate titles.' },
+      { label: 'Hyper-Local Community Newsletters', type: NodeType.MARKET, description: 'Monetization platform for neighborhood organizers and local micro-journalists to reclaim civic discourse from noisy social media groups.' },
+      { label: 'AI-First Knowledge OS', type: NodeType.TECHNOLOGY, description: 'A desktop environment that treats every file, note, and email as a vector-searchable entity, proactively surfacing context based on your current active workspace.' },
+      { label: 'Verticalized Circular Economy', type: NodeType.MARKET, description: 'Resale and logistics platform dedicated solely to high-value upcycling, handling "reverse shipping" for modular electronics and precision-refurbished goods.' },
+      { label: 'Voice-to-Task Personal Daemon', type: NodeType.INNOVATION, description: 'A local-first ambient listener that identifies commitments made in conversations and automatically stages them as actionable tasks in your workflow tool.' },
+      { label: 'Programmable Trust Protocols', type: NodeType.TECHNOLOGY, description: 'Automated escrow agreements for early-stage hiring that release payments based on verified milestones like GitHub commits or Figma approvals.' }
     ]
   },
   [ExplorationMode.KNOWLEDGE]: {

@@ -661,17 +661,18 @@ export const generateRandomSeedNode = async (
 
     const modeSpecificPrompt = mode === ExplorationMode.INNOVATION
         ? `Generate a single FOUNDER-CENTRIC PROBLEM, PAIN_POINT, or UNEXPLORED MARKET node.
-    The concept should represent a "Systemic Friction" in modern workflows, software development, or human-machine collaboration.
+    The concept should represent a "Systemic Friction" or a "Latent Opportunity" in modern life, digital workflows, or emerging markets.
 
     DOMAIN ROTATION: Randomize between:
-    1. Collaborative Intelligence (New ways for humans and AIs to work together)
-    2. Knowledge Synthesis (Tools for managing information overload)
-    3. Creative Workflows (Unblocking high-stakes creative decisions)
-    4. Developer Experience (Solving deep technical debt or architectural friction)
-    5. Social Dynamics (Enhancing or preserving human connection in a digital age)
+    1. Consumer Social (New ways for people to connect, share, or compete)
+    2. Vertical SaaS (Solving a specific, deep problem for a niche industry like Law, Health, or Logan Logistics)
+    3. AI-Native Productivity (Tools that replace entire workflows, not just features)
+    4. FinTech & Value Handoff (New ways to move, trust, or grow money/equity)
+    5. Physical-Digital Bridge (Connecting atoms and bits—supply chains, local services, IoT)
+    6. Future of Work (Remote-first culture, verified credentials, asynchronous collaboration)
 
-
-    STYLE: Be pragmatic. Identify a specific, expensive friction. Use the "Founder Mode" mindset: "Where is the leverage?"
+    STYLE: Be pragmatic. Identify a specific, expensive friction or a "Why Now?" opportunity. 
+    Think like a founder on Product Hunt: "What is the 10x better version of this?"
     ${isRetry ? 'CRITICAL: Pick a DIFFERENT domain than any previously discarded idea.' : ''}
     ${INNOVATION_RESEARCH_PRINCIPLES}`
         : `Generate a single interesting starting point for knowledge exploration. This could be:

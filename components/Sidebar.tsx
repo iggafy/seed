@@ -616,7 +616,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* FOOTER */}
         <div className="p-4 border-t border-white/5 flex justify-between items-center bg-slate-950/30">
           <div className="text-[10px] text-slate-600 font-mono">
-            ID: {node.id.split('-')[0]}...
+
           </div>
           <button
             onClick={() => onDeleteNodes([node.id])}

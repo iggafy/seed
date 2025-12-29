@@ -20,7 +20,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
   activeDiscoveryNodeId,
   layoutTrigger
 }) => {
-  const [hoveredNodeId, setHoveredNodeId] = React.useState<string | null>(null);
+
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -169,7 +169,12 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         onNodeContextMenu(null, 0, 0); // Close menu on zoom
       });
 
-    svg.call(zoom).on("dblclick.zoom", null);
+    svg.call(zoom)
+      .on("click", () => {
+        // Deselect when clicking anywhere on the graph but not on a seed
+        onNodeClick(null, false);
+      })
+      .on("dblclick.zoom", null);
 
     zoomRef.current = zoom;
 
@@ -236,97 +241,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
   }, [layoutTrigger, sessionId, structureFingerprint]);
 
 
-  // Focus / Dimming Effect
-  useEffect(() => {
-    if (!gRef.current) return;
-    const g = gRef.current;
 
-    const focusId = hoveredNodeId || (selectedNodeIds.length === 1 ? selectedNodeIds[0] : null);
-
-    if (focusId) {
-      // Trace FULL Branch: Find all upstream ancestors (History) and all downstream descendants (Future)
-      const visibleNodeIds = new Set<string>();
-      const visibleLinkKeys = new Set<string>();
-
-      const traverse = (startId: string, direction: 'up' | 'down') => {
-        const queue = [startId];
-        const visited = new Set<string>();
-
-        while (queue.length > 0) {
-          const curr = queue.shift()!;
-          if (visited.has(curr)) continue;
-          visited.add(curr);
-          visibleNodeIds.add(curr);
-
-          data.links.forEach(l => {
-            const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
-            const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
-
-            if (direction === 'up' && t === curr) {
-              queue.push(s);
-              visibleLinkKeys.add(`${s}-${t}`);
-            }
-            if (direction === 'down' && s === curr) {
-              queue.push(t);
-              visibleLinkKeys.add(`${s}-${t}`);
-            }
-          });
-        }
-      };
-
-      // Traverse both ways
-      traverse(focusId, 'up');
-      traverse(focusId, 'down');
-
-      g.selectAll("g.node:not(.exiting)")
-        .transition().duration(250)
-        .style("opacity", d => visibleNodeIds.has((d as any).id) ? 1 : 0.05); // Stronger dimming for noise reduction
-
-      g.selectAll("path.link")
-        .transition().duration(250)
-        .style("opacity", l => {
-          const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
-          const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
-          return visibleLinkKeys.has(`${s}-${t}`) ? 1 : 0.02;
-        });
-
-      g.selectAll("path.link-flow-line")
-        .transition().duration(250)
-        .style("opacity", l => {
-          const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
-          const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
-          const isHighlighted = visibleLinkKeys.has(`${s}-${t}`);
-          return isHighlighted ? 1 : 0.01;
-        })
-        .style("stroke-width", l => {
-          const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
-          const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
-          return visibleLinkKeys.has(`${s}-${t}`) ? 3 : 1.5;
-        })
-        .attr("class", l => {
-          const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
-          const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
-          const isHighlighted = visibleLinkKeys.has(`${s}-${t}`);
-          return `link-flow-line link-flow ${isHighlighted ? 'focus-flow' : ''}`;
-        });
-
-      g.selectAll("text.link-label")
-        .transition().duration(250)
-        .style("opacity", l => {
-          const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
-          const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
-          return visibleLinkKeys.has(`${s}-${t}`) ? 1 : 0;
-        });
-    } else {
-      g.selectAll("g.node:not(.exiting)").transition().duration(250).style("opacity", 1);
-      g.selectAll("path.link").transition().duration(250).style("opacity", l => (l as any).isGhost ? 0.4 : 1);
-      g.selectAll("path.link-flow-line").transition().duration(250)
-        .style("opacity", 0.5)
-        .style("stroke-width", 1.5)
-        .attr("class", "link-flow-line link-flow");
-      g.selectAll("text.link-label").transition().duration(250).style("opacity", 0);
-    }
-  }, [hoveredNodeId, selectedNodeIds, data.links]);
 
 
   // Update Data and Simulation
@@ -412,7 +327,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("class", "link")
       .attr("fill", "none")
       .attr("stroke", "#64748b") // Slate 500
-      .attr("stroke-opacity", 0.2) // Very subtle base
+      .attr("stroke-opacity", 0.6) // Visible base
       .attr("stroke-width", 1.5);
 
     linkSelection.exit().remove();
@@ -448,7 +363,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("fill", "#94a3b8")
       .attr("text-anchor", "middle")
       .style("pointer-events", "none")
-      .style("opacity", 0) // Start hidden
+      .style("opacity", 0.7) // Always visible
       .style("font-family", "sans-serif");
 
     labelSelection.exit().remove();
@@ -783,10 +698,10 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         onNodeDoubleClick(d);
       })
       .on("mouseenter", (event, d) => {
-        setHoveredNodeId(d.id);
+        // Hover effect removed
       })
       .on("mouseleave", () => {
-        setHoveredNodeId(null);
+        // Hover effect removed
       });
 
     allNodes.select("circle.node-body")
