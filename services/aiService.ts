@@ -13,6 +13,7 @@ INNOVATION_PRINCIPLES (GROUNDED PRODUCT THINKING):
 8. ANTI-JARGON: If a 10-syllable word can be replaced by a 1-syllable word, do it. Clarity is the highest status.
 9. THE FOUNDER'S EYE: Look for unsexy but high-value improvements in cost, time, and human effort.
 10. CONTEXTUAL MIRRORING: If the user is talking about a consumer app, don't suggest a kernel-level driver optimization. Match their mental layer.
+11. SCOPE CONSTRAINT: Avoid proposing or relying on Quantum Computing, Entanglement-based technologies, or Blockchain/Distributed Ledger technologies. Focus on higher-impact, non-speculative structural innovations.
 `;
 
 const KNOWLEDGE_RESEARCH_PRINCIPLES = `

@@ -6,7 +6,7 @@ import SettingsModal from './components/SettingsModal';
 import SeedsDashboard from './components/SeedsDashboard';
 import { INITIAL_DATA, NODE_ICONS, NODE_COLORS, getModeConfig, getExpansionBlueprints, getRelationOptions, getSeedExamples } from './constants';
 import { curateWikiSnippet, expandConcept, expandConceptTargeted, directedDiscovery, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat, optimizeConcept, stressTestConcept, generateImplementation, researchAssistantTextReply, extractKnowledgeMap } from './services/aiService';
-import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit, RefreshCw, Network, SquarePlus } from 'lucide-react';
+import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit, RefreshCw, Network, SquarePlus, Square } from 'lucide-react';
 import NexusAssistant from './components/NexusAssistant';
 import NexusConfirmDialog from './components/NexusConfirmDialog';
 import ConfirmDialog from './components/ConfirmDialog';
@@ -2484,7 +2484,7 @@ function App() {
     <div className="relative w-full h-full flex flex-col font-sans text-slate-200">
       {/* Header / Nav - Floating Glass Panel - Increased Z-Index */}
       <div className="absolute top-4 left-0 w-full pointer-events-none z-50 flex items-center justify-between px-6">
-        <div className="pointer-events-auto flex items-center gap-4 bg-slate-900/60 backdrop-blur-xl border border-white/10 p-3 rounded-2xl shadow-2xl max-w-[80vw] overflow-hidden">
+        <div className="pointer-events-auto flex items-center gap-4 bg-slate-900/60 backdrop-blur-xl border border-white/10 p-3 rounded-2xl shadow-2xl max-w-[60vw] overflow-hidden transition-all duration-500">
 
           {/* Main Logo & Breadcrumb Hybrid */}
           <div className="flex flex-col overflow-hidden">
@@ -2539,6 +2539,40 @@ function App() {
           </div>
 
         </div>
+
+        {/* Discovery Monitor Pill - Integrated into Header Row */}
+        {discoveryState.isActive && (
+          <div className="pointer-events-auto animate-in slide-in-from-right-10 duration-700">
+            <div className="bg-slate-900/60 backdrop-blur-xl border border-sky-500/30 rounded-2xl p-3 shadow-2xl flex items-center gap-5 ring-1 ring-white/10">
+              <div className="flex items-center gap-3 border-r border-white/5 pr-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-sky-500 rounded-full animate-ping opacity-20"></div>
+                  <BrainCircuit className="text-sky-400 relative z-10" size={18} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] uppercase tracking-widest font-bold text-sky-500/70 leading-none">{currentMode === ExplorationMode.INNOVATION ? 'Autonomous Gardener' : 'Knowledge Curator'}</span>
+                  <span className="text-[11px] text-white font-medium truncate max-w-[150px]">{currentMode === ExplorationMode.INNOVATION ? 'Scanning Innovation Fog...' : 'Exploring Knowledge Horizon...'}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 overflow-hidden">
+                {discoveryState.history.slice(0, 1).map((item, i) => (
+                  <span key={i} className="text-xs text-slate-400 animate-in fade-in slide-in-from-right-5 line-clamp-1 max-w-[180px] italic">
+                    {item}
+                  </span>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setDiscoveryState(prev => ({ ...prev, isActive: false }))}
+                className="p-1.5 hover:bg-red-500/20 text-slate-500 hover:text-red-400 rounded-lg transition-all"
+                title="Stop Discovery"
+              >
+                <Square size={14} fill="currentColor" className="opacity-80" />
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
 
@@ -2992,42 +3026,6 @@ function App() {
         )
       }
 
-      {/* Discovery Console Overlay */}
-      {
-        discoveryState.isActive && (
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-top-4 duration-500">
-            <div className="bg-slate-900/60 backdrop-blur-xl border border-sky-500/30 rounded-full px-6 py-2.5 shadow-[0_0_30px_rgba(14,165,233,0.2)] flex items-center gap-6 ring-1 ring-white/10">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-sky-500 rounded-full animate-ping opacity-20"></div>
-                  <BrainCircuit className="text-sky-400 relative z-10" size={20} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-sky-500/70 leading-none">{currentMode === ExplorationMode.INNOVATION ? 'Autonomous Gardener' : 'Knowledge Curator'}</span>
-                  <span className="text-xs text-white font-medium">{currentMode === ExplorationMode.INNOVATION ? 'Scanning Innovation Fog...' : 'Exploring Knowledge Horizon...'}</span>
-                </div>
-              </div>
-
-              <div className="h-6 w-px bg-white/10" />
-
-              <div className="flex items-center gap-2">
-                {discoveryState.history.slice(0, 1).map((item, i) => (
-                  <span key={i} className="text-xs text-slate-400 animate-in fade-in slide-in-from-right-2 line-clamp-1 max-w-[200px]">
-                    {item}
-                  </span>
-                ))}
-              </div>
-
-              <button
-                onClick={() => setDiscoveryState(prev => ({ ...prev, isActive: false }))}
-                className="ml-2 p-1.5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-full transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-        )
-      }
 
       {/* Add Node Modal Overlay - Glass Style */}
       {
