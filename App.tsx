@@ -335,7 +335,8 @@ function App() {
 
   // --- PERSISTENCE HANDLERS ---
 
-  const handleSaveSeed = async (silent: boolean = false) => {
+  const handleSaveSeed = async (silentParam: boolean | any = false) => {
+    const isActuallySilent = silentParam === true;
     const id = currentSeedFileId || generateId();
     // IDENTIFY ROOT NAME (Preserve identity even when deep in recursion)
     let rootName = "Untitled Space";
@@ -371,14 +372,14 @@ function App() {
         const result = await window.api.db.saveSeed(seedFile);
         if (result.error) {
           console.error("Save failed:", result.error);
-          if (!silent) popError(`Failed to save: ${result.error}`);
+          if (!isActuallySilent) popError(`Failed to save: ${result.error}`);
           return;
         }
 
         setCurrentSeedFileId(id);
         setCurrentSeedFileName(finalName);
-        if (!silent) {
-          setNotification({ message: "Seed Space saved", type: 'success' });
+        if (!isActuallySilent) {
+          setNotification({ message: `Seed Space saved: ${finalName}`, type: 'success' });
           setTimeout(() => setNotification(null), 3000);
         } else {
           setNotification({ message: `Progress auto-saved in ${finalName}`, type: 'success' });
@@ -386,7 +387,7 @@ function App() {
         }
       } catch (e) {
         console.error("Save error:", e);
-        if (!silent) popError("Critical failure during save");
+        if (!isActuallySilent) popError("Critical failure during save");
       }
     };
 
@@ -2837,7 +2838,7 @@ function App() {
         onToggleFilterMenu={() => setShowFilterMenu(!showFilterMenu)}
         onToggleContextMode={() => setIsContextMode(!isContextMode)}
         onDashboard={() => setShowDashboard(true)}
-        onSave={handleSaveSeed}
+        onSave={() => handleSaveSeed()}
         onToggleDiscovery={() => {
           if (!discoveryState.isActive) {
             const shouldSkipCheck = localStorage.getItem('skipDiscoveryRecommendation') === 'true';

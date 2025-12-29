@@ -537,6 +537,8 @@ export const agenticDiscovery = async (
         ? `NORTH STAR GOAL:\nLabel: ${goalNode.label}\nDescription: ${goalNode.description}`
         : "No explicit North Star defined. Aim for general innovation.";
 
+    const isInnovation = mode === ExplorationMode.INNOVATION;
+
     // Strategy Selection Guidance
     let policyGuidance = "";
     let intent = "EXPAND";
@@ -544,19 +546,27 @@ export const agenticDiscovery = async (
     switch (policy) {
         case 'EXPLOIT':
             intent = "DEEPEN";
-            policyGuidance = "FOCUSED REFINEMENT: Take the current active node and double down. Improve its feasibility, reduce technical risk, or specify the implementation. Move closer to a working prototype.";
+            policyGuidance = isInnovation
+                ? "FOCUSED REFINEMENT: Take the current active node and double down. Improve its feasibility, reduce technical risk, or specify the implementation. Move closer to a working prototype."
+                : "CONTEXTUAL DEEPENING: Drill down into the current concept. Uncover primary source details, specific causal mechanisms, or the internal logic of this historical/theoretical node.";
             break;
         case 'EXPLORE':
             intent = "LATERIAL_JUMP";
-            policyGuidance = "FRONTIER EXPANSION: Look away from the current cluster. Propose a new primitive, an ANALOGY from a distant domain, or a technological capability not yet mentioned. Increase ENTIRE SYSTEM entropy.";
+            policyGuidance = isInnovation
+                ? "FRONTIER EXPANSION: Look away from the current cluster. Propose a new primitive, an ANALOGY from a distant domain, or a technological capability not yet mentioned. Increase ENTIRE SYSTEM entropy."
+                : "INTERDISCIPLINARY BRIDGE: Look for a connection to a seemingly unrelated field (e.g., link this economic event to a psychological theory or a geographic condition). Find a high-entropy 'missing link' in the knowledge map.";
             break;
         case 'PROBE':
             intent = "STRESS_TEST";
-            policyGuidance = "BOUNDARY TESTING: Deliberately propose something that pushes against the ACTIVE CONSTRAINTS. Find the edge cases or the failure modes. What breaks this idea?";
+            policyGuidance = isInnovation
+                ? "BOUNDARY TESTING: Deliberately propose something that pushes against the ACTIVE CONSTRAINTS. Find the edge cases or the failure modes. What breaks this idea?"
+                : "EPISTEMIC SKEPTICISM: Challenge the current narrative. Propose a contradiction, a historical outlier, or a conflicting perspective that complicates the existing understanding.";
             break;
         case 'RE_ANCHOR':
             intent = "GOAL_ALIGNMENT";
-            policyGuidance = "RE-ANCHORING: Explicitly pull the discovery back towards the NORTH STAR GOAL. If we have drifted into technical trivia, find the shortest path back to solving the primary objective.";
+            policyGuidance = isInnovation
+                ? "RE-ANCHORING: Explicitly pull the discovery back towards the NORTH STAR GOAL. If we have drifted into technical trivia, find the shortest path back to solving the primary objective."
+                : "NARRATIVE COHERENCE: Re-align with the central research question. If the exploration has become anecdotal, pull it back to the core historical mystery or theoretical objective.";
             break;
     }
 
@@ -583,10 +593,16 @@ export const agenticDiscovery = async (
     ${fullGraphContext}
 
     YOUR OBJECTIVE:
-    ${intent === "DEEPEN" ? "Grow the branch into higher feasibility." :
-            intent === "LATERIAL_JUMP" ? "Propose a novel, distant connection or analogy." :
-                intent === "STRESS_TEST" ? "Identify a fundamental friction or constraint." :
-                    "Re-connect current findings to the North Star Goal."}
+    ${isInnovation
+            ? (intent === "DEEPEN" ? "Grow the branch into higher feasibility." :
+                intent === "LATERIAL_JUMP" ? "Propose a novel, distant connection or analogy." :
+                    intent === "STRESS_TEST" ? "Identify a fundamental friction or constraint." :
+                        "Re-connect current findings to the North Star Goal.")
+            : (intent === "DEEPEN" ? "Uncover deeper historical/theoretical evidence and causal depth." :
+                intent === "LATERIAL_JUMP" ? "Propose an emergent interdisciplinary connection." :
+                    intent === "STRESS_TEST" ? "Identify a historical contradiction or epistemic friction." :
+                        "Pull the narrative back to the primary research goal.")
+        }
 
     GUIDANCE:
     ${specificityGuidance}
