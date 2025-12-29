@@ -94,6 +94,18 @@
       from {
         stroke-dashoffset: 12;
       }
+
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    /* High Velocity Focus Flow */
+    @keyframes focus-flow {
+      from {
+        stroke-dashoffset: 20;
+      }
+
       to {
         stroke-dashoffset: 0;
       }
@@ -104,8 +116,10 @@
       animation: link-flow 0.8s linear infinite;
     }
 
-    /* Scanner Pulse is handled via D3 transitions in code, 
-       but we can add a base CSS for non-D3 elements if needed */
+    .focus-flow {
+      stroke-dasharray: 6, 12;
+      animation: focus-flow 0.4s linear infinite !important;
+    }
   </style>
 </head>
 

@@ -157,48 +157,6 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     wormholeGrad.append("stop").attr("offset", "70%").attr("stop-color", "#4c1d95").attr("stop-opacity", 0.5);
     wormholeGrad.append("stop").attr("offset", "100%").attr("stop-color", "#1e1b4b").attr("stop-opacity", 0);
 
-    // Arrow Marker (Standard)
-    defs.append("marker")
-      .attr("id", "arrow")
-      .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 10) // Exactly at the tip
-      .attr("refY", 0)
-      .attr("markerWidth", 5)
-      .attr("markerHeight", 5)
-      .attr("orient", "auto")
-      .append("path")
-      .attr("d", "M0,-5L10,0L0,5")
-      .attr("fill", "#94a3b8")
-      .attr("opacity", 0.4);
-
-    // Flow Marker (Bright)
-    defs.append("marker")
-      .attr("id", "arrow-flow")
-      .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 10)
-      .attr("refY", 0)
-      .attr("markerWidth", 6)
-      .attr("markerHeight", 6)
-      .attr("orient", "auto")
-      .append("path")
-      .attr("d", "M0,-5L10,0L0,5")
-      .attr("fill", "#ffffff")
-      .attr("opacity", 0.8);
-
-    // Trace Marker (Closer to node)
-    defs.append("marker")
-      .attr("id", "arrow-trace")
-      .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 10)
-      .attr("refY", 0)
-      .attr("markerWidth", 4)
-      .attr("markerHeight", 4)
-      .attr("orient", "auto")
-      .append("path")
-      .attr("d", "M0,-5L10,0L0,5")
-      .attr("fill", "#94a3b8")
-      .attr("opacity", 0.4);
-
     // Main Group
     const g = svg.append("g");
     gRef.current = g;
@@ -286,25 +244,50 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     const focusId = hoveredNodeId || (selectedNodeIds.length === 1 ? selectedNodeIds[0] : null);
 
     if (focusId) {
-      // Find connected nodes
-      const connectedNodeIds = new Set<string>([focusId]);
-      data.links.forEach(l => {
-        const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
-        const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
-        if (s === focusId) connectedNodeIds.add(t);
-        if (t === focusId) connectedNodeIds.add(s);
-      });
+      // Trace FULL Branch: Find all upstream ancestors (History) and all downstream descendants (Future)
+      const visibleNodeIds = new Set<string>();
+      const visibleLinkKeys = new Set<string>();
+
+      const traverse = (startId: string, direction: 'up' | 'down') => {
+        const queue = [startId];
+        const visited = new Set<string>();
+
+        while (queue.length > 0) {
+          const curr = queue.shift()!;
+          if (visited.has(curr)) continue;
+          visited.add(curr);
+          visibleNodeIds.add(curr);
+
+          data.links.forEach(l => {
+            const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+            const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+
+            if (direction === 'up' && t === curr) {
+              queue.push(s);
+              visibleLinkKeys.add(`${s}-${t}`);
+            }
+            if (direction === 'down' && s === curr) {
+              queue.push(t);
+              visibleLinkKeys.add(`${s}-${t}`);
+            }
+          });
+        }
+      };
+
+      // Traverse both ways
+      traverse(focusId, 'up');
+      traverse(focusId, 'down');
 
       g.selectAll("g.node:not(.exiting)")
         .transition().duration(250)
-        .style("opacity", d => connectedNodeIds.has((d as any).id) ? 1 : 0.2);
+        .style("opacity", d => visibleNodeIds.has((d as any).id) ? 1 : 0.05); // Stronger dimming for noise reduction
 
       g.selectAll("path.link")
         .transition().duration(250)
         .style("opacity", l => {
           const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
           const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
-          return (s === focusId || t === focusId) ? 1 : 0.1;
+          return visibleLinkKeys.has(`${s}-${t}`) ? 1 : 0.02;
         });
 
       g.selectAll("path.link-flow-line")
@@ -312,7 +295,19 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         .style("opacity", l => {
           const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
           const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
-          return (s === focusId || t === focusId) ? 0.8 : 0.05;
+          const isHighlighted = visibleLinkKeys.has(`${s}-${t}`);
+          return isHighlighted ? 1 : 0.01;
+        })
+        .style("stroke-width", l => {
+          const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
+          const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
+          return visibleLinkKeys.has(`${s}-${t}`) ? 3 : 1.5;
+        })
+        .attr("class", l => {
+          const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
+          const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
+          const isHighlighted = visibleLinkKeys.has(`${s}-${t}`);
+          return `link-flow-line link-flow ${isHighlighted ? 'focus-flow' : ''}`;
         });
 
       g.selectAll("text.link-label")
@@ -320,12 +315,15 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         .style("opacity", l => {
           const s = typeof (l as any).source === 'object' ? (l as any).source.id : (l as any).source;
           const t = typeof (l as any).target === 'object' ? (l as any).target.id : (l as any).target;
-          return (s === focusId || t === focusId) ? 1 : 0;
+          return visibleLinkKeys.has(`${s}-${t}`) ? 1 : 0;
         });
     } else {
       g.selectAll("g.node:not(.exiting)").transition().duration(250).style("opacity", 1);
       g.selectAll("path.link").transition().duration(250).style("opacity", l => (l as any).isGhost ? 0.4 : 1);
-      g.selectAll("path.link-flow-line").transition().duration(250).style("opacity", 0.5);
+      g.selectAll("path.link-flow-line").transition().duration(250)
+        .style("opacity", 0.5)
+        .style("stroke-width", 1.5)
+        .attr("class", "link-flow-line link-flow");
       g.selectAll("text.link-label").transition().duration(250).style("opacity", 0);
     }
   }, [hoveredNodeId, selectedNodeIds, data.links]);
@@ -419,8 +417,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     linkSelection.exit().remove();
     const allLinks = linkEnter.merge(linkSelection)
-      .attr("stroke-dasharray", d => (d.target as GraphNode).type === NodeType.TRACE ? "4 3" : "none") // Dotted for Trace
-      .attr("marker-end", d => (d.target as GraphNode).type === NodeType.TRACE ? "url(#arrow-trace)" : "url(#arrow)");
+      .attr("stroke-dasharray", d => (d.target as GraphNode).type === NodeType.TRACE ? "4 3" : "none"); // Dotted for Trace
 
     // 1.5 FLOW LINES (Animated)
     const flowSelection = g.selectAll<SVGPathElement, GraphLink>("path.link-flow-line")
@@ -981,15 +978,11 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
   }, [data, selectedNodeIds]);
 
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden">
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden cursor-crosshair">
       {/* Background Grid Layer */}
       <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
-      <svg ref={svgRef} className="w-full h-full relative z-10" onClick={(e) => {
-        if (e.target === svgRef.current) {
-          onNodeClick(null, false);
-          onNodeContextMenu(null, 0, 0);
-        }
-      }} />
+      <svg ref={svgRef} className="w-full h-full" />
+
     </div>
   );
 };

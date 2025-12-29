@@ -40,12 +40,12 @@ export const MODE_CONFIGS: Record<ExplorationMode, ModeConfig> = {
     ],
     aiPersona: "pragmatic product strategist, hands-on innovation architect, and systems-thinker who values clarity over jargon",
     seedExamples: [
-      { label: 'The AI Context Tax', type: NodeType.PAIN_POINT, description: 'Senior devs spend 2.5 hours daily manually pasting code context, library docs, and schema definitions into LLM windows because automated RAG pipelines keep missing the technical nuance.' },
-      { label: 'Cold Chain Integrity Gaps', type: NodeType.PROBLEM, description: 'Up to 25% of temperature-sensitive vaccines are wasted in last-mile transit because passive cooling containers lack real-time predictive failure alerts and adaptive insulation.' },
-      { label: 'Intermittent Energy Sinkhole', type: NodeType.CONSTRAINT, description: 'Regional power grids are forced to discard 15% of renewable output because long-duration storage (10h+) is too expensive to deploy at scale, stalling the decommissioning of coal peaker plants.' },
-      { label: 'Invisible API Schema Drift', type: NodeType.PROBLEM, description: 'Critical backend services intermittently break because upstream LLM-integrated APIs changed their output JSON structure without a version bump, costing teams 10 hours of emergency debugging weekly.' },
-      { label: 'Circular Material Friction', type: NodeType.FRICTION, description: 'Industrial textile recycling is stalled because mixed-fiber sortation is still 90% manual; automated spectral analysis struggles with worn or blended chemical dyes.' },
-      { label: 'Personalized Pharma Bottleneck', type: NodeType.PAIN_POINT, description: 'Custom mRNA cancer treatments take 6 weeks to synthesize per patient because microfluidic bioreactors lack standardized, low-cost "plug-and-play" control modules for parallel processing.' }
+      { label: 'The Silent Meeting Protocol', type: NodeType.PROBLEM, description: 'High-stakes decisions are stalled because synchronous meetings favor the loudest voices, while deep thinkers lack the real-time bandwidth to synthesize complex arguments.' },
+      { label: 'Cognitive Load Balancer', type: NodeType.INNOVATION, description: 'An OS-level daemon that monitors biometric stress indicators and automatically toggles notification filters, routing non-critical alerts to a digest during flow states.' },
+      { label: 'Legacy Code Archaeologist', type: NodeType.PAIN_POINT, description: 'Engineering teams lose 30% of velocity fearing "Chesterton\'s Fence"—refusing to delete dead code because no one knows why the original founder wrote it 5 years ago.' },
+      { label: 'Asynchronous Reality Consensus', type: NodeType.TECHNOLOGY, description: 'A decentralized ledger for AR spatial anchors that allows multiple users to leave persistent digital artifacts in physical space without relying on a centralized "World Cloud" provider.' },
+      { label: 'The Infinite Canvas Paradox', type: NodeType.FRICTION, description: 'Whiteboard tools offer infinite space, but human creativity requires constraints; users feel paralyzed by the lack of structural affordances when starting a new project.' },
+      { label: 'Synthetic Data Foundry', type: NodeType.MARKET, description: 'As public web data triggers copyright collapse, the value of bespoke, ethically-sourced synthetic datasets for training specialized vertical models is skyrocketing.' }
     ]
   },
   [ExplorationMode.KNOWLEDGE]: {

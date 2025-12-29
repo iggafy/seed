@@ -660,11 +660,19 @@ export const generateRandomSeedNode = async (
     const persona = modeConfig.aiPersona;
 
     const modeSpecificPrompt = mode === ExplorationMode.INNOVATION
-        ? `Generate a single HIGH-IMPACT PROBLEM or PAIN_POINT node. 
-    The problem should be concrete, costly (in time, money, or efficiency), and recognizable to an industry expert.
-    DOMAIN ROTATION: Randomize between: Energy/Grid, BioTech/MedTech, Logistics/SupplyChain, MaterialsScience, AgriTech, or High-Efficiency Computing.
+        ? `Generate a single FOUNDER-CENTRIC PROBLEM, PAIN_POINT, or UNEXPLORED MARKET node.
+    The concept should represent a "Systemic Friction" in modern workflows, software development, or human-machine collaboration.
+
+    DOMAIN ROTATION: Randomize between:
+    1. Collaborative Intelligence (New ways for humans and AIs to work together)
+    2. Knowledge Synthesis (Tools for managing information overload)
+    3. Creative Workflows (Unblocking high-stakes creative decisions)
+    4. Developer Experience (Solving deep technical debt or architectural friction)
+    5. Social Dynamics (Enhancing or preserving human connection in a digital age)
+
+
+    STYLE: Be pragmatic. Identify a specific, expensive friction. Use the "Founder Mode" mindset: "Where is the leverage?"
     ${isRetry ? 'CRITICAL: Pick a DIFFERENT domain than any previously discarded idea.' : ''}
-    STYLE: Use "readable" language. Be sharp. Focus on the core friction where a stakeholder would say "this is the bottleneck holding us back."
     ${INNOVATION_RESEARCH_PRINCIPLES}`
         : `Generate a single interesting starting point for knowledge exploration. This could be:
     - A significant historical EVENT

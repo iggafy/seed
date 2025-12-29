@@ -24,6 +24,16 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 // Utility to clear isNew flag from all nodes to ensure only the latest turn's seeds glow
 const clearNewFlags = (nodes: GraphNode[]) => nodes.map(n => n.isNew ? { ...n, isNew: false } : n);
 
+// Utility to sanitize D3 data (convert object references back to IDs) to prevent circular JSON errors
+const sanitizeGraphData = (d: GraphData): GraphData => ({
+  nodes: d.nodes,
+  links: d.links.map(l => ({
+    ...l,
+    source: typeof l.source === 'object' ? (l.source as any).id : l.source,
+    target: typeof l.target === 'object' ? (l.target as any).id : l.target
+  }))
+});
+
 function App() {
   const [data, setData] = useState<GraphData>(JSON.parse(JSON.stringify(INITIAL_DATA)));
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -362,7 +372,7 @@ function App() {
         id: id,
         name: finalName,
         lastModified: Date.now(),
-        data: data,
+        data: sanitizeGraphData(data), // SANITIZE LIVE D3 DATA
         sessionStack: sessionStack,
         viewport: { x: 0, y: 0, zoom: 1 },
         mode: currentMode
@@ -383,7 +393,7 @@ function App() {
           setNotification({ message: `Seed Space saved: ${finalName}`, type: 'success' });
           setTimeout(() => setNotification(null), 3000);
         } else {
-          setNotification({ message: `Progress auto-saved in ${finalName}`, type: 'success' });
+          setNotification({ message: `Workflow Saved: ${finalName}`, type: 'success' }); // Changed from 'Progress auto-saved' to avoid confusion if manually triggered by accident
           setTimeout(() => setNotification(null), 3000);
         }
       } catch (e) {
@@ -821,7 +831,7 @@ function App() {
     const snapshot: SessionSnapshot = {
       id: currentSessionId,
       label: currentSessionName,
-      data: JSON.parse(JSON.stringify(data)), // Deep copy current state
+      data: JSON.parse(JSON.stringify(sanitizeGraphData(data))), // Deep copy SANITIZED current state or D3 circular refs will crash
       triggerNodeId: node.id
     };
 
@@ -1006,6 +1016,8 @@ function App() {
     }
   };
 
+
+
   // Logic to roll up changes from current session to parents
   const saveSessionUpwards = (
     currentLevelData: GraphData,
@@ -1014,7 +1026,9 @@ function App() {
   ): SessionSnapshot[] => {
     // Deep clone to ensure we aren't modifying state directly and React detects changes
     const newStack = JSON.parse(JSON.stringify(stack)) as SessionSnapshot[];
-    let dataToSave = JSON.parse(JSON.stringify(currentLevelData)) as GraphData;
+
+    // SANITIZE: Ensure we don't crash on D3 circular refs
+    let dataToSave = JSON.parse(JSON.stringify(sanitizeGraphData(currentLevelData))) as GraphData;
 
     for (let i = newStack.length - 1; i >= targetIndex; i--) {
       const snapshot = newStack[i];
@@ -2276,18 +2290,15 @@ function App() {
       const entropy = Date.now().toString();
       const seed = await generateRandomSeedNode(aiSettings, entropy, isRetry ? discardedLuckySeeds : [], currentMode);
 
-      let nodeData;
-      if (seed) {
-        nodeData = seed;
-      } else {
-        nodeData = NOVEL_SEEDS[Math.floor(Math.random() * NOVEL_SEEDS.length)];
+      if (!seed) {
+        throw new Error("The muse is silent. Please try again.");
       }
 
       const newNode: GraphNode = {
         id: generateId(),
-        label: nodeData.label,
-        type: nodeData.type,
-        description: nodeData.description,
+        label: seed.label,
+        type: seed.type,
+        description: seed.description,
         isRoot: true,
         isLuckyResult: true, // Tag for curation UI
         x: 0,
