@@ -14,12 +14,20 @@ interface WelcomeScreenProps {
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSelectMode, settings, onUpdateSettings, onShowManual, onShowDashboard, hasSavedSeeds }) => {
     const [showKeyInput, setShowKeyInput] = useState(false);
     const [tempKey, setTempKey] = useState(settings.providers[settings.provider].apiKey);
+    const [tempModel, setTempModel] = useState(settings.providers[settings.provider].model);
     const [activeProvider, setActiveProvider] = useState<AIProvider>(settings.provider);
+
+    const DEFAULT_MODELS: Record<AIProvider, string> = {
+        [AIProvider.GEMINI]: 'gemini-3-flash-preview',
+        [AIProvider.OPENAI]: 'gpt-4o',
+        [AIProvider.DEEPSEEK]: 'deepseek-chat',
+    };
 
     // Deep sync state with props to prevent stale UI after loads
     useEffect(() => {
         setActiveProvider(settings.provider);
         setTempKey(settings.providers[settings.provider].apiKey);
+        setTempModel(settings.providers[settings.provider].model);
     }, [settings.provider, settings.providers]);
 
     const handleKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,9 +48,28 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSelectMode, settings, o
         onUpdateSettings(newSettings);
     };
 
+    const handleModelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newModel = e.target.value;
+        setTempModel(newModel);
+
+        const newSettings = {
+            ...settings,
+            provider: activeProvider,
+            providers: {
+                ...settings.providers,
+                [activeProvider]: {
+                    ...settings.providers[activeProvider],
+                    model: newModel
+                }
+            }
+        };
+        onUpdateSettings(newSettings);
+    };
+
     const handleProviderChange = (provider: AIProvider) => {
         setActiveProvider(provider);
         setTempKey(settings.providers[provider].apiKey);
+        setTempModel(settings.providers[provider].model);
 
         const newSettings = {
             ...settings,
@@ -187,6 +214,17 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSelectMode, settings, o
                                             <Shield size={16} className="text-slate-700" />
                                         )}
                                     </div>
+                                </div>
+
+                                {/* Model Input */}
+                                <div className="mt-2 relative group">
+                                    <input
+                                        type="text"
+                                        value={tempModel || DEFAULT_MODELS[activeProvider]}
+                                        onChange={handleModelChange}
+                                        placeholder={`Model (Default: ${DEFAULT_MODELS[activeProvider]})`}
+                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all font-mono"
+                                    />
                                 </div>
 
                                 <p className="mt-3 text-[8px] text-slate-600 text-center uppercase tracking-widest leading-relaxed">

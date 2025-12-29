@@ -16,7 +16,7 @@ const PROVIDER_OPTIONS = [
 ];
 
 const DEFAULT_MODELS: Record<AIProvider, string> = {
-    [AIProvider.GEMINI]: 'gemini-2.5-flash',
+    [AIProvider.GEMINI]: 'gemini-3-flash-preview',
     [AIProvider.OPENAI]: 'gpt-4o',
     [AIProvider.DEEPSEEK]: 'deepseek-chat',
 };

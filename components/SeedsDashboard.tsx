@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SeedFile, ExplorationMode } from '../types';
-import { LayoutGrid, Plus, Trash2, Clock, FileText, Loader2, Share2 } from 'lucide-react';
+import { LayoutGrid, Plus, Trash2, Clock, FileText, Loader2, Share2, Edit2, Check, X } from 'lucide-react';
 
 interface SeedsDashboardProps {
     onLoadSeed: (id: string) => void;
@@ -16,6 +16,11 @@ const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, 
     const [seeds, setSeeds] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<ExplorationMode>(initialMode || ExplorationMode.INNOVATION);
+
+    // Edit State
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editName, setEditName] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
 
     const loadList = async () => {
         setLoading(true);
@@ -47,6 +52,46 @@ const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, 
             'danger',
             "Delete Permanently"
         );
+    };
+
+    const handleStartEdit = (e: React.MouseEvent, seed: any) => {
+        e.stopPropagation();
+        setEditingId(seed.id);
+        setEditName(seed.name);
+    };
+
+    const handleCancelEdit = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingId(null);
+        setEditName("");
+    };
+
+    const handleSaveEdit = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (!editName.trim()) return;
+
+        setIsSaving(true);
+        try {
+            // 1. Load the full seed
+            // @ts-ignore
+            const seed = await window.api.db.loadSeed(id);
+            if (seed) {
+                // 2. Update name
+                seed.name = editName.trim();
+                // 3. Save it back
+                // @ts-ignore
+                await window.api.db.saveSeed(seed);
+
+                // 4. Refresh list
+                await loadList();
+                setEditingId(null);
+                setEditName("");
+            }
+        } catch (error) {
+            console.error("Failed to rename seed", error);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -112,20 +157,51 @@ const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, 
                             {seeds.filter(s => (s.mode || ExplorationMode.INNOVATION) === activeTab).map(seed => (
                                 <div
                                     key={seed.id}
-                                    onClick={() => onLoadSeed(seed.id)}
+                                    onClick={() => {
+                                        if (editingId !== seed.id) onLoadSeed(seed.id);
+                                    }}
                                     className={`
                                 relative group flex flex-col h-40 rounded-[20px] border p-4 cursor-pointer transition-all
                                 ${currentSeedId === seed.id ? (activeTab === ExplorationMode.INNOVATION ? 'bg-sky-900/10 border-sky-500/50 ring-1 ring-sky-500/20' : 'bg-indigo-900/10 border-indigo-500/50 ring-1 ring-indigo-500/20') : 'bg-slate-800/50 border-slate-700 hover:border-slate-600 hover:bg-slate-800'}
                             `}
                                 >
-                                    <div className="flex justify-between items-start mb-1">
-                                        <h3 className="font-bold text-base text-slate-200 truncate pr-8 tracking-tight">{seed.name}</h3>
-                                        {currentSeedId === seed.id && (
-                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-widest ${activeTab === ExplorationMode.INNOVATION ? 'bg-sky-500/20 text-sky-300 border-sky-500/20' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/20'}`}>Active</span>
+                                    <div className="flex justify-between items-start mb-1 h-8">
+                                        {editingId === seed.id ? (
+                                            <div className="flex items-center gap-1 w-full" onClick={e => e.stopPropagation()}>
+                                                <input
+                                                    type="text"
+                                                    value={editName}
+                                                    onChange={e => setEditName(e.target.value)}
+                                                    className="flex-1 bg-slate-950 border border-slate-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-sky-500"
+                                                    autoFocus
+                                                />
+                                                <button onClick={(e) => handleSaveEdit(e, seed.id)} disabled={isSaving} className="p-1 text-green-400 hover:bg-green-400/10 rounded">
+                                                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                                                </button>
+                                                <button onClick={handleCancelEdit} className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded">
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <h3 className="font-bold text-base text-slate-200 truncate pr-2 tracking-tight flex-1" title={seed.name}>{seed.name}</h3>
+                                                <div className="flex items-center gap-1">
+                                                    {currentSeedId === seed.id && (
+                                                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-widest whitespace-nowrap ${activeTab === ExplorationMode.INNOVATION ? 'bg-sky-500/20 text-sky-300 border-sky-500/20' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/20'}`}>Active</span>
+                                                    )}
+                                                    <button
+                                                        onClick={(e) => handleStartEdit(e, seed)}
+                                                        className="p-1.5 rounded-md text-slate-500 hover:text-sky-400 hover:bg-sky-400/10 transition-colors opacity-0 group-hover:opacity-100"
+                                                        title="Rename Seed Space"
+                                                    >
+                                                        <Edit2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </>
                                         )}
                                     </div>
 
-                                    <p className="text-[11px] text-slate-500 mb-auto line-clamp-2 leading-relaxed">
+                                    <p className="text-[11px] text-slate-500 mb-auto line-clamp-2 leading-relaxed mt-2">
                                         {seed.nodeCount} seed{seed.nodeCount !== 1 ? 's' : ''} in this space.
                                     </p>
 

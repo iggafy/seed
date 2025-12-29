@@ -125,7 +125,7 @@ function App() {
     const defaultSettings: AISettings = {
       provider: AIProvider.GEMINI,
       providers: {
-        [AIProvider.GEMINI]: { apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY || '', model: 'gemini-2.5-flash' },
+        [AIProvider.GEMINI]: { apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY || '', model: 'gemini-3-flash-preview' },
         [AIProvider.OPENAI]: { apiKey: '', model: 'gpt-4o' },
         [AIProvider.DEEPSEEK]: { apiKey: '', model: 'deepseek-chat' }
       }
@@ -337,7 +337,22 @@ function App() {
 
   const handleSaveSeed = async (silent: boolean = false) => {
     const id = currentSeedFileId || generateId();
-    const name = data.nodes.length > 0 ? data.nodes[0].label : "Untitled Space";
+    // IDENTIFY ROOT NAME (Preserve identity even when deep in recursion)
+    let rootName = "Untitled Space";
+    if (sessionStack.length > 0) {
+      // We are deep. The true identity is the bottom of the stack (Root).
+      // Try to find the root node in the root snapshot
+      const rootSnapshot = sessionStack[0];
+      const rootNode = rootSnapshot.data.nodes.find(n => n.isRoot);
+      rootName = rootNode ? rootNode.label : (rootSnapshot.label !== 'Root' ? rootSnapshot.label : "Untitled Space");
+    } else {
+      // We are at the root level
+      const rootNode = data.nodes.find(n => n.isRoot);
+      // Fallback to first node if no explicit root (legacy/edge case)
+      rootName = rootNode ? rootNode.label : (data.nodes.length > 0 ? data.nodes[0].label : "Untitled Space");
+    }
+
+    const name = rootName; // data.nodes.length > 0 ? data.nodes[0].label : "Untitled Space";
     const finalName = name;
 
     const performSave = async () => {
@@ -866,8 +881,9 @@ function App() {
         ...node,
         x: 0,
         y: 0,
-        fx: null,
-        fy: null,
+        fx: undefined, // Let D3 forceCenter handle positioning
+        fy: undefined,
+        isRoot: true, // Explicitly mark as root of this new view
         subGraphData: undefined // Avoid recursion
       };
       newSessionData = {
@@ -1049,8 +1065,9 @@ function App() {
         // Find the node in this snapshot that holds the subgraph
         const nodeIndex = snapshot.data.nodes.findIndex(n => n.id === snapshot.triggerNodeId);
         if (nodeIndex !== -1) {
-          // If the child space is empty, remove the subGraphData completely
-          if (dataToSave.nodes.length === 0) {
+          // If the child space is effectively empty (only the seed node triggers exist), remove the subGraphData
+          // This prevents "Ghost Floors" where entering a node shows just that node again with no new info.
+          if (dataToSave.nodes.length <= 1 && dataToSave.links.length === 0) {
             snapshot.data.nodes[nodeIndex].subGraphData = undefined;
           } else {
             snapshot.data.nodes[nodeIndex].subGraphData = dataToSave;

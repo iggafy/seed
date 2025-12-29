@@ -24,7 +24,7 @@ export function setupIpcHandlers() {
 
 async function handleGemini(apiKey, model, messages, jsonSchema, systemPrompt) {
     const client = getGeminiClient(apiKey);
-    const modelId = model || "gemini-1.5-flash";
+    const modelId = model || "gemini-3-flash-preview";
 
     let prompt = messages.find(m => m.role === 'user')?.content || "";
     if (systemPrompt) {

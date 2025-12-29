@@ -295,7 +295,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         if (t === focusId) connectedNodeIds.add(s);
       });
 
-      g.selectAll("g.node")
+      g.selectAll("g.node:not(.exiting)")
         .transition().duration(250)
         .style("opacity", d => connectedNodeIds.has((d as any).id) ? 1 : 0.2);
 
@@ -323,7 +323,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
           return (s === focusId || t === focusId) ? 1 : 0;
         });
     } else {
-      g.selectAll("g.node").transition().duration(250).style("opacity", 1);
+      g.selectAll("g.node:not(.exiting)").transition().duration(250).style("opacity", 1);
       g.selectAll("path.link").transition().duration(250).style("opacity", l => (l as any).isGhost ? 0.4 : 1);
       g.selectAll("path.link-flow-line").transition().duration(250).style("opacity", 0.5);
       g.selectAll("text.link-label").transition().duration(250).style("opacity", 0);
@@ -465,10 +465,14 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     const nodeEnter = nodeSelection.enter().append("g")
       .attr("class", "node")
+      .attr("opacity", 0) // Start invisible
       .call(d3.drag<SVGGElement, GraphNode>()
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended));
+
+    // Animate Entry
+    nodeEnter.transition().duration(600).attr("opacity", 1);
 
     // Wormhole Effect (Behind the node)
     nodeEnter.append("circle")
@@ -618,7 +622,15 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .text("W");
 
 
-    nodeSelection.exit().transition().duration(300).attr("opacity", 0).remove();
+    nodeSelection.exit()
+      .classed("exiting", true)
+      .style("pointer-events", "none")
+      .transition()
+      .duration(500)
+      .ease(d3.easeBackIn)
+      .attr("transform", (d: any) => `translate(${d.x},${d.y}) scale(0)`) // Shrink to nothing
+      .attr("opacity", 0)
+      .remove();
 
     const allNodes = nodeEnter.merge(nodeSelection);
 
