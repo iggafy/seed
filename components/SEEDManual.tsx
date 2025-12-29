@@ -286,7 +286,7 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
                                 {[
                                     { icon: <Plus size={24} />, title: "Quick Expand", desc: "Found in Path Discovery. Generates 3-5 logically connected neighbors. Perfect for fast brainstorming." },
-                                    { icon: <Binary size={24} />, title: "Seed In (Wormholes)", desc: "Double-click any node to 'Seed In'. This creates a nested sub-graph view for infinite depth." },
+                                    { icon: <Binary size={24} />, title: "Seed In", desc: "Right-click any node to 'Seed In'. This creates a nested sub-graph view for infinite depth." },
                                     { icon: <Maximize2 size={24} />, title: "Trace Seed", desc: "Right-click or press 'T' to analyze the entire causal lineage of a concept, revealing its origins." },
                                     { icon: <Zap size={24} />, title: "Explore", desc: "The primary button in Directed Branching. Uses your density selection to grow path immediately." },
                                     { icon: <CornerDownRight size={24} />, title: "Custom Branching", desc: "Type a natural-language prompt in the Discovery field to force a targeted evolution." },
@@ -294,8 +294,8 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                     { icon: <Zap size={24} />, title: "Synergy Analysis", desc: "Shift-click two nodes to find the 'Third Way'—a bridging concept between unrelated areas." },
                                     { icon: <CheckCircle2 size={24} />, title: "Solve & Innovate", desc: "High-intelligence prompts for Problem or Technology nodes that generate detailed proposals." },
                                     { icon: <MessageCircle size={24} />, title: "Co-Research Chat", desc: "The chat isn't just for talk. Use it to update the graph. Ask it to 'Add a node about X'." },
-                                    { icon: <GitMerge size={24} />, title: "Contextual Lineage", desc: "Toggle pulsing energy lines in the toolbar to visualize the semantic chain of thought." },
-                                    { icon: <Share2 size={24} />, title: "External Linkage", desc: "Right-click any node to link it to a different Seed Space, creating a persistent cross-file portal." },
+                                    { icon: <GitMerge size={24} />, title: "Contextual Lineage", desc: "Toggle on (recommended) for every new AI action to follow the unique context of the session's research." },
+                                    { icon: <Share2 size={24} />, title: "Wormholes", desc: "Right-click and select Wormhole in any Seed to link it to a different Seed Space, creating a persistent cross-space portal, and connecting information from different domains and SEED modes." },
                                 ].map((item, i) => (
                                     <div key={i} className="bg-slate-800/30 border border-white/5 p-8 rounded-[2.5rem] hover:bg-slate-800/50 hover:border-white/20 transition-all group">
                                         <div className="text-sky-400 mb-6 group-hover:scale-110 group-hover:text-white transition-all">{item.icon}</div>
@@ -428,7 +428,7 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                     { key: 'M', action: 'Toggle Manual' },
                                     { key: 'CTRL+S', action: 'Save Seed Space' },
                                     { key: 'SHIFT+CLICK', action: 'Multi-select Nodes' },
-                                    { key: 'DBL CLICK', action: 'Seed In (Sub-Graph)' },
+                                    { key: 'RIGHT CLICK', action: 'Seed In (Sub-Graph)' },
                                     { key: 'SPACE', action: 'Structure Relayout' },
                                     { key: 'DEL', action: 'Prune / Delete' },
                                     { key: 'CTRL+Z', action: 'Undo Protocol' },
