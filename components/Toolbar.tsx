@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Network, Filter, Info, GitMerge, Cpu, LayoutGrid, Save, BrainCircuit, MessageSquare, Undo2, Redo2, HelpCircle, Home } from 'lucide-react';
+import { Plus, Network, Filter, Info, GitMerge, Cpu, LayoutGrid, Save, BrainCircuit, Sparkles, MessageSquare, Undo2, Redo2, HelpCircle, Home } from 'lucide-react';
 
 interface ToolbarProps {
   onAddNode: () => void;
@@ -10,6 +10,7 @@ interface ToolbarProps {
   onDashboard: () => void;
   onSave: () => void;
   onToggleDiscovery: () => void;
+  onToggleSynergy: () => void;
   onToggleChat: () => void;
   onToggleManual: () => void;
   onUndo: () => void;
@@ -20,6 +21,7 @@ interface ToolbarProps {
   isFilterActive: boolean;
   isContextMode: boolean;
   isDiscoveryActive: boolean;
+  isSynergyActive: boolean;
   isChatOpen: boolean;
   isProcessing: boolean;
 }
@@ -33,6 +35,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onDashboard,
   onSave,
   onToggleDiscovery,
+  onToggleSynergy,
   onToggleChat,
   onToggleManual,
   onUndo,
@@ -43,6 +46,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   isFilterActive,
   isContextMode,
   isDiscoveryActive,
+  isSynergyActive,
   isChatOpen,
   isProcessing
 }) => {
@@ -148,7 +152,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             ? 'bg-orange-500 text-white shadow-lg shadow-orange-900/40'
             : 'text-slate-400 hover:text-orange-400 hover:bg-orange-500/10 shadow-inner'
             }`}
-          title={isDiscoveryActive ? "Stop Discovery" : "Start Discovery"}
+          title={isDiscoveryActive ? "Stop Autonomous Discovery" : "Start Autonomous Discovery"}
         >
           {isDiscoveryActive && (
             <div className="absolute inset-0 rounded-full bg-orange-500 animate-ping opacity-25" />
@@ -158,6 +162,26 @@ const Toolbar: React.FC<ToolbarProps> = ({
           {/* Active Status Badge */}
           {isDiscoveryActive && (
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-red-500 animate-bounce" />
+          )}
+        </button>
+
+        {/* Synergy Finder Toggle */}
+        <button
+          onClick={onToggleSynergy}
+          className={`relative group/synergy p-3.5 rounded-full transition-all duration-500 ${isSynergyActive
+            ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/40'
+            : 'text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 shadow-inner'
+            }`}
+          title={isSynergyActive ? "Stop Synergy Finder" : "Start Synergy Finder"}
+        >
+          {isSynergyActive && (
+            <div className="absolute inset-0 rounded-full bg-amber-500 animate-ping opacity-25" />
+          )}
+          <Sparkles size={20} className={`${isSynergyActive ? 'animate-pulse' : 'group-hover/synergy:scale-110'} transition-all`} />
+
+          {/* Active Status Badge */}
+          {isSynergyActive && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-amber-500 animate-bounce" />
           )}
         </button>
 

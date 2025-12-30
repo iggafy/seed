@@ -76,6 +76,32 @@ const ARRAY_NODE_SCHEMA_OPENAI = {
     additionalProperties: false
 };
 
+const SYNERGY_NODE_SCHEMA = {
+    type: "object",
+    properties: {
+        label: { type: "string", description: "Name of the new emergent concept" },
+        type: { type: "string", enum: Object.values(NodeType) },
+        description: { type: "string", description: "Short description of the synthesis" },
+        sourceLabel: { type: "string", description: "Label of the first existing node" },
+        targetLabel: { type: "string", description: "Label of the second existing node" },
+        relationToSource: { type: "string", description: "Relationship verb to source" },
+        relationToTarget: { type: "string", description: "Relationship verb to target" },
+        valueVector: {
+            type: "object",
+            properties: {
+                feasibility: { type: "number" },
+                novelty: { type: "number" },
+                friction: { type: "number" },
+                impact: { type: "number" }
+            },
+            required: ["feasibility", "novelty", "friction", "impact"],
+            additionalProperties: false
+        }
+    },
+    required: ["label", "type", "description", "sourceLabel", "targetLabel", "relationToSource", "relationToTarget", "valueVector"],
+    additionalProperties: false
+};
+
 // --- PUBLIC METHODS ---
 
 export const expandConcept = async (
@@ -522,6 +548,39 @@ Response schema: Single node (the bridging concept) connecting them, or just a r
 (For this implementation, we'll focus on creating a bridging node).`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
+    return result[0] || null;
+};
+
+export const synergyDiscovery = async (
+    settings: AISettings,
+    fullGraphContext: string,
+    mode: ExplorationMode = ExplorationMode.INNOVATION
+): Promise<any | null> => {
+    logToTerminal(`[SYNERGY FINDER] Scanning for emergent connections...`);
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+
+    const modeConfig = getModeConfig(mode);
+    const persona = modeConfig.aiPersona;
+
+    const prompt = `You are a lateral-thinking strategist and Epistemic Weaver working as a ${persona}.
+    
+    CONTEXT:
+    ${fullGraphContext}
+
+    TASK:
+    1. Scan the current graph context. 
+    2. Identify TWO nodes (Seed A and Seed B) that are NOT currently connected but have a strong potential for synergy, emergent insight, or a "bridge idea."
+    3. Propose a THIRD node (Seed C) that represents the derived synergy, hybrid concept, or solution that emerges from them.
+    4. Define how Seed C connects to both Seed A and Seed B.
+
+    RULES:
+    - Lateral thinking is key. Don't be too obvious.
+    - Seed C must be a meaningful addition that adds complexity and value to the graph.
+    - If you can't find two nodes to connect, explain why (though try your best).
+    
+    Response must follow the SYNERGY_NODE_SCHEMA.`;
+
+    const result = await runIPCRequest(settings, prompt, false, mode, 0.8, SYNERGY_NODE_SCHEMA);
     return result[0] || null;
 };
 
@@ -1092,7 +1151,8 @@ async function runIPCRequest(
     prompt: string,
     isArray: boolean = false,
     mode: ExplorationMode = ExplorationMode.INNOVATION,
-    entropy: number = 0.7
+    entropy: number = 0.7,
+    customSchema?: any
 ): Promise<AISuggestion[]> {
     const activeSettings = settings.providers[settings.provider];
     const isDeepSeek = activeSettings?.model?.toLowerCase().includes("deepseek");
@@ -1107,15 +1167,15 @@ async function runIPCRequest(
     const systemPrompt = isDeepSeek
         ? `You are a JSON-speaking ${modeConfig.aiPersona}. Respond ONLY with valid JSON. Do not use Markdown code blocks.
            CRITICAL: Your response MUST exactly match this schema:
-           ${JSON.stringify(isArray ? ARRAY_NODE_SCHEMA_OPENAI : NODE_SCHEMA_OPENAI, null, 2)}
+           ${JSON.stringify(customSchema || (isArray ? ARRAY_NODE_SCHEMA_OPENAI : NODE_SCHEMA_OPENAI), null, 2)}
            For "type", use one of: ${nodeTypesList}.
            JSON SAFETY: If you use double quotes inside a string value (like a label), you MUST escape them with a backslash (e.g. "The \\"Last Mile\\"").
-           [Entropy: ${entropy}]
            `
-        : `You are a JSON-speaking ${modeConfig.aiPersona}. Respond ONLY with valid JSON. Do not use Markdown code blocks. [Entropy: ${entropy}]`;
+        : `You are a JSON-speaking ${modeConfig.aiPersona}. Respond ONLY with valid JSON. Do not use Markdown code blocks. 
+           Schema: ${JSON.stringify(customSchema || (isArray ? ARRAY_NODE_SCHEMA_OPENAI : NODE_SCHEMA_OPENAI), null, 2)}`;
 
     // Schema logic mainly for OpenAI strict mode
-    const jsonSchema = isDeepSeek ? undefined : (isArray ? ARRAY_NODE_SCHEMA_OPENAI : NODE_SCHEMA_OPENAI);
+    const jsonSchema = isDeepSeek ? undefined : (customSchema || (isArray ? ARRAY_NODE_SCHEMA_OPENAI : NODE_SCHEMA_OPENAI));
 
     // @ts-ignore - bridge exposed in preload
     if (!window.api || !window.api.aiRequest) {
@@ -1180,7 +1240,12 @@ async function runIPCRequest(
             type: normalizeNodeType(n.type),
             description: n.description || "No description",
             relationToParent: n.relationToParent || n.relation || "related",
-            valueVector: n.valueVector || undefined
+            valueVector: n.valueVector || undefined,
+            // Synergy fields
+            sourceLabel: n.sourceLabel,
+            targetLabel: n.targetLabel,
+            relationToSource: n.relationToSource,
+            relationToTarget: n.relationToTarget
         };
     };
 

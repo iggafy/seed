@@ -492,6 +492,25 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("fill", "none")
       .style("pointer-events", "none");
 
+    // Synergy Indicator (for nodes created by Synergy Finder)
+    const synergy = nodeEnter.append("g")
+      .attr("class", "synergy-indicator")
+      .style("pointer-events", "none");
+
+    synergy.append("circle")
+      .attr("r", 12)
+      .attr("fill", "#0f172a")
+      .attr("stroke", "#fde68a")
+      .attr("stroke-width", 1)
+      .attr("opacity", 0.7)
+      .style("filter", "url(#glow)");
+
+    synergy.append("path")
+      .attr("d", "M0,-6 L1.5,-1.5 L6,0 L1.5,1.5 L0,6 L-1.5,1.5 L-6,0 L-1.5,-1.5 Z")
+      .attr("fill", "#fde68a") // Amber 200
+      .attr("opacity", 0.8)
+      .style("pointer-events", "none");
+
 
     // Text Label Background (Pill)
     nodeEnter.append("rect")
@@ -743,7 +762,6 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       })
       .attr("d", d => NODE_ICONS[d.type] || NODE_ICONS[NodeType.CONCEPT])
       .attr("fill", "#ffffff");
-
     // Update Tesseract Indicator
     allNodes.select("g.tesseract-indicator")
       .attr("transform", d => {
@@ -752,6 +770,14 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       })
       .style("opacity", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? 1 : 0)
       .style("pointer-events", d => (d.subGraphData && d.subGraphData.nodes.length > 0) ? "auto" : "none");
+
+    // Update Synergy Indicator
+    allNodes.select("g.synergy-indicator")
+      .attr("transform", d => {
+        const offset = d.type === NodeType.TRACE ? (d.isRoot ? 18 : 16) : (d.isRoot ? 38 : 34);
+        return `translate(-${offset}, -${offset})`;
+      })
+      .style("opacity", d => d.isSynergy ? 1 : 0);
 
     // Update Wikipedia Source Badge
     allNodes.select("g.wiki-source-badge")

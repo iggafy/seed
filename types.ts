@@ -11,6 +11,7 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   subGraphData?: GraphData;
   isGhost?: boolean; // Hypothetical node from Discovery Mode
   isNew?: boolean;   // Animation flag
+  isSynergy?: boolean; // Added for Synergy Finder nodes
   isLuckyResult?: boolean; // Result of "I'm feeling lucky" flow
   // Wormhole / Cross-Session Connectivity
   isWormhole?: boolean;
@@ -142,6 +143,7 @@ export interface DiscoveryState {
   goalNodeId: string | null;
   visitedNodeIds: string[]; // Track nodes we've processed as "Gardener"
   latestCreatedNodeId?: string | null; // Track momentum
+  isSynergyActive: boolean; // Autonomous Synergy Finder mode
 }
 
 export enum AIProvider {

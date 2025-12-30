@@ -5,7 +5,28 @@ import Toolbar from './components/Toolbar';
 import SettingsModal from './components/SettingsModal';
 import SeedsDashboard from './components/SeedsDashboard';
 import { INITIAL_DATA, NODE_ICONS, NODE_COLORS, getModeConfig, getExpansionBlueprints, getRelationOptions, getSeedExamples } from './constants';
-import { curateWikiSnippet, expandConcept, expandConceptTargeted, directedDiscovery, generateSynergyNode, generateRandomSeedNode, innovateConcept, solveProblem, answerQuestion, quickExpand, agenticDiscovery, traceLineageAnalysis, researchAssistantChat, optimizeConcept, stressTestConcept, generateImplementation, researchAssistantTextReply, extractKnowledgeMap } from './services/aiService';
+import {
+  curateWikiSnippet,
+  expandConcept,
+  expandConceptTargeted,
+  directedDiscovery,
+  generateSynergyNode,
+  generateRandomSeedNode,
+  innovateConcept,
+  solveProblem,
+  answerQuestion,
+  quickExpand,
+  agenticDiscovery,
+  traceLineageAnalysis,
+  researchAssistantChat,
+  optimizeConcept,
+  stressTestConcept,
+  generateImplementation,
+  researchAssistantTextReply,
+  extractKnowledgeMap,
+  autonomousDiscovery,
+  synergyDiscovery
+} from './services/aiService';
 import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit, RefreshCw, Network, SquarePlus, Square } from 'lucide-react';
 import NexusAssistant from './components/NexusAssistant';
 import NexusConfirmDialog from './components/NexusConfirmDialog';
@@ -178,7 +199,8 @@ function App() {
     stepCount: 0,
     currentPolicy: 'EXPLOIT',
     goalNodeId: null,
-    visitedNodeIds: [] // Track processed nodes to prevent loops
+    visitedNodeIds: [], // Track processed nodes to prevent loops
+    isSynergyActive: false
   });
 
   const [discardedLuckySeeds, setDiscardedLuckySeeds] = useState<string[]>([]);
@@ -576,12 +598,14 @@ function App() {
 
   // --- DISCOVERY AGENT LOOP ---
   const isActiveRef = useRef(discoveryState.isActive);
+  const isSynergyActiveRef = useRef(discoveryState.isSynergyActive);
   const discoveryStateRef = useRef(discoveryState);
   const dataRef = useRef(data);
   const settingsRef = useRef(aiSettings);
   const modeRef = useRef(currentMode);
 
   useEffect(() => { isActiveRef.current = discoveryState.isActive; }, [discoveryState.isActive]);
+  useEffect(() => { isSynergyActiveRef.current = discoveryState.isSynergyActive; }, [discoveryState.isSynergyActive]);
   useEffect(() => { discoveryStateRef.current = discoveryState; }, [discoveryState]);
   useEffect(() => { dataRef.current = data; }, [data]);
   useEffect(() => { settingsRef.current = aiSettings; }, [aiSettings]);
@@ -750,6 +774,98 @@ function App() {
     timer = setTimeout(runPulse, 1500);
     return () => clearTimeout(timer);
   }, [discoveryState.isActive]);
+
+  // --- SYNERGY FINDER PULSE ---
+  useEffect(() => {
+    if (!discoveryState.isSynergyActive) return;
+
+    let timer: any;
+    const runSynergyPulse = async () => {
+      if (!isSynergyActiveRef.current) return;
+
+      try {
+        const fullGraphContext = getGraphContext(dataRef.current);
+        const suggestion = await synergyDiscovery(aiSettings, fullGraphContext, currentMode);
+
+        if (suggestion && suggestion.sourceLabel && suggestion.targetLabel) {
+          const nodeA = dataRef.current.nodes.find(n => n.label.toLowerCase() === suggestion.sourceLabel.toLowerCase());
+          const nodeB = dataRef.current.nodes.find(n => n.label.toLowerCase() === suggestion.targetLabel.toLowerCase());
+
+          if (nodeA && nodeB) {
+            const existingNode = dataRef.current.nodes.find(n => n.label.toLowerCase() === suggestion.label.toLowerCase());
+
+            if (existingNode) {
+              // Only add links if they don't exist
+              const hasLinkA = dataRef.current.links.some(l => {
+                const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+                const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+                return (s === nodeA.id && t === existingNode.id) || (s === existingNode.id && t === nodeA.id);
+              });
+              const hasLinkB = dataRef.current.links.some(l => {
+                const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+                const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+                return (s === nodeB.id && t === existingNode.id) || (s === existingNode.id && t === nodeB.id);
+              });
+
+              if (!hasLinkA || !hasLinkB) {
+                setData(prev => ({
+                  ...prev,
+                  links: [
+                    ...prev.links,
+                    ...(!hasLinkA ? [{ source: nodeA.id, target: existingNode.id, relation: suggestion.relationToSource || "synergy with", isGhost: true }] : []),
+                    ...(!hasLinkB ? [{ source: nodeB.id, target: existingNode.id, relation: suggestion.relationToTarget || "synergy with", isGhost: true }] : [])
+                  ]
+                }));
+              }
+            } else {
+              const newNodeId = generateId();
+
+              // Calculate a position between A and B with some jitter
+              const targetX = ((nodeA.x || 0) + (nodeB.x || 0)) / 2 + (Math.random() - 0.5) * 50;
+              const targetY = ((nodeA.y || 0) + (nodeB.y || 0)) / 2 + (Math.random() - 0.5) * 50;
+
+              const newNode: GraphNode = {
+                id: newNodeId,
+                label: suggestion.label,
+                type: suggestion.type,
+                description: suggestion.description,
+                isGhost: true,
+                isNew: true,
+                isSynergy: true,
+                valueVector: suggestion.valueVector,
+                x: targetX,
+                y: targetY
+              };
+
+              setData(prev => ({
+                nodes: [...clearNewFlags(prev.nodes), newNode],
+                links: [
+                  ...prev.links,
+                  { source: nodeA.id, target: newNodeId, relation: suggestion.relationToSource || "synergy with", isGhost: true },
+                  { source: nodeB.id, target: newNodeId, relation: suggestion.relationToTarget || "synergy with", isGhost: true }
+                ]
+              }));
+            }
+
+            setDiscoveryState(prev => ({
+              ...prev,
+              history: [`[Synergy] ${suggestion.label}`, ...prev.history].slice(0, 10)
+            }));
+          }
+        }
+      } catch (e) {
+        console.error("Synergy Pulse Error:", e);
+      } finally {
+        if (isSynergyActiveRef.current) {
+          // Synergy finding is slower/more contemplative
+          timer = setTimeout(runSynergyPulse, 12000);
+        }
+      }
+    };
+
+    timer = setTimeout(runSynergyPulse, 2000);
+    return () => clearTimeout(timer);
+  }, [discoveryState.isSynergyActive]);
 
   const handleAssimilateNode = (nodeId: string) => {
     recordHistory();
@@ -2778,7 +2894,7 @@ function App() {
 
               <div className="h-px bg-white/5 mx-2 my-0.5"></div>
 
-              {/* Advanced / Meta Tools */}
+              {/* Synergy Finder Toggle */}
               <div className="flex flex-col gap-0.5 px-1 py-1">
                 <button
                   onClick={(e) => { e.stopPropagation(); setIsWormholeSelectorOpen(true); setContextMenuNode(contextMenuNode); }}
@@ -2887,6 +3003,20 @@ function App() {
             };
           });
         }}
+        onToggleSynergy={() => {
+          if (!discoveryState.isSynergyActive) {
+            const shouldSkipCheck = localStorage.getItem('skipDiscoveryRecommendation') === 'true';
+            if (!shouldSkipCheck) {
+              setShowDiscoveryRecommendation(true);
+              return;
+            }
+          }
+
+          setDiscoveryState(prev => ({
+            ...prev,
+            isSynergyActive: !prev.isSynergyActive
+          }));
+        }}
         onToggleChat={() => setIsChatOpen(!isChatOpen)}
         onToggleManual={() => handleShowManual()}
         onUndo={handleUndo}
@@ -2897,6 +3027,7 @@ function App() {
         isFilterActive={hiddenTypes.length > 0}
         isContextMode={isContextMode}
         isDiscoveryActive={discoveryState.isActive}
+        isSynergyActive={discoveryState.isSynergyActive}
         isChatOpen={isChatOpen}
         isProcessing={isProcessing}
       />

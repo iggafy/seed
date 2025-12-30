@@ -171,7 +171,6 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                 {[
                                     { title: 'Fog Expansion', label: 'EXPLORE', desc: 'The AI pushes into the "unknown" to suggest entirely new categories of information.', icon: <Sparkles className="text-sky-400" /> },
                                     { title: 'Path Discovery', label: 'EXPLOIT', desc: 'The engine walks the existing graph to find missing links and inferred relationships.', icon: <Target className="text-emerald-400" /> },
-                                    { title: 'Synergetic Weaver', label: 'CONNECT', desc: 'Finds semantic overlaps between distant seeds and weaves them together with ghost links.', icon: <GitMerge className="text-indigo-400" /> },
                                     { title: 'Constraint Probe', label: 'PROBE', desc: 'A pulse that hunts for frictions, bottlenecks, or logical contradictions in your theory.', icon: <Shield className="text-rose-400" /> },
                                     { title: 'Context Re-Anchor', label: 'ANCHOR', desc: 'Prevents drift by refocusing the AI on your Goal Node or the Root of the session.', icon: <Anchor className="text-amber-400" /> },
                                 ].map((step, i) => (
@@ -227,17 +226,19 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                             <div className="grid md:grid-cols-3 gap-8">
                                 <div className="col-span-1 md:col-span-1 bg-slate-800/20 border border-white/5 p-8 rounded-[3rem]">
                                     <div className="flex items-center gap-3 mb-6">
-                                        <Target className="text-sky-400" size={24} />
-                                        <h3 className="text-xl font-bold text-white italic tracking-tight">Active Discovery</h3>
+                                        <div className="p-2 bg-sky-500/20 rounded-xl text-sky-400 group-hover:scale-110 transition-transform">
+                                            <BrainCircuit size={24} />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white italic tracking-tight">Autonomous Discovery</h3>
                                     </div>
                                     <p className="text-slate-400 text-xs leading-relaxed mb-6">
-                                        {renderBoldText("Toggle the **Discovery Brain** in the toolbar. Once active, the AI will autonomously generate new nodes based on the **Gravity** of your current graph.")}
+                                        {renderBoldText("To begin exploration, **Activate Autonomous Discovery** by clicking the Brain icon in the Action Dock. Once active, the engine intelligently navigates your Seed Space to generate new nodes based on the thematic gravity of your current research.")}
                                     </p>
                                     <div className="space-y-6 mt-4">
                                         <div className="border-l-2 border-sky-500/30 pl-4">
-                                            <h4 className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-2">Automated Policy Engine</h4>
+                                            <h4 className="text-[10px] font-black text-sky-500 uppercase tracking-widest mb-2">Expansion Pulse</h4>
                                             <p className="text-[11px] text-slate-400 leading-relaxed">
-                                                {renderBoldText("The Discovery Brain is **Policy-Driven**. It dynamically oscillates between **Exploiting** your current ideas to find deep logic and **Exploring** lateral categories to prevent echo chambers.")}
+                                                {renderBoldText("The **Discovery Brain** focuses on expanding the graph outwards. It follows lineages and explores new territories based on the current context.")}
                                             </p>
                                         </div>
                                         <div className="border-l-2 border-emerald-500/30 pl-4">
@@ -257,17 +258,22 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                         </div>
                                     </div>
                                 </div>
-                                <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-indigo-500/10 to-transparent border border-white/10 p-10 rounded-[3.5rem] flex flex-col justify-center">
-                                    <h3 className="text-2xl font-black text-white mb-4 tracking-tighter">Seed Multiplicity (Parallel Discovery)</h3>
-                                    <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                                        {renderBoldText("When Discovery is active, the engine enters a **Parallel Loop**. It analyzes the structural integrity of your entire SeedSpace, spinning up background threads to propose Ghost Links (synergies) and lateral leaps. This makes the graph feel alive—growing as you think.")}
-                                    </p>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex -space-x-3">
-                                            {[1, 2, 3].map(i => <div key={i} className="w-8 h-8 rounded-full border border-slate-900 bg-indigo-500/30 flex items-center justify-center text-[10px] text-white font-bold">{i}</div>)}
-                                        </div>
-                                        <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black">Active Context Synthesis Enabled</span>
+                                <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 p-10 rounded-[3.5rem] flex flex-col justify-center group overflow-hidden relative">
+                                    <div className="absolute -right-8 -top-8 text-amber-500/10 rotate-12 group-hover:scale-110 transition-transform duration-700">
+                                        <Sparkles size={160} />
                                     </div>
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-400">
+                                            <Sparkles size={32} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-black text-white tracking-tighter uppercase italic">The Synergy Finder</h3>
+                                            <p className="text-amber-500/60 text-[10px] font-black tracking-[0.3em] uppercase">Autonomous Lateral Thinking</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-lg">
+                                        {renderBoldText("Bypass linear logic. **Activate the Synergy Finder** by clicking the Sparkles icon in the Action Dock to initiate a contemplative scan of your entire Seed Space. It bridges distant concepts to derive 'Synthesis Seeds'—sparking emergent insights you might have never consciously linked.")}
+                                    </p>
                                 </div>
                             </div>
                         </div>
