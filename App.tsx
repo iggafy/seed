@@ -215,7 +215,7 @@ function App() {
   const modeConfig = getModeConfig(currentMode);
 
   // Assistant / Chat State
-  const [isChatOpen, setIsChatOpen] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [proposingSeed, setProposingSeed] = useState<AISuggestion | null>(null);
   const [isChatProcessing, setIsChatProcessing] = useState(false);
@@ -235,6 +235,24 @@ function App() {
   const [showManual, setShowManual] = useState(false);
   const [manualTab, setManualTab] = useState<'welcome' | 'autonomous' | 'protocols' | 'ontology' | 'shortcuts' | 'about'>('welcome');
   const [showDiscoveryRecommendation, setShowDiscoveryRecommendation] = useState(false);
+  const [showInnovationBanner, setShowInnovationBanner] = useState(() => {
+    return localStorage.getItem('seed_dismissed_innovation_banner') !== 'true';
+  });
+
+  const handleDismissInnovationBanner = () => {
+    setShowInnovationBanner(false);
+    localStorage.setItem('seed_dismissed_innovation_banner', 'true');
+  };
+
+  const renderBoldText = (text: string) => {
+    const parts = text.split(/(\*\*.*?\*\*)/);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="font-bold text-white">{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
 
   const handleShowManual = (tab?: string) => {
     if (tab) {
@@ -494,8 +512,7 @@ function App() {
     setShowWelcome(false);
     setDiscardedLuckySeeds([]);
 
-    // Open chat and greet for new space
-    setIsChatOpen(true);
+    // Greet for new space
     const modeConfig = getModeConfig(mode);
     setChatMessages([{
       id: generateId(),
@@ -572,8 +589,7 @@ function App() {
       setNotification({ message: `New Seed Space created: ${node.label}`, type: 'success' });
       setTimeout(() => setNotification(null), 3000);
 
-      // 4. Open chat to continue the conversation in the new space
-      setIsChatOpen(true);
+      // 4. Greet for the new space
       setChatMessages([{
         id: generateId(),
         role: 'assistant',
@@ -2940,8 +2956,39 @@ function App() {
         )}
 
         {data.nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-            <div className="text-slate-600 text-center flex flex-col items-center animate-in fade-in zoom-in duration-500">
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 overflow-hidden">
+            {currentMode === ExplorationMode.INNOVATION && showInnovationBanner && (
+              <div className="mb-12 max-w-lg w-full px-6 animate-in slide-in-from-top-10 fade-in duration-1000 delay-300 pointer-events-auto">
+                <div className="relative overflow-hidden bg-gradient-to-r from-violet-600/20 via-indigo-600/20 to-blue-600/20 border border-white/10 p-1 px-1 rounded-[2rem] backdrop-blur-md group">
+                  <div className="bg-slate-900/40 rounded-[1.8rem] p-6 flex items-start gap-5 relative overflow-hidden">
+                    {/* Decorative Background Icon */}
+                    <div className="absolute -right-6 -bottom-6 text-white/5 rotate-12 group-hover:scale-110 transition-transform duration-700">
+                      <Lightbulb size={120} />
+                    </div>
+
+                    <div className="p-3 bg-violet-500/20 rounded-2xl text-violet-400 shrink-0 shadow-lg shadow-violet-900/20">
+                      <Sparkles size={24} className="animate-pulse" />
+                    </div>
+
+                    <div className="flex-1 pr-6">
+                      <p className="text-sm font-medium leading-relaxed text-slate-200 italic">
+                        {renderBoldText("General Rule for the First Seed: Start with the **specific thing that keeps you awake at night.**")}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleDismissInnovationBanner}
+                      className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-full transition-all group/close"
+                      title="Dismiss tip"
+                    >
+                      <X size={16} className="group-hover/close:rotate-90 transition-transform" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="text-slate-600 text-center flex flex-col items-center animate-in fade-in zoom-in duration-500 pointer-events-none">
               <div className="mb-6 p-6 rounded-full bg-slate-900/50 border border-white/5 shadow-[0_0_50px_rgba(56,189,248,0.1)] backdrop-blur-sm">
                 <PlusCircle className="w-12 h-12 text-slate-500" />
               </div>
