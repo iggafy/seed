@@ -552,6 +552,26 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
       .attr("fill", "#0f172a")
       .text("W");
 
+    // Scholarly (OpenAlex) Source Indicator
+    const scholarlyBadge = nodeEnter.append("g")
+      .attr("class", "scholarly-source-badge")
+      .style("pointer-events", "none")
+      .attr("opacity", 0);
+
+    scholarlyBadge.append("circle")
+      .attr("r", 7)
+      .attr("fill", "#f59e0b") // Amber 500
+      .attr("stroke", "#0f172a")
+      .attr("stroke-width", 1);
+
+    scholarlyBadge.append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", "3px")
+      .attr("font-size", "8px")
+      .attr("font-weight", "900")
+      .attr("fill", "#000000")
+      .text("O");
+
 
     nodeSelection.exit()
       .classed("exiting", true)
@@ -786,6 +806,13 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         return `translate(${offset}, ${offset})`;
       })
       .attr("opacity", d => d.isWikipediaSource ? 1 : 0);
+
+    allNodes.select("g.scholarly-source-badge")
+      .attr("transform", d => {
+        const offset = d.type === NodeType.TRACE ? (d.isRoot ? 14 : 12) : (d.isRoot ? 26 : 22);
+        return `translate(${offset}, ${offset})`;
+      })
+      .attr("opacity", d => d.isScholarlySource ? 1 : 0);
 
     // Update Text & Pill
     allNodes.select("text")

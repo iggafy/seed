@@ -101,7 +101,9 @@ export const MODE_CONFIGS: Record<ExplorationMode, ModeConfig> = {
     nodeTypes: [
       NodeType.CONCEPT,
       NodeType.HYPOTHESIS,
+      NodeType.MECHANISM,
       NodeType.METHODOLOGY,
+      NodeType.RESULT,
       NodeType.DATA_SET,
       NodeType.VARIABLE,
       NodeType.EVIDENCE,
@@ -111,8 +113,19 @@ export const MODE_CONFIGS: Record<ExplorationMode, ModeConfig> = {
       NodeType.EQUATION,
       NodeType.SIMULATION,
       NodeType.GAP,
+      NodeType.PROBLEM,
+      NodeType.TECHNOLOGY,
+      NodeType.INNOVATION,
+      NodeType.IMPLEMENTATION,
+      NodeType.PAIN_POINT,
+      NodeType.FRICTION,
+      NodeType.CONSTRAINT,
       NodeType.ENTITY,
-      NodeType.QUESTION
+      NodeType.QUESTION,
+      NodeType.MENTAL_MODEL,
+      NodeType.ETHICS,
+      NodeType.REGULATION,
+      NodeType.ANALOGY
     ],
     defaultRelations: [
       "validates",
@@ -127,7 +140,7 @@ export const MODE_CONFIGS: Record<ExplorationMode, ModeConfig> = {
       "causes",
       "limits"
     ],
-    aiPersona: "Senior Research Fellow, obsessive over peer-reviewed logic and interdisciplinary synthesis, prioritizing causality and evidence over market trends",
+    aiPersona: "R&D Architect & Venture Scientist, bridging the gap between peer-reviewed academic rigor and high-tech venture-scale breakthroughs. You don't just map science; you identify the path to innovation, technical implementation, and systemic solving of global problems.",
     seedExamples: [
       { label: 'Neural Feedback Latency', type: NodeType.VARIABLE, description: 'The time delay between mechanical signal and neural integration in cybernetic prosthetics.' },
       { label: 'OAE Carbon Sink Efficiency', type: NodeType.HYPOTHESIS, description: 'The assumption that localized alkalinity enhancement significantly increases atmospheric CO2 uptake without harming coral benthos.' },
@@ -173,7 +186,9 @@ export const NODE_COLORS: Record<NodeType, string> = {
 
   // RESEARCH Mode
   [NodeType.HYPOTHESIS]: '#f59e0b', // Amber
+  [NodeType.MECHANISM]: '#f97316', // Orange
   [NodeType.METHODOLOGY]: '#10b981', // Emerald
+  [NodeType.RESULT]: '#06b6d4', // Cyan
   [NodeType.DATA_SET]: '#3b82f6', // Bright Blue
   [NodeType.VARIABLE]: '#ef4444', // Red
   [NodeType.EVIDENCE]: '#22c55e', // Green
@@ -221,7 +236,9 @@ export const NODE_ICONS: Record<NodeType, string> = {
 
   // RESEARCH Mode
   [NodeType.HYPOTHESIS]: "M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z", // Reuse Innovation icon (Arrow)
+  [NodeType.MECHANISM]: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z",
   [NodeType.METHODOLOGY]: "M13 2L3 14h9l-1 8 10-12h-9l1-8z", // Reuse Technology (Bolt)
+  [NodeType.RESULT]: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z", // Check Circle
   [NodeType.DATA_SET]: "M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4v4zm0-6H4v-4h4v4zm0-6H4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4z", // Grid
   [NodeType.VARIABLE]: "M12 2C11.45 2 11 2.45 11 3V13C11 13.55 11.45 14 12 14C12.55 14 13 13.55 13 13V3C13 2.45 12.55 2 12 2ZM12 16C11.45 16 11 16.45 11 17C11 17.55 11.45 18 12 18C12.55 18 13 17.55 13 17C13 16.45 12.55 16 12 16Z", // Exclamation/Problem
   [NodeType.EVIDENCE]: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z", // Check Circle
@@ -441,8 +458,38 @@ export const EXPANSION_BLUEPRINTS_RESEARCH = [
   {
     label: "What are the key findings?",
     relation: "supports",
-    targetType: NodeType.EVIDENCE,
-    sourceTypes: [NodeType.DATA_SET, NodeType.OBSERVATION]
+    targetType: NodeType.RESULT,
+    sourceTypes: [NodeType.DATA_SET, NodeType.OBSERVATION, NodeType.METHODOLOGY]
+  },
+  {
+    label: "How can this be implemented?",
+    relation: "implemented via",
+    targetType: NodeType.IMPLEMENTATION,
+    sourceTypes: [NodeType.RESULT, NodeType.METHODOLOGY, NodeType.TECHNOLOGY]
+  },
+  {
+    label: "What technical problem does this address?",
+    relation: "addresses",
+    targetType: NodeType.PROBLEM,
+    sourceTypes: [NodeType.GAP, NodeType.OBSERVATION, NodeType.RESULT]
+  },
+  {
+    label: "What breakthrough does this lead to?",
+    relation: "enables",
+    targetType: NodeType.INNOVATION,
+    sourceTypes: [NodeType.RESULT, NodeType.TECHNOLOGY, NodeType.MECHANISM]
+  },
+  {
+    label: "Are there ethical considerations?",
+    relation: "implicates",
+    targetType: NodeType.ETHICS,
+    sourceTypes: [NodeType.METHODOLOGY, NodeType.INNOVATION, NodeType.HYPOTHESIS]
+  },
+  {
+    label: "What is the enabling technology?",
+    relation: "requires",
+    targetType: NodeType.TECHNOLOGY,
+    sourceTypes: [NodeType.METHODOLOGY, NodeType.EQUATION, NodeType.IMPLEMENTATION]
   }
 ];
 

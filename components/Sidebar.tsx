@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GraphNode, NodeType, ExplorationMode } from '../types';
-import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle, ChevronRight, Binary, Sparkles, Orbit, Layers, Search, SquarePlus } from 'lucide-react';
+import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle, ChevronRight, Binary, Sparkles, Orbit, Layers, Search, SquarePlus, Microscope } from 'lucide-react';
 
 interface SidebarProps {
   nodes: GraphNode[];
@@ -27,6 +27,7 @@ interface SidebarProps {
   onSetConstraintNode: (nodeId: string, strength: 'hard' | 'soft') => void;
   onDirectedDiscovery: (node: GraphNode, instruction: string, count: number) => void;
   onOpenWiki: (node: GraphNode) => void;
+  onOpenScholarly: (node: GraphNode) => void;
   onCreateNewSpace: (node: GraphNode) => void;
   isProcessing: boolean;
   allLinks: any[];
@@ -60,6 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onSetConstraintNode,
   onDirectedDiscovery,
   onOpenWiki,
+  onOpenScholarly,
   onCreateNewSpace,
   isProcessing,
   allLinks,
@@ -346,6 +348,21 @@ const Sidebar: React.FC<SidebarProps> = ({
                 LEARN MORE <ChevronRight size={12} />
               </div>
             </button>
+
+            {mode === ExplorationMode.RESEARCH && (
+              <button
+                onClick={() => onOpenScholarly(node)}
+                className="group flex items-center justify-between p-3 rounded-xl bg-amber-900/10 border border-white/5 hover:border-amber-500/30 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <Microscope size={14} className="text-amber-500" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">OpenAlex Nexus</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-500 group-hover:translate-x-1 transition-transform">
+                  BROWSE PAPERS <ChevronRight size={12} />
+                </div>
+              </button>
+            )}
           </div>
 
           <div className="mt-2 flex flex-col gap-2">

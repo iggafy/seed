@@ -312,6 +312,7 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                     { icon: <Zap size={24} />, title: "Explore", desc: "The primary button in Directed Branching. Uses your density selection to grow path immediately." },
                                     { icon: <CornerDownRight size={24} />, title: "Custom Branching", desc: "Type a natural-language prompt in the Discovery field to force a targeted evolution." },
                                     { icon: <Globe size={24} />, title: "Wikipedia Nexus", desc: "Open a live browser to harvest knowledge. Highlighting text creates seeds with citations." },
+                                    { icon: <Microscope size={24} />, title: "OpenAlex Nexus", desc: "Research Mode primary source. Browse millions of scientific papers and harvest literature seeds." },
                                     { icon: <Zap size={24} />, title: "Synergy Analysis", desc: "Shift-click two nodes to find the 'Third Way'—a bridging concept between unrelated areas." },
                                     { icon: <CheckCircle2 size={24} />, title: "Solve & Innovate", desc: "High-intelligence prompts for Problem or Technology nodes that generate detailed proposals." },
                                     { icon: <MessageCircle size={24} />, title: "Co-Research Chat", desc: "The chat isn't just for talk. Use it to update the graph. Ask it to 'Add a node about X'." },
@@ -327,7 +328,7 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                             </div>
 
                             {/* Wikipedia & Web Harvest Highlight */}
-                            <div className="bg-gradient-to-br from-fuchsia-600/10 to-transparent border border-fuchsia-500/20 p-10 rounded-[3.5rem] flex flex-col md:flex-row gap-8 items-center">
+                            <div className="bg-gradient-to-br from-fuchsia-600/10 to-transparent border border-fuchsia-500/20 p-10 rounded-[3.5rem] flex flex-col md:flex-row gap-8 items-center mb-6">
                                 <div className="p-6 bg-fuchsia-600/10 rounded-3xl text-fuchsia-400">
                                     <Globe size={48} />
                                 </div>
@@ -335,6 +336,18 @@ const SEEDManual: React.FC<SEEDManualProps> = ({ isOpen, onClose, mode, isPreSel
                                     <h3 className="text-2xl font-black text-white mb-3 italic tracking-tight underline decoration-fuchsia-500/50 decoration-4">The Wikipedia Nexus</h3>
                                     <p className="text-slate-400 text-sm leading-relaxed">
                                         {renderBoldText("Bypass the standard Web. Use the **Nexus Browser** to find grounded information. Highlighting any text segment allows you to **Harvest** that specific insight into a new Seed. Every Harvest node contains the source URL and a metadata snapshot of the original context.")}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-amber-600/10 to-transparent border border-amber-500/20 p-10 rounded-[3.5rem] flex flex-col md:flex-row gap-8 items-center">
+                                <div className="p-6 bg-amber-600/10 rounded-3xl text-amber-400">
+                                    <Microscope size={48} />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-2xl font-black text-white mb-3 italic tracking-tight underline decoration-amber-500/50 decoration-4">The OpenAlex Nexus</h3>
+                                    <p className="text-slate-400 text-sm leading-relaxed">
+                                        {renderBoldText("The **OpenAlex Nexus** is the nervous system for **Research Mode**. It provides access to over 250M scientific works. Use it to find latest breakthroughs, browse abstracts, and **Harvest Literature Seeds** with automatic DOI/Author metadata injection.")}
                                     </p>
                                 </div>
                             </div>

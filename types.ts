@@ -24,9 +24,14 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   vy?: number;
   fx?: number | null;
   fy?: number | null;
-  // Wikipedia Integration
+  // Wikipedia & Research Integration
   wikiUrl?: string;
+  doi?: string;
   isWikipediaSource?: boolean;
+  isScholarlySource?: boolean;
+  authors?: string[];
+  journal?: string;
+  publishYear?: number;
   // --- INNOVATION DISCOVERY ENHANCEMENTS ---
   valueVector?: ValueVector;
   isGoalNode?: boolean;
@@ -50,6 +55,12 @@ export interface WikiBrowserState {
   isOpen: boolean;
   url: string;
   title: string;
+  sourceNodeId: string | null;
+}
+
+export interface ScholarlyBrowserState {
+  isOpen: boolean;
+  query: string;
   sourceNodeId: string | null;
 }
 
@@ -126,7 +137,9 @@ export enum NodeType {
 
   // RESEARCH Mode specific
   HYPOTHESIS = 'HYPOTHESIS', // Proposed explanation or educated guess
+  MECHANISM = 'MECHANISM', // Underlying process or causality
   METHODOLOGY = 'METHODOLOGY', // Techniques, procedures, or experimental design
+  RESULT = 'RESULT', // Specific output or found data
   DATA_SET = 'DATA_SET', // Collections of data, results, or measurements
   VARIABLE = 'VARIABLE', // Factors or elements being measured or changed
   EVIDENCE = 'EVIDENCE', // Supporting data or physical proof

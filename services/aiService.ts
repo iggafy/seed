@@ -41,19 +41,15 @@ KNOWLEDGE RESEARCH PRINCIPLES:
 `;
 
 const RESEARCH_PRINCIPLES = `
-RESEARCH PRINCIPLES (SENIOR RESEARCH FELLOW MODE):
-1. CAUSAL RIGOR: Prioritize the "mechanisms of action." Don't just say things are related; explain HOW the variable affects the hypothesis.
-2. EVIDENCE-BASED: Propose seeds that can be validated, measured, or falsified. 
-3. FRONTIER FOCUS: Explicitly hunt for the "GAP" in current literature or methodology. 
-4. INTERDISCIPLINARY SYNTHESIS: Bridge concepts between disparate scientific fields (e.g., using "High-Frequency Trading" logic for "Neural Interface Latency").
-5. PROTOCOL FIRST: When suggesting an implementation, focus on the EXPERIMENTAL PROTOCOL rather than the product features.
-6. NO HYPED JARGON: Avoid "revolutionary" or "disruptive." Use "statistically significant," "causally linked," or "operationally defined."
-7. VALUE VECTORS:
-   - Feasibility (Veracity): 1.0 = highly replicable, 0.1 = fringe/speculative.
-   - Novelty (Originality): 1.0 = paradigm shift, 0.1 = incremental.
-   - Friction (Complexity): 1.0 = high barrier to entry (technical/ethics), 0.1 = straightforward.
-   - Impact (Significance): 1.0 = major breakthrough in the field, 0.1 = minor optimization.
-8. COGNITIVE ACCESSIBILITY: Explain like a "Master Teacher." Use multiple short, punchy sentences instead of one long, nested academic clause. Prioritize plain-language intuition over dense abstraction. If you use a technical term (like "phonon-mediated"), ground it in its physical reality (e.g., "vibrations in the material").
+RESEARCH PRINCIPLES (R&D ARCHITECT & VENTURE SCIENTIST MODE):
+1. THE BREAKTHROUGH BRIDGE: You are an architect of the unseen. Your goal is to connect pure academic research (HYPOTHESIS, METHODOLOGY, RESULT) to high-impact technical implementation (TECHNOLOGY, INNOVATION). 
+2. CAUSAL RIGOR: Prioritize the "mechanisms of action." Don't just say things are related; explain HOW the variable affects the hypothesis or how the science enables the technology.
+3. EVIDENCE-BASED INNOVATION: Propose seeds that are grounded in physical reality, peer-reviewed logic, or experimental data, but always with an eye toward solving systemic technical PROBLEMS.
+4. FRONTIER FOCUS: Explicitly hunt for the "GAP" in current literature or methodology and bridge it with an INNOVATION or a new MENTAL_MODEL.
+5. TRANSLATIONAL SCIENCE: When a scientific RESULT is found, immediately look for the IMPLEMENTATION path. What are the REGULATION hurdles? What are the ETHICS of this breakthrough?
+6. SYSTEMIC FRICTION: Identify the technical FRICTION or physical CONSTRAINT that prevents a breakthrough. Propose RESEARCH that addresses these bottlenecks.
+7. VENTURE SCALE RIGOR: Follow scientific laws, but think at venture scale. A "statistically significant" result should lead to a "billlion-dollar" category-defining TECHNOLOGY.
+8. COGNITIVE ACCESSIBILITY: Explain like a "Master Teacher." Use multiple short, punchy sentences instead of one long, nested academic clause. Ground technical terms in physical reality (e.g., "vibrations in the material").
 `;
 
 // Defined schemas via imported constants
@@ -537,7 +533,7 @@ export const autonomousDiscovery = async (
         ? `RESEARCH PRINCIPLE: Maintain 360-degree sight. Do not default to TECHNOLOGY or CONCEPT loops. If you see a technology, look for its hidden PROBLEM, friction point, or the USER_SEGMENT it targets. Consider the REGULATION, MARKET drivers, and ETHICS. Use ANALOGY to find cross-disciplinary solutions. Every advancement must be balanced by a ground-truth challenge or a MENTAL_MODEL being challenged.
         ${INNOVATION_RESEARCH_PRINCIPLES}`
         : mode === ExplorationMode.RESEARCH
-            ? `RESEARCH PRINCIPLE: Focus on causality and the scientific method. Map the HYPOTHESIS, the METHODOLOGY used to test it, and the VARIABLEs involved. Hunt for DATA_SETs and EVIDENCE. Identify the GAP in existing LITERATURE. Use EQUATIONs or SIMULATIONs to model phenomena. Maintain rigorous interdisciplinary synthesis.
+            ? `RESEARCH PRINCIPLE: You are an R&D Architect. Your primary loop is the extraction of mechanistic truth: Map the HYPOTHESIS, the METHODOLOGY, and the RESULTs. However, you must also BRIDGE the gap to technical breakthroughs. When a RESULT or OBSERVATION is found, look for its potential TECHNOLOGY application, its IMPLEMENTATION path, and any technical FRICTION or physical CONSTRAINTs. Leverage ANALOGY for cross-disciplinary breakthroughs. Be hyper-aware of ETHICS and REGULATION implications of scientific advances. Identify the systemic PROBLEM that this research solves or the MENTAL_MODEL it challenges.
         ${RESEARCH_PRINCIPLES}`
             : "RESEARCH PRINCIPLE: Maintain 360-degree sight. Expand historical context by linking EVENTS to the PEOPLE they affected, the PLACES they occurred, and the underlying THEORIES or CONTRADICTIONS that drove them.";
 
@@ -595,8 +591,10 @@ export const synergyDiscovery = async (
     RULES:
     - Lateral thinking is key. Don't be too obvious.
     - Seed C must be a meaningful addition that adds complexity and value to the graph.
+    - ${mode === ExplorationMode.RESEARCH ? 'Focus on TRANSLATIONAL SYNERGY: How does a scientific finding (A) enable a technical solution (B) or resolve a systemic problem (B)?' : 'Focus on emergent possibilities.'}
     - If you can't find two nodes to connect, explain why (though try your best).
     
+    Mode: ${mode}.
     Response must follow the SYNERGY_NODE_SCHEMA.`;
 
     const result = await runIPCRequest(settings, prompt, false, mode, 0.8, SYNERGY_NODE_SCHEMA);
@@ -1090,6 +1088,53 @@ SNIPPET: "${snippet}"
     - SOPHISTICATED BRIDGE - LINKING: If the connection is indirect, identify the shared principle or structural parallel(e.g., "strategic analogue of" or "instantiates the principle of").
 
 \${ mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : '' }
+    Response schema: single node.`;
+
+    const result = await runIPCRequest(settings, prompt, false, mode);
+    return result[0] || null;
+};
+
+export const curatePaperSnippet = async (
+    settings: AISettings,
+    snippet: string,
+    paperTitle: string,
+    sourceNodeContext: { label: string; description: string },
+    mode: ExplorationMode = ExplorationMode.RESEARCH
+): Promise<AISuggestion | null> => {
+    if (!settings.providers[settings.provider]?.apiKey) throw new Error("AI API Key is missing. Please check Settings.");
+
+    const modeConfig = getModeConfig(mode);
+    const persona = modeConfig.aiPersona;
+
+    const prompt = `You are the Nexus Research Assistant.
+    A user has highlighted a specific insight from a peer-reviewed research paper while using SEED.
+    
+    PAPER TITLE: "${paperTitle}"
+    SNIPPET: "${snippet}"
+    
+    CONSTITUTIONAL CONTEXT:
+    The user is connecting this insight back to their existing research node: "${sourceNodeContext.label}" (${sourceNodeContext.description}).
+
+    TASK:
+    1. ARTIFACT EXTRACTION: Distill the snippet into a high-density "Seed Node". Identify the specific finding, method, or claim.
+    2. EPISTEMIC CATEGORIZATION: Select the most accurate NodeType from our Research & Innovation Ontology:
+       - METHODOLOGY: if it describes techniques or protocols.
+       - RESULT: if it describes data, findings, or outcomes.
+       - HYPOTHESIS: if it's a proposed explanation.
+       - MECHANISM: if it explains how something works.
+       - TECHNOLOGY: if it describes a technical tool or system.
+       - PROBLEM: if it identifies a technical or scientific bottleneck.
+       - INNOVATION: if it describes a technical resolution or breakthrough.
+       - LITERATURE: if it's a general reference or broad context.
+       - ... (and use any other appropriate Research Mode types like MENTAL_MODEL, ETHICS, REGULATION if highly relevant).
+    3. RELATIONAL SYNTHESIS: Determine the precise relationship (e.g. "corroborates", "contradicts", "operationalizes", "extends", "challenges", "addresses") connecting this new seed back to "${sourceNodeContext.label}".
+    
+    PRINCIPLES:
+    - CAUSAL RIGOR: Prioritize mechanistic transparency.
+    - ACADEMIC PRECISION: Use formal scientific terminology.
+    - LINKING: Ensure the relationship verb is unidirectional and logical.
+
+    Mode: ${mode}.
     Response schema: single node.`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);

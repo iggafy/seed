@@ -25,7 +25,8 @@ import {
   researchAssistantTextReply,
   extractKnowledgeMap,
   autonomousDiscovery,
-  synergyDiscovery
+  synergyDiscovery,
+  curatePaperSnippet
 } from './services/aiService';
 import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit, RefreshCw, Network, SquarePlus, Square, Microscope } from 'lucide-react';
 import NexusAssistant from './components/NexusAssistant';
@@ -36,8 +37,9 @@ import WelcomeScreen from './components/WelcomeScreen';
 import SEEDManual from './components/SEEDManual';
 import DiscoveryRecommendation from './components/DiscoveryRecommendation';
 import NexusWikiBrowser from './components/NexusWikiBrowser';
+import NexusScholarlyBrowser from './components/NexusScholarlyBrowser';
 import { searchWikipedia } from './services/wikipediaService';
-import { ChatMessage, AISuggestion, DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile, GraphLink, ExplorationMode, WikiBrowserState } from './types';
+import { ChatMessage, AISuggestion, DiscoveryState, GraphData, GraphNode, NodeType, SessionSnapshot, AISettings, AIProvider, SeedFile, GraphLink, ExplorationMode, WikiBrowserState, ScholarlyBrowserState } from './types';
 
 // Utility to generate UUIDs locally
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -223,11 +225,16 @@ function App() {
   // Welcome Screen State
   const [showWelcome, setShowWelcome] = useState(true);
 
-  // Wiki Browser State
   const [wikiBrowser, setWikiBrowser] = useState<WikiBrowserState>({
     isOpen: false,
     url: '',
     title: '',
+    sourceNodeId: null
+  });
+
+  const [scholarlyBrowser, setScholarlyBrowser] = useState<ScholarlyBrowserState>({
+    isOpen: false,
+    query: '',
     sourceNodeId: null
   });
 
@@ -2546,6 +2553,66 @@ function App() {
     }
   };
 
+  const handleScholarlyHarvest = async (snippet: string, paperTitle: string, metadata: any) => {
+    if (!scholarlyBrowser.sourceNodeId) return;
+
+    const sourceNode = data.nodes.find(n => n.id === scholarlyBrowser.sourceNodeId);
+    if (!sourceNode) return;
+
+    setIsProcessing(true);
+    recordHistory();
+
+    try {
+      const suggestion = await curatePaperSnippet(
+        aiSettings,
+        snippet,
+        paperTitle,
+        { label: sourceNode.label, description: sourceNode.description || "" },
+        currentMode
+      );
+
+      if (suggestion) {
+        // High-fidelity Title Casing for Research Seeds
+        const titleCasedLabel = snippet
+          .split(/\s+/)
+          .filter(word => word.length > 0)
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+
+        const newNodeId = generateId();
+        const newNode: GraphNode = {
+          id: newNodeId,
+          label: titleCasedLabel,
+          type: suggestion.type,
+          description: suggestion.description,
+          isScholarlySource: true,
+          doi: metadata.doi,
+          authors: metadata.authors,
+          publishYear: metadata.year,
+          wikiUrl: metadata.url, // Reusing field for link
+          x: (sourceNode.x || 0) + 150,
+          y: (sourceNode.y || 0) + (Math.random() - 0.5) * 100,
+          isNew: true
+        };
+
+        setData(prev => ({
+          nodes: [...clearNewFlags(prev.nodes), newNode],
+          links: [...prev.links, { source: scholarlyBrowser.sourceNodeId!, target: newNodeId, relation: suggestion.relationToParent }]
+        }));
+
+        setNotification({
+          message: `Grown "${titleCasedLabel.length > 30 ? titleCasedLabel.slice(0, 30) + "..." : titleCasedLabel}" from Research Paper`,
+          type: 'success'
+        });
+        setTimeout(() => setNotification(null), 3000);
+      }
+    } catch (e: any) {
+      popError(e.message || "Scholarly harvesting failed");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const toggleFilter = (type: NodeType) => {
     setHiddenTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
@@ -3186,6 +3253,7 @@ function App() {
         onAssimilate={handleAssimilateNode}
         onPrune={handlePruneNode}
         onOpenWiki={handleOpenWikiBrowser}
+        onOpenScholarly={(node) => setScholarlyBrowser({ isOpen: true, query: node.label, sourceNodeId: node.id })}
         onSetGoalNode={handleSetGoalNode}
         onSetConstraintNode={handleSetConstraintNode}
         allLinks={data.links}
@@ -3211,6 +3279,14 @@ function App() {
         initialTitle={wikiBrowser.title}
         onClose={() => setWikiBrowser(prev => ({ ...prev, isOpen: false }))}
         onAddSeed={handleWikiHarvest}
+        isProcessing={isProcessing}
+      />
+
+      <NexusScholarlyBrowser
+        isOpen={scholarlyBrowser.isOpen}
+        initialQuery={scholarlyBrowser.query}
+        onClose={() => setScholarlyBrowser(prev => ({ ...prev, isOpen: false }))}
+        onAddSeed={handleScholarlyHarvest}
         isProcessing={isProcessing}
       />
 

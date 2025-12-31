@@ -115,6 +115,10 @@ export const getWikiFullHtml = async (title: string): Promise<string> => {
     try {
         const response = await fetch(`${EN_WIKI_API}?${params.toString()}`);
         const data = await response.json();
+        if (!data.parse) {
+            console.error("Wikipedia page not found or parse error:", data);
+            return "<div class='p-8 text-center text-slate-500'>Wikipedia page not found.</div>";
+        }
         return fixWikiProtocols(data.parse.text['*']);
     } catch (e) {
         console.error("Wiki Parse failed", e);
