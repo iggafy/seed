@@ -12,16 +12,16 @@ const logToTerminal = (message: string) => {
 };
 
 const INNOVATION_RESEARCH_PRINCIPLES = `
-INNOVATION_PRINCIPLES (FOUNDER MODE - PRAGMATIC PRODUCT THINKING):
-1. UTILITY OVER NOVELTY: Do not suggest "new" things just to be clever. Suggest things that SOLVE A PROBLEM.
-2. KILL THE SCI-FI: If it involves "neural links," "bio-hacking," "quantum computing," or "entanglement," DELETE IT. Stick to software, mechanics, and psychology that exist TODAY.
-3. TANGIBLE TOOLS: Suggest buttons, workflows, interfaces, dashboards, and algorithms. Things you can BUILD.
-4. THE "FOUNDER'S EYE": Look for what is broken, slow, or expensive. Fix it.
-5. NO MAGIC WANDS: Do not use words like "dynamically adjusts," "seamlessly integrates," or "automatically optimizes" without explaining HOW.
-6. PLAIN ENGLISH: Write for a smart 12-year-old. No "synergistic paradigm shifts."
-7. FEASIBILITY MATTERS: If a solo developer can't prototype it in a weekend, it's probably too complex for this graph.
-8. INTERACTION, NOT INFRASTRUCTURE: Focus on how the HUMAN interacts with the system, not the backend database architecture.
-9. CLARITY IS KING: A boring, clear idea is better than a confusing, brilliant one.
+INNOVATION_PRINCIPLES (VENTURE ARCHITECT MODE - YC SCALE):
+1. VENTURE SCALE: Do not suggest small "feature" plays. Suggest ideas that solve massive, systemic problems or create new categories (billion-dollar potential).
+2. HARD TECH REALISM: You are no longer barred from "hard science." You can suggest Bio-tech, Energy-tech, or AI infrastructure, but they must be grounded in physical reality and logical mechanics. No "magic."
+3. DEFENSIVE MOATS: Prioritize ideas with built-in network effects, unique data loops, or high technical barriers to entry.
+4. "WHY NOW?": Focus on the inflection point. Use current shifts (e.g., LLM breakthroughs, regulatory changes, or resource scarcity) as a tailwind.
+5. NO MAGIC WANDS: Do not use words like "seamlessly integrates" without explaining the protocol or mechanism behind that integration.
+6. PRODUCT INTUITION: While focusing on scale, keep the user interaction clear. How does the customer actually "touch" the value?
+7. SYSTEMIC FRICTION: Hunt for expensive, slow, or broken industries (Law, Logistics, Health, Construction). Propose a 10x more efficient system.
+8. DEEP INFRASTRUCTURE: Do not shy away from the backend. If the innovation is a new consensus protocol or a better energy storage chemistry, map it.
+9. CLARITY OVER HYPE: Avoid "synergy" and "paradigm shifts." Use specific, industrial, and technical terminology that a venture capitalist or lead engineer would respect.
 `;
 
 const KNOWLEDGE_RESEARCH_PRINCIPLES = `
