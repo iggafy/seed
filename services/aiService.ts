@@ -53,6 +53,7 @@ RESEARCH PRINCIPLES (SENIOR RESEARCH FELLOW MODE):
    - Novelty (Originality): 1.0 = paradigm shift, 0.1 = incremental.
    - Friction (Complexity): 1.0 = high barrier to entry (technical/ethics), 0.1 = straightforward.
    - Impact (Significance): 1.0 = major breakthrough in the field, 0.1 = minor optimization.
+8. COGNITIVE ACCESSIBILITY: Explain like a "Master Teacher." Use multiple short, punchy sentences instead of one long, nested academic clause. Prioritize plain-language intuition over dense abstraction. If you use a technical term (like "phonon-mediated"), ground it in its physical reality (e.g., "vibrations in the material").
 `;
 
 // Defined schemas via imported constants
