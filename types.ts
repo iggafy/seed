@@ -76,7 +76,8 @@ export interface SessionSnapshot {
 // Mode System
 export enum ExplorationMode {
   INNOVATION = 'INNOVATION',
-  KNOWLEDGE = 'KNOWLEDGE'
+  KNOWLEDGE = 'KNOWLEDGE',
+  RESEARCH = 'RESEARCH'
 }
 
 export interface ModeConfig {
@@ -122,6 +123,19 @@ export enum NodeType {
   DISCOVERY = 'DISCOVERY', // Scientific discoveries, findings
   RELATIONSHIP = 'RELATIONSHIP', // Connections between entities
   CONTRADICTION = 'CONTRADICTION', // Conflicting accounts, debates, or opposing theories
+
+  // RESEARCH Mode specific
+  HYPOTHESIS = 'HYPOTHESIS', // Proposed explanation or educated guess
+  METHODOLOGY = 'METHODOLOGY', // Techniques, procedures, or experimental design
+  DATA_SET = 'DATA_SET', // Collections of data, results, or measurements
+  VARIABLE = 'VARIABLE', // Factors or elements being measured or changed
+  EVIDENCE = 'EVIDENCE', // Supporting data or physical proof
+  LITERATURE = 'LITERATURE', // Academic papers, citations, or background research
+  PROTOCOL = 'PROTOCOL', // Specific set of rules or standard procedures
+  OBSERVATION = 'OBSERVATION', // Recorded findings or qualitative notes
+  EQUATION = 'EQUATION', // Mathematical formulations or formal models
+  SIMULATION = 'SIMULATION', // Computational or physical models of phenomena
+  GAP = 'GAP', // Gaps in current literature or knowledge frontiers
 }
 
 export interface AISuggestion {

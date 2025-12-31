@@ -27,7 +27,7 @@ import {
   autonomousDiscovery,
   synergyDiscovery
 } from './services/aiService';
-import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit, RefreshCw, Network, SquarePlus, Square } from 'lucide-react';
+import { Share2, PlusCircle, Sparkles, Eye, EyeOff, GitBranch, Zap, MessageCircle, X, Trash2, Layers, ChevronRight, Home, GitMerge, Loader2, Search, CheckCircle2, MoreHorizontal, Minimize2, Cpu, AlertCircle, Heart, BrainCircuit, Info, Lightbulb, MousePointerClick, MessageSquare, Orbit, RefreshCw, Network, SquarePlus, Square, Microscope } from 'lucide-react';
 import NexusAssistant from './components/NexusAssistant';
 import NexusConfirmDialog from './components/NexusConfirmDialog';
 import ConfirmDialog from './components/ConfirmDialog';
@@ -2988,13 +2988,44 @@ function App() {
               </div>
             )}
 
+            {currentMode === ExplorationMode.RESEARCH && showInnovationBanner && (
+              <div className="mb-12 max-w-lg w-full px-6 animate-in slide-in-from-top-10 fade-in duration-1000 delay-300 pointer-events-auto">
+                <div className="relative overflow-hidden bg-gradient-to-r from-amber-600/20 via-orange-600/20 to-emerald-600/20 border border-white/10 p-1 px-1 rounded-[2rem] backdrop-blur-md group">
+                  <div className="bg-slate-900/40 rounded-[1.8rem] p-6 flex items-start gap-5 relative overflow-hidden">
+                    {/* Decorative Background Icon */}
+                    <div className="absolute -right-6 -bottom-6 text-white/5 rotate-12 group-hover:scale-110 transition-transform duration-700">
+                      <Microscope size={120} />
+                    </div>
+
+                    <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-400 shrink-0 shadow-lg shadow-amber-900/20">
+                      <Sparkles size={24} className="animate-pulse" />
+                    </div>
+
+                    <div className="flex-1 pr-6">
+                      <p className="text-sm font-medium leading-relaxed text-slate-200 italic">
+                        {renderBoldText("Research Rule: Structure your first seed around the **core mechanism or tension** of your study.")}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleDismissInnovationBanner}
+                      className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-full transition-all group/close"
+                      title="Dismiss tip"
+                    >
+                      <X size={16} className="group-hover/close:rotate-90 transition-transform" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="text-slate-600 text-center flex flex-col items-center animate-in fade-in zoom-in duration-500 pointer-events-none">
               <div className="mb-6 p-6 rounded-full bg-slate-900/50 border border-white/5 shadow-[0_0_50px_rgba(56,189,248,0.1)] backdrop-blur-sm">
                 <PlusCircle className="w-12 h-12 text-slate-500" />
               </div>
               <h3 className="text-2xl font-light text-white mb-2 tracking-tight">The canvas is empty</h3>
               <p className="text-base text-slate-400 max-w-xs mb-8">
-                {currentMode === ExplorationMode.INNOVATION ? "Innovation starts with a single seed." : "Knowledge starts with a single seed."}
+                {currentMode === ExplorationMode.INNOVATION ? "Innovation starts with a single seed." : (currentMode === ExplorationMode.RESEARCH ? "Research starts with a single seed." : "Knowledge starts with a single seed.")}
               </p>
               <div className="flex flex-col md:flex-row gap-4 pointer-events-auto">
                 <button

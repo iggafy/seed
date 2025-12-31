@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Share2, BrainCircuit, Orbit, Sparkles, ArrowRight, Shield, ShieldCheck, Lock, Activity, ChevronDown, ChevronUp, FolderOpen, Settings2 } from 'lucide-react';
+import { Share2, BrainCircuit, Orbit, Sparkles, ArrowRight, Shield, ShieldCheck, Lock, Activity, ChevronDown, ChevronUp, FolderOpen, Settings2, Microscope } from 'lucide-react';
 import { ExplorationMode, AISettings, AIProvider } from '../types';
 
 interface WelcomeScreenProps {
@@ -120,18 +120,35 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSelectMode, settings, o
                     )}
 
                     {/* Mode Selection Grid - Primary Action */}
-                    <div className="grid md:grid-cols-2 gap-4 md:gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
+
+                        {/* Research Mode Card */}
+                        <button
+                            onClick={() => onSelectMode(ExplorationMode.RESEARCH)}
+                            className={`group relative flex flex-col items-center p-8 md:p-10 bg-slate-900/40 backdrop-blur-xl border rounded-[2.5rem] transition-all duration-500 hover:bg-slate-900/60 hover:-translate-y-1 shadow-2xl shadow-black/40 ${isKeyReady ? 'border-white/10 hover:border-amber-500/40 opacity-100' : 'border-white/5 opacity-50 grayscale pointer-events-none'}`}
+                        >
+                            <div className="w-12 h-12 md:w-14 md:h-14 bg-amber-500/10 rounded-xl flex items-center justify-center mb-6 border border-amber-500/20 group-hover:scale-110 transition-transform duration-500">
+                                <Microscope size={28} className="text-amber-400" />
+                            </div>
+                            <h2 className="text-xl md:text-2xl font-black text-white mb-2 tracking-tight">Research</h2>
+                            <p className="text-xs text-slate-400 text-center leading-relaxed mb-6 px-4 font-light">
+                                Structure hypotheses and map R&D breakthroughs.
+                            </p>
+                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-4 py-2 rounded-full border border-amber-500/20">
+                                New Workspace <ArrowRight size={12} />
+                            </div>
+                        </button>
 
                         {/* Innovation Mode Card */}
                         <button
                             onClick={() => onSelectMode(ExplorationMode.INNOVATION)}
-                            className={`group relative flex flex-col items-center p-8 md:p-12 bg-slate-900/40 backdrop-blur-xl border rounded-[2.5rem] transition-all duration-500 hover:bg-slate-900/60 hover:-translate-y-1 shadow-2xl shadow-black/40 ${isKeyReady ? 'border-white/10 hover:border-sky-500/40 opacity-100' : 'border-white/5 opacity-50 grayscale pointer-events-none'}`}
+                            className={`group relative flex flex-col items-center p-8 md:p-10 bg-slate-900/40 backdrop-blur-xl border rounded-[2.5rem] transition-all duration-500 hover:bg-slate-900/60 hover:-translate-y-1 shadow-2xl shadow-black/40 ${isKeyReady ? 'border-white/10 hover:border-sky-500/40 opacity-100' : 'border-white/5 opacity-50 grayscale pointer-events-none'}`}
                         >
                             <div className="w-12 h-12 md:w-14 md:h-14 bg-sky-500/10 rounded-xl flex items-center justify-center mb-6 border border-sky-500/20 group-hover:scale-110 transition-transform duration-500">
                                 <BrainCircuit size={28} className="text-sky-400" />
                             </div>
-                            <h2 className="text-xl md:text-2xl font-black text-white mb-2 tracking-tight">Innovation Mode</h2>
-                            <p className="text-xs md:text-sm text-slate-400 text-center leading-relaxed mb-6 px-4 font-light">
+                            <h2 className="text-xl font-black text-white mb-2 tracking-tight">Innovation</h2>
+                            <p className="text-xs text-slate-400 text-center leading-relaxed mb-6 px-4 font-light">
                                 Build technologies and map potential product solutions.
                             </p>
                             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-sky-500 bg-sky-500/10 px-4 py-2 rounded-full border border-sky-500/20">
@@ -142,14 +159,14 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSelectMode, settings, o
                         {/* Knowledge Mode Card */}
                         <button
                             onClick={() => onSelectMode(ExplorationMode.KNOWLEDGE)}
-                            className={`group relative flex flex-col items-center p-8 md:p-12 bg-slate-900/40 backdrop-blur-xl border rounded-[2.5rem] transition-all duration-500 hover:bg-slate-900/60 hover:-translate-y-1 shadow-2xl shadow-black/40 ${isKeyReady ? 'border-white/10 hover:border-indigo-500/40 opacity-100' : 'border-white/5 opacity-50 grayscale pointer-events-none'}`}
+                            className={`group relative flex flex-col items-center p-8 md:p-10 bg-slate-900/40 backdrop-blur-xl border rounded-[2.5rem] transition-all duration-500 hover:bg-slate-900/60 hover:-translate-y-1 shadow-2xl shadow-black/40 ${isKeyReady ? 'border-white/10 hover:border-indigo-500/40 opacity-100' : 'border-white/5 opacity-50 grayscale pointer-events-none'}`}
                         >
                             <div className="w-12 h-12 md:w-14 md:h-14 bg-indigo-500/10 rounded-xl flex items-center justify-center mb-6 border border-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
                                 <Orbit size={28} className="text-indigo-400" />
                             </div>
-                            <h2 className="text-xl md:text-2xl font-black text-white mb-2 tracking-tight">Knowledge Mode</h2>
-                            <p className="text-xs md:text-sm text-slate-400 text-center leading-relaxed mb-6 px-4 font-light">
-                                Master emergent learning and discover hidden interdisciplinary links.
+                            <h2 className="text-xl md:text-2xl font-black text-white mb-2 tracking-tight text-center">Knowledge</h2>
+                            <p className="text-xs text-slate-400 text-center leading-relaxed mb-6 px-4 font-light">
+                                Master emergent learning and discover hidden links.
                             </p>
                             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-500 bg-indigo-500/10 px-4 py-2 rounded-full border border-indigo-500/20">
                                 New Workspace <ArrowRight size={12} />

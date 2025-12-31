@@ -40,12 +40,27 @@ KNOWLEDGE RESEARCH PRINCIPLES:
    - Significance (impact): 1.0 = changed the course of history/thought, 0.1 = minor detail.
 `;
 
+const RESEARCH_PRINCIPLES = `
+RESEARCH PRINCIPLES (SENIOR RESEARCH FELLOW MODE):
+1. CAUSAL RIGOR: Prioritize the "mechanisms of action." Don't just say things are related; explain HOW the variable affects the hypothesis.
+2. EVIDENCE-BASED: Propose seeds that can be validated, measured, or falsified. 
+3. FRONTIER FOCUS: Explicitly hunt for the "GAP" in current literature or methodology. 
+4. INTERDISCIPLINARY SYNTHESIS: Bridge concepts between disparate scientific fields (e.g., using "High-Frequency Trading" logic for "Neural Interface Latency").
+5. PROTOCOL FIRST: When suggesting an implementation, focus on the EXPERIMENTAL PROTOCOL rather than the product features.
+6. NO HYPED JARGON: Avoid "revolutionary" or "disruptive." Use "statistically significant," "causally linked," or "operationally defined."
+7. VALUE VECTORS:
+   - Feasibility (Veracity): 1.0 = highly replicable, 0.1 = fringe/speculative.
+   - Novelty (Originality): 1.0 = paradigm shift, 0.1 = incremental.
+   - Friction (Complexity): 1.0 = high barrier to entry (technical/ethics), 0.1 = straightforward.
+   - Impact (Significance): 1.0 = major breakthrough in the field, 0.1 = minor optimization.
+`;
+
 // Defined schemas via imported constants
 const NODE_SCHEMA_OPENAI = {
     type: "object",
     properties: {
         label: { type: "string", description: "Name of the new concept" },
-        type: { type: "string", enum: [NodeType.CONCEPT, NodeType.TECHNOLOGY, NodeType.PROBLEM, NodeType.PAIN_POINT, NodeType.INNOVATION, NodeType.CONSTRAINT, NodeType.FRICTION, NodeType.ENTITY, NodeType.QUESTION, NodeType.TRACE, NodeType.EVENT, NodeType.PERSON, NodeType.PLACE, NodeType.THEORY, NodeType.ARTIFACT, NodeType.MOVEMENT, NodeType.DISCOVERY, NodeType.RELATIONSHIP, NodeType.CONTRADICTION, NodeType.IMPLEMENTATION, NodeType.USER_SEGMENT, NodeType.ANALOGY, NodeType.REGULATION, NodeType.MARKET, NodeType.ETHICS, NodeType.MENTAL_MODEL] },
+        type: { type: "string", enum: Object.values(NodeType) },
         description: { type: "string", description: "Short description" },
         relationToParent: { type: "string", description: "Relationship verb" },
         valueVector: {
@@ -520,7 +535,10 @@ export const autonomousDiscovery = async (
     const modeSpecificGuidance = mode === ExplorationMode.INNOVATION
         ? `RESEARCH PRINCIPLE: Maintain 360-degree sight. Do not default to TECHNOLOGY or CONCEPT loops. If you see a technology, look for its hidden PROBLEM, friction point, or the USER_SEGMENT it targets. Consider the REGULATION, MARKET drivers, and ETHICS. Use ANALOGY to find cross-disciplinary solutions. Every advancement must be balanced by a ground-truth challenge or a MENTAL_MODEL being challenged.
         ${INNOVATION_RESEARCH_PRINCIPLES}`
-        : "RESEARCH PRINCIPLE: Maintain 360-degree sight. Expand historical context by linking EVENTS to the PEOPLE they affected, the PLACES they occurred, and the underlying THEORIES or CONTRADICTIONS that drove them.";
+        : mode === ExplorationMode.RESEARCH
+            ? `RESEARCH PRINCIPLE: Focus on causality and the scientific method. Map the HYPOTHESIS, the METHODOLOGY used to test it, and the VARIABLEs involved. Hunt for DATA_SETs and EVIDENCE. Identify the GAP in existing LITERATURE. Use EQUATIONs or SIMULATIONs to model phenomena. Maintain rigorous interdisciplinary synthesis.
+        ${RESEARCH_PRINCIPLES}`
+            : "RESEARCH PRINCIPLE: Maintain 360-degree sight. Expand historical context by linking EVENTS to the PEOPLE they affected, the PLACES they occurred, and the underlying THEORIES or CONTRADICTIONS that drove them.";
 
     const prompt = dieToGrow
         ? `You are an Autonomous Gardener working as a ${persona}. 
@@ -641,7 +659,9 @@ export const agenticDiscovery = async (
             intent = "GOAL_ALIGNMENT";
             policyGuidance = isInnovation
                 ? "RE-ANCHORING: Explicitly pull the discovery back towards the NORTH STAR GOAL. If we have drifted into technical trivia, find the shortest path back to solving the primary objective."
-                : "NARRATIVE COHERENCE: Re-align with the central research question. If the exploration has become anecdotal, pull it back to the core historical mystery or theoretical objective.";
+                : mode === ExplorationMode.RESEARCH
+                    ? "RESEARCH RE-ANCHOR: Focus on the central hypothesis or variable. If the research has become too broad, pull it back to the core mechanism or contradiction under study."
+                    : "NARRATIVE COHERENCE: Re-align with the central research question. If the exploration has become anecdotal, pull it back to the core historical mystery or theoretical objective.";
             break;
         case 'CONNECT':
             intent = "SYNERGY_MAPPING";
@@ -659,7 +679,11 @@ export const agenticDiscovery = async (
     3. CONSTRAINT RESPECT: If a HARD constraint exists, DO NOT violate it unless in PROBE mode.
     4. CITATION: Mention why this move makes sense given the GOAL and CONSTRAINTS.
     ${INNOVATION_RESEARCH_PRINCIPLES}`
-        : `1. FACTUALLY ANCHORED: Link to specific historical entities or theories.
+        : mode === ExplorationMode.RESEARCH
+            ? `1. CAUSALLY ANCHORED: Link findings to the core variables and evidence.
+    2. PROTOCOL FOCUSED: Propose specific experimental or mathematical ways to move forward.
+    ${RESEARCH_PRINCIPLES}`
+            : `1. FACTUALLY ANCHORED: Link to specific historical entities or theories.
     2. CURIOSITY DRIVEN: Find the contradiction or the missing link in the narrative.
     ${KNOWLEDGE_RESEARCH_PRINCIPLES}`;
 
@@ -683,10 +707,15 @@ export const agenticDiscovery = async (
                 intent === "LATERIAL_JUMP" ? "Propose a novel, distant connection or analogy." :
                     intent === "STRESS_TEST" ? "Identify a fundamental friction or constraint." :
                         "Re-connect current findings to the North Star Goal.")
-            : (intent === "DEEPEN" ? "Uncover deeper historical/theoretical evidence and causal depth." :
-                intent === "LATERIAL_JUMP" ? "Propose an emergent interdisciplinary connection." :
-                    intent === "STRESS_TEST" ? "Identify a historical contradiction or epistemic friction." :
-                        "Pull the narrative back to the primary research goal.")
+            : mode === ExplorationMode.RESEARCH
+                ? (intent === "DEEPEN" ? "Uncover deeper experimental methodology, evidence, or causal rigor." :
+                    intent === "LATERIAL_JUMP" ? "Propose an emergent interdisciplinary synthesis or theoretical bridge." :
+                        intent === "STRESS_TEST" ? "Identify a gap in literature, a flaw in protocol, or a negative result." :
+                            "Pull the research back to the primary hypothesis.")
+                : (intent === "DEEPEN" ? "Uncover deeper historical/theoretical evidence and causal depth." :
+                    intent === "LATERIAL_JUMP" ? "Propose an emergent interdisciplinary connection." :
+                        intent === "STRESS_TEST" ? "Identify a historical contradiction or epistemic friction." :
+                            "Pull the narrative back to the primary research goal.")
         }
 
     GUIDANCE:
@@ -734,20 +763,40 @@ export const generateRandomSeedNode = async (
     Think like a founder on Product Hunt: "What is the 10x better version of this?"
     ${isRetry ? 'CRITICAL: Pick a DIFFERENT domain than any previously discarded idea.' : ''}
     ${INNOVATION_RESEARCH_PRINCIPLES}`
-        : `Generate a single interesting starting point for knowledge exploration. This could be:
-    - A significant historical EVENT
-    - An influential PERSON
-    - An important PLACE or civilization
-    - A groundbreaking THEORY or idea
-    - A fascinating DISCOVERY
+        : mode === ExplorationMode.RESEARCH
+            ? `Generate a single SCIENTIFIC HYPOTHESIS, GAP, or OBSERVATION node.
+    The concept should represent a "Knowledge Frontier" or a "Deep Technical Challenge" in academic research, R&D labs, or interdisciplinary science.
+
+    DOMAIN ROTATION: Randomize between:
+    1. Bio-Engineering & Prosthetics (Neural feedback, synthetic biology, haptics)
+    2. Quantum Information Theory (Decoherence, error correction, entanglement logistics)
+    3. Climate Engineering & Energy (Carbon sequestration, fusion protocols, battery chemistry)
+    4. Psychology & Social Dynamics (Algorithmic bias, echo chambers, neuro-behavioral loops)
+    5. Material Science (Myco-semiconductors, room-temp superconductors, smart alloys)
+    6. Computational Ethics (Algorithmic fairness, alignment protocols, systemic equity)
+
+    STYLE: Use "Senior Research Fellow" persona. Focus on causality, methodology, and scientific rigor.
+    ${RESEARCH_PRINCIPLES}`
+            : `Generate a single intellectual pivot or "History Mystery" across any global event, cultural movement, or scientific biography.
+    The concept should represent an "Inflexion Point" or a "Hidden Relationship" that connects seemingly disparate entities.
     
-    The topic should be interesting, educational, and rich with potential connections.
+    DOMAIN ROTATION: Randomize between:
+    1. The History of Technology (e.g., from the astrolabe to the algorithm)
+    2. Global Economics & Trade (e.g., the Silk Road, the Dutch East India Company)
+    3. Philosophical Movements (e.g., the Enlightenment, Transcendentalism)
+    4. Artistic & Literary Revolutions (e.g., the Harlem Renaissance, Modernism)
+    5. Scientific Biographies & Discoveries (e.g., Ada Lovelace, the Manhattan Project)
+    6. Geopolitical Tipping Points (e.g., the Cold War, the Fall of Empires)
+
     STYLE: Use clear, engaging language. Make it accessible but intellectually stimulating.
     ${KNOWLEDGE_RESEARCH_PRINCIPLES}`;
 
-    const prompt = `You are a ${persona}. ${modeSpecificPrompt}
+    const prompt = `You are a ${persona}. 
+    
+    ${modeSpecificPrompt}
+    
     ${avoidContext}
-    Variety context: [ ${entropy || Math.random()} ]
+    Variety context: [${entropy || Math.random()}]
     Response schema: single node.`;
 
     const result = await runIPCRequest(settings, prompt, false, mode, 0.95);
@@ -800,8 +849,8 @@ export const researchAssistantChat = async (
     }
 
     const modeSpecificGuidance = mode === ExplorationMode.INNOVATION
-        ? `Provide deep technical insights, definitions, and strategic analysis. EXERCISE 360-DEGREE RESEARCH: Suggest a variety of types (e.g. Problems, Entities, Constraints) to ensure a comprehensive investigation.
-        ${INNOVATION_RESEARCH_PRINCIPLES}`
+        ? `Provide deep technical insights, definitions, and strategic analysis.EXERCISE 360 - DEGREE RESEARCH: Suggest a variety of types(e.g.Problems, Entities, Constraints) to ensure a comprehensive investigation.
+    ${INNOVATION_RESEARCH_PRINCIPLES} `
         : "Provide interdisciplinary insights, historical evidence, and causal analysis. EXERCISE 360-DEGREE RESEARCH: Suggest connections across diverse types (e.g. Artifacts, Places, Contradictions) to enrich the tapestry of knowledge.";
 
     const systemPrompt = `You are the Nexus Research Assistant, a ${persona}.
@@ -812,33 +861,33 @@ export const researchAssistantChat = async (
     YOUR GOAL:
     ${modeSpecificGuidance}
     
-    IMPORTANT SHARED DISCOVERY RULES (MANDATORY):
-    1. CONVERSATION FIRST: Respond to the user with depth, intuition, and technical/historical accuracy. 
-    2. SHARED KNOWLEDGE MAPPING: Act as a visual scribe for our shared discovery session. Extract the ACTUAL CONTENT and ESSENCE of what we discussed.
+    IMPORTANT SHARED DISCOVERY RULES(MANDATORY):
+1. CONVERSATION FIRST: Respond to the user with depth, intuition, and technical / historical accuracy. 
+    2. SHARED KNOWLEDGE MAPPING: Act as a visual scribe for our shared discovery session.Extract the ACTUAL CONTENT and ESSENCE of what we discussed.
        - CRITICAL: Seeds must represent THE SPECIFIC TOPICS we talked about, not generic definitions.
-       - Example: If we discuss "problems with AI tools", create a seed like "AI Tools Limitations" with a description of the ACTUAL problems we mentioned (e.g., "lack of context grounding, generic outputs"), NOT a generic definition like "A challenging situation".
+       - Example: If we discuss "problems with AI tools", create a seed like "AI Tools Limitations" with a description of the ACTUAL problems we mentioned(e.g., "lack of context grounding, generic outputs"), NOT a generic definition like "A challenging situation".
        - Capture the SUBSTANCE and NUANCE of our conversation in each seed's label and description.
-       - Each seed should be a meaningful artifact of WHAT WAS ACTUALLY SAID, not a placeholder concept.
-    3. NO DISCONNECTED SEEDS: The graph is a single unified narrative. Every node in your [MAP] MUST be connected to something.
+    - Each seed should be a meaningful artifact of WHAT WAS ACTUALLY SAID, not a placeholder concept.
+    3. NO DISCONNECTED SEEDS: The graph is a single unified narrative.Every node in your[MAP] MUST be connected to something.
        - If a new node relates to another new node, link them.
-       - CRITICAL: At least one node in your new set MUST link back to a node in the CURRENT GRAPH CONTEXT (if any nodes exist).
-       - If there is no specific technical parent, use a relational link like "evolves from", "context for", or "adjacent to" to connect to the most relevant existing node.
+       - CRITICAL: At least one node in your new set MUST link back to a node in the CURRENT GRAPH CONTEXT(if any nodes exist).
+- If there is no specific technical parent, use a relational link like "evolves from", "context for", or "adjacent to" to connect to the most relevant existing node.
        - Connections should also reflect HOW we discussed the relationships, not just generic links.
-    4. THE [MAP] BLOCK: Provide a raw JSON [MAP] block at the VERY END of your message.
+    4. THE[MAP] BLOCK: Provide a raw JSON[MAP] block at the VERY END of your message.
     
     [MAP]
-    {
-      "nodes": [
+{
+    "nodes": [
         { "label": "Concept Name", "type": "NodeType", "description": "Justification" }
-      ],
-      "links": [
-        { "sourceLabel": "Source", "targetLabel": "Target", "relation": "active verb" }
-      ]
-    }
+    ],
+        "links": [
+            { "sourceLabel": "Source", "targetLabel": "Target", "relation": "active verb" }
+        ]
+}
 
-    5. NodeType must be one of: ${nodeTypesList}.
-    6. Relationships: Use active verbs. Avoid generic "related to" if possible.
-    7. CRITICAL: Do NOT output raw JSON alone. Provide a conversational response first.`;
+5. NodeType must be one of: ${nodeTypesList}.
+6. Relationships: Use active verbs.Avoid generic "related to" if possible.
+    7. CRITICAL: Do NOT output raw JSON alone.Provide a conversational response first.`;
 
     const formattedMessages = chatHistory.map(m => ({
         role: m.role,
@@ -891,11 +940,11 @@ export const researchAssistantTextReply = async (
     ${fullGraphContext}
 
     IMPORTANT RULES:
-    1. Respond to the user with depth and intuition but BE CONCISE. 
+1. Respond to the user with depth and intuition but BE CONCISE. 
     2. DO NOT output any structured data, [MAP], or structural tags. 
-    3. Just talk. Be an intellectual brainstorming partner.
+    3. Just talk.Be an intellectual brainstorming partner.
     4. Keep your response under 100 words unless complex explanation is requested.
-    5. SEED REUSABILITY RULE: Be aware of existing seeds in the FULL GRAPH CONTEXT. If you discuss them, refer to them by their exact labels.`;
+    5. SEED REUSABILITY RULE: Be aware of existing seeds in the FULL GRAPH CONTEXT.If you discuss them, refer to them by their exact labels.`;
 
     const formattedMessages = chatHistory.map(m => ({
         role: m.role,
@@ -926,7 +975,7 @@ export const researchAssistantTextReply = async (
             if (parsed.message && typeof parsed.message === 'string') return parsed.message;
             if (parsed.answer && typeof parsed.answer === 'string') return parsed.answer;
             if (parsed.suggestions && Array.isArray(parsed.suggestions)) {
-                return "Here are some suggestions:\n\n" + parsed.suggestions.map((s: string) => `- ${s}`).join('\n');
+                return "Here are some suggestions:\n\n" + parsed.suggestions.map((s: string) => `- ${s} `).join('\n');
             }
         }
     } catch (e) {
@@ -952,31 +1001,31 @@ export const extractKnowledgeMap = async (
     const modeConfig = getModeConfig(mode);
     const nodeTypesList = modeConfig.nodeTypes.join(', ');
 
-    const systemPrompt = `You are a strict JSON-only Visual Discovery Scribe.
+    const systemPrompt = `You are a strict JSON - only Visual Discovery Scribe.
     
     YOUR TASK:
-    Extract a high-density knowledge map from the text, capturing the ACTUAL CONTENT and ESSENCE of what was discussed.
+    Extract a high - density knowledge map from the text, capturing the ACTUAL CONTENT and ESSENCE of what was discussed.
     
     FULL GRAPH CONTEXT:
     ${fullGraphContext}
 
     CRITICAL RULES:
-    1. Extract 2-5 significant Seeds (Nodes) and their Relationships (Links).
+1. Extract 2 - 5 significant Seeds(Nodes) and their Relationships(Links).
     2. CONTENT FIDELITY: Seeds must represent THE SPECIFIC TOPICS mentioned in the text, not generic definitions.
-    3. SEED REUSABILITY RULE: Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept mentioned in the text, you MUST use that exact label in your JSON nodes. Do not create duplicates.
-    4. NO DISCONNECTED CLUSTERS: At least one new node MUST link to an existing node in the FULL GRAPH CONTEXT (if any exist).
-    5. Relationships MUST be active verbs that reflect HOW the topics were connected in the discussion.
-    6. OUTPUT ONLY RAW JSON. Do not use Markdown code blocks. Do not add any text before or after the JSON.
+    3. SEED REUSABILITY RULE: Before proposing a new seed, check the FULL GRAPH CONTEXT.If an existing seed(by label) represents the concept mentioned in the text, you MUST use that exact label in your JSON nodes.Do not create duplicates.
+    4. NO DISCONNECTED CLUSTERS: At least one new node MUST link to an existing node in the FULL GRAPH CONTEXT(if any exist).
+5. Relationships MUST be active verbs that reflect HOW the topics were connected in the discussion.
+    6. OUTPUT ONLY RAW JSON.Do not use Markdown code blocks.Do not add any text before or after the JSON.
     
     [MAP]
-    {
-      "nodes": [
+{
+    "nodes": [
         { "label": "Concept", "type": "NodeType", "description": "Justification" }
-      ],
-      "links": [
-        { "sourceLabel": "Source", "targetLabel": "Target", "relation": "verb" }
-      ]
-    }
+    ],
+        "links": [
+            { "sourceLabel": "Source", "targetLabel": "Target", "relation": "verb" }
+        ]
+}
     
     NodeType must be one of: ${nodeTypesList}.`;
 
@@ -1003,7 +1052,7 @@ export function normalizeNodeType(typeStr?: string): NodeType {
     if (validTypes.includes(normalized)) {
         return normalized as NodeType;
     }
-    console.warn(`[AI-Service] Invalid NodeType received: ${typeStr}. Fallback to CONCEPT.`);
+    console.warn(`[AI - Service] Invalid NodeType received: ${typeStr}. Fallback to CONCEPT.`);
     return NodeType.CONCEPT;
 }
 
@@ -1023,23 +1072,23 @@ export const curateWikiSnippet = async (
     A user has highlighted a specific snippet from a Wikipedia article while researching a concept in SEED.
     
     WIKIPEDIA PAGE: "${pageTitle}"
-    SNIPPET: "${snippet}"
+SNIPPET: "${snippet}"
     
     CONSTITUTIONAL CONTEXT:
-    The user is connecting this back to their existing seed: "${sourceNodeContext.label}" (${sourceNodeContext.description}).
-    
+    The user is connecting this back to their existing seed: "${sourceNodeContext.label}"(${sourceNodeContext.description}).
+
     TASK:
-    1. ARTIFACT CREATION: Summarize the snippet into a high-density "Seed Node". Focus on the core mechanism, event, or principle.
+1. ARTIFACT CREATION: Summarize the snippet into a high - density "Seed Node".Focus on the core mechanism, event, or principle.
     2. ARCHITECTURAL PLACEMENT: Select the most accurate NodeType from the internal framework.
     3. RELATIONAL SYNTHESIS: Determine the precise relationship verb connecting this new seed back to "${sourceNodeContext.label}".
     
-    PRINCIPLES OF RELATIONAL SYNTHESIS (MANDATORY):
-    - ANALYTICAL DEPTH: Move beyond generic connections. Identify the structural/functional role (e.g., is it a "catalyst for," "structural component of," "modern critique of," or "functional precursor to"?).
-    - TEMPORAL & CAUSAL INTEGRITY: Be sophisticated about time. While the arrow of time is absolute (earlier can cause later, not vice-versa), bridge-links can be thematic. A modern theory might "re-interpret" or "provide a framework for analyzing" an ancient event.
-    - EPISTEMIC PRECISION: Use high-intent, active verbs. If a technology is used in an event, use "operationalized by". If a person founded a movement, use "galvanized".
-    - SOPHISTICATED BRIDGE-LINKING: If the connection is indirect, identify the shared principle or structural parallel (e.g., "strategic analogue of" or "instantiates the principle of").
-    
-    \${mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : ''}
+    PRINCIPLES OF RELATIONAL SYNTHESIS(MANDATORY):
+- ANALYTICAL DEPTH: Move beyond generic connections.Identify the structural / functional role(e.g., is it a "catalyst for," "structural component of," "modern critique of," or "functional precursor to" ?).
+    - TEMPORAL & CAUSAL INTEGRITY: Be sophisticated about time.While the arrow of time is absolute(earlier can cause later, not vice - versa), bridge - links can be thematic.A modern theory might "re-interpret" or "provide a framework for analyzing" an ancient event.
+    - EPISTEMIC PRECISION: Use high - intent, active verbs.If a technology is used in an event, use "operationalized by".If a person founded a movement, use "galvanized".
+    - SOPHISTICATED BRIDGE - LINKING: If the connection is indirect, identify the shared principle or structural parallel(e.g., "strategic analogue of" or "instantiates the principle of").
+
+\${ mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : '' }
     Response schema: single node.`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
@@ -1086,7 +1135,7 @@ const extractMapInternal = (content: string) => {
             });
         }
     } else {
-        const mapRegex = /\[MAP\]\s*(?:```(?:json)?\s*)?(\{[\s\S]*?\})(?:\s*```)?/g;
+        const mapRegex = /\[MAP\]\s*(?:```(?: json) ?\s *)?(\{ [\s\S] *?\ }) (?: \s * ```)?/g;
         const mapMatch = mapRegex.exec(content);
         if (mapMatch) {
             try {
@@ -1111,7 +1160,7 @@ const extractMapInternal = (content: string) => {
                 mainContent = mainContent.replace(mapMatch[0], '');
             } catch (e) { }
         }
-        const suggestionRegex = /\[SUGGESTION\]\s*(?:```(?:json)?\s*)?(\{[\s\S]*?\})(?:\s*```)?/g;
+        const suggestionRegex = /\[SUGGESTION\]\s*(?:```(?: json) ?\s *)?(\{ [\s\S] *?\ }) (?: \s * ```)?/g;
         const suggestionMatches = Array.from(content.matchAll(suggestionRegex));
         for (const match of suggestionMatches) {
             try {
@@ -1165,14 +1214,14 @@ async function runIPCRequest(
     ];
 
     const systemPrompt = isDeepSeek
-        ? `You are a JSON-speaking ${modeConfig.aiPersona}. Respond ONLY with valid JSON. Do not use Markdown code blocks.
-           CRITICAL: Your response MUST exactly match this schema:
+        ? `You are a JSON - speaking ${modeConfig.aiPersona}. Respond ONLY with valid JSON.Do not use Markdown code blocks.
+    CRITICAL: Your response MUST exactly match this schema:
            ${JSON.stringify(customSchema || (isArray ? ARRAY_NODE_SCHEMA_OPENAI : NODE_SCHEMA_OPENAI), null, 2)}
            For "type", use one of: ${nodeTypesList}.
-           JSON SAFETY: If you use double quotes inside a string value (like a label), you MUST escape them with a backslash (e.g. "The \\"Last Mile\\"").
+           JSON SAFETY: If you use double quotes inside a string value(like a label), you MUST escape them with a backslash(e.g. "The \\"Last Mile\\"").
            `
-        : `You are a JSON-speaking ${modeConfig.aiPersona}. Respond ONLY with valid JSON. Do not use Markdown code blocks. 
-           Schema: ${JSON.stringify(customSchema || (isArray ? ARRAY_NODE_SCHEMA_OPENAI : NODE_SCHEMA_OPENAI), null, 2)}`;
+        : `You are a JSON - speaking ${modeConfig.aiPersona}. Respond ONLY with valid JSON.Do not use Markdown code blocks.
+    Schema: ${JSON.stringify(customSchema || (isArray ? ARRAY_NODE_SCHEMA_OPENAI : NODE_SCHEMA_OPENAI), null, 2)} `;
 
     // Schema logic mainly for OpenAI strict mode
     const jsonSchema = isDeepSeek ? undefined : (customSchema || (isArray ? ARRAY_NODE_SCHEMA_OPENAI : NODE_SCHEMA_OPENAI));
@@ -1182,9 +1231,9 @@ async function runIPCRequest(
         throw new Error("IPC API not found. Is preload.js configured?");
     }
 
-    logToTerminal(`>>> [AI ENGINE] DISCOVERY REQUEST - Provider: ${settings.provider} | Model: ${activeSettings.model || 'Default'} | Mode: ${mode}`);
-    logToTerminal(`[SYSTEM PROMPT] ${systemPrompt}`);
-    logToTerminal(`[USER PROMPT] ${prompt}`);
+    logToTerminal(`>>> [AI ENGINE] DISCOVERY REQUEST - Provider: ${settings.provider} | Model: ${activeSettings.model || 'Default'} | Mode: ${mode} `);
+    logToTerminal(`[SYSTEM PROMPT] ${systemPrompt} `);
+    logToTerminal(`[USER PROMPT] ${prompt} `);
 
     // @ts-ignore
     const response = await window.api.aiRequest({
@@ -1197,12 +1246,12 @@ async function runIPCRequest(
     });
 
     if (response.error) {
-        logToTerminal(`!!! [AI ENGINE] ERROR: ${response.error}`);
+        logToTerminal(`!!![AI ENGINE]ERROR: ${response.error} `);
         throw new Error(response.error || "Unknown AI Request Error");
     }
 
     const content = response.content;
-    logToTerminal(`<<< [AI ENGINE] RAW RESPONSE: ${content}`);
+    logToTerminal(`<< <[AI ENGINE] RAW RESPONSE: ${content} `);
     if (!content) return [];
 
     // Parsing Logic (Shared)
@@ -1230,7 +1279,7 @@ async function runIPCRequest(
         }
     } catch (e) {
         console.error("[AI-Service] JSON Parse Error. Content was:", content);
-        throw new Error(`Failed to parse AI response: ${e instanceof Error ? e.message : 'Invalid JSON'}`);
+        throw new Error(`Failed to parse AI response: ${e instanceof Error ? e.message : 'Invalid JSON'} `);
     }
 
     // Normalizer

@@ -93,6 +93,48 @@ export const MODE_CONFIGS: Record<ExplorationMode, ModeConfig> = {
       { label: 'The Printing Press', type: NodeType.ARTIFACT, description: 'Gutenberg\'s invention that revolutionized the spread of knowledge in the 15th century.' },
       { label: 'The Enlightenment', type: NodeType.MOVEMENT, description: 'An intellectual and philosophical movement emphasizing reason and individualism in 17th-18th century Europe.' }
     ]
+  },
+  [ExplorationMode.RESEARCH]: {
+    id: ExplorationMode.RESEARCH,
+    name: 'Scientific Research',
+    description: 'Structure academic studies, R&D projects, and scientific hypotheses',
+    nodeTypes: [
+      NodeType.CONCEPT,
+      NodeType.HYPOTHESIS,
+      NodeType.METHODOLOGY,
+      NodeType.DATA_SET,
+      NodeType.VARIABLE,
+      NodeType.EVIDENCE,
+      NodeType.LITERATURE,
+      NodeType.PROTOCOL,
+      NodeType.OBSERVATION,
+      NodeType.EQUATION,
+      NodeType.SIMULATION,
+      NodeType.GAP,
+      NodeType.ENTITY,
+      NodeType.QUESTION
+    ],
+    defaultRelations: [
+      "validates",
+      "contradicts",
+      "measured by",
+      "derived from",
+      "proposes",
+      "supports",
+      "refutes",
+      "tested via",
+      "correlates with",
+      "causes",
+      "limits"
+    ],
+    aiPersona: "Senior Research Fellow, obsessive over peer-reviewed logic and interdisciplinary synthesis, prioritizing causality and evidence over market trends",
+    seedExamples: [
+      { label: 'Neural Feedback Latency', type: NodeType.VARIABLE, description: 'The time delay between mechanical signal and neural integration in cybernetic prosthetics.' },
+      { label: 'OAE Carbon Sink Efficiency', type: NodeType.HYPOTHESIS, description: 'The assumption that localized alkalinity enhancement significantly increases atmospheric CO2 uptake without harming coral benthos.' },
+      { label: 'Quantum Decoherence Patterns', type: NodeType.OBSERVATION, description: 'Unexpected rhythmic spikes in decoherence observed during high-frequency superconducting switching.' },
+      { label: 'The Literature Gap in Myco-Semiconductors', type: NodeType.GAP, description: 'The lack of peer-reviewed data on using mycelium structures for organic-silicon hybrid logic gates.' },
+      { label: 'Double-Blind Neural Interface Protocol', type: NodeType.PROTOCOL, description: 'Standardized procedure for testing haptic response times across heterogeneous patient groups.' }
+    ]
   }
 };
 
@@ -128,6 +170,19 @@ export const NODE_COLORS: Record<NodeType, string> = {
   [NodeType.MARKET]: '#eab308', // Gold (Economic)
   [NodeType.ETHICS]: '#2dd4bf', // Teal (Values)
   [NodeType.MENTAL_MODEL]: '#a78bfa', // Lavender (Paradigm)
+
+  // RESEARCH Mode
+  [NodeType.HYPOTHESIS]: '#f59e0b', // Amber
+  [NodeType.METHODOLOGY]: '#10b981', // Emerald
+  [NodeType.DATA_SET]: '#3b82f6', // Bright Blue
+  [NodeType.VARIABLE]: '#ef4444', // Red
+  [NodeType.EVIDENCE]: '#22c55e', // Green
+  [NodeType.LITERATURE]: '#64748b', // Slate
+  [NodeType.PROTOCOL]: '#8b5cf6', // Violet
+  [NodeType.OBSERVATION]: '#06b6d4', // Cyan
+  [NodeType.EQUATION]: '#ec4899', // Pink
+  [NodeType.SIMULATION]: '#84cc16', // Lime
+  [NodeType.GAP]: '#f43f5e', // Rose
 };
 
 // SVG Paths (based on 24x24 viewbox)
@@ -163,6 +218,19 @@ export const NODE_ICONS: Record<NodeType, string> = {
   [NodeType.MARKET]: "M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z",
   [NodeType.ETHICS]: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
   [NodeType.MENTAL_MODEL]: "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7zm1-11h-2v3H8v2h3v3h2v-3h3v-2h-3V8z",
+
+  // RESEARCH Mode
+  [NodeType.HYPOTHESIS]: "M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z", // Reuse Innovation icon (Arrow)
+  [NodeType.METHODOLOGY]: "M13 2L3 14h9l-1 8 10-12h-9l1-8z", // Reuse Technology (Bolt)
+  [NodeType.DATA_SET]: "M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4v4zm0-6H4v-4h4v4zm0-6H4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4z", // Grid
+  [NodeType.VARIABLE]: "M12 2C11.45 2 11 2.45 11 3V13C11 13.55 11.45 14 12 14C12.55 14 13 13.55 13 13V3C13 2.45 12.55 2 12 2ZM12 16C11.45 16 11 16.45 11 17C11 17.55 11.45 18 12 18C12.55 18 13 17.55 13 17C13 16.45 12.55 16 12 16Z", // Exclamation/Problem
+  [NodeType.EVIDENCE]: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z", // Check Circle
+  [NodeType.LITERATURE]: "M18 4H6C4.9 4 4 4.9 4 6V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V6C20 4.9 19.1 4 18 4ZM18 18H6V6H18V18ZM8 17H16V15H8V17ZM8 13H16V11H8V13ZM8 9H16V7H8V9Z", // Book/Doc
+  [NodeType.PROTOCOL]: "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7zm1-11h-2v3H8v2h3v3h2v-3h3v-2h-3V8z", // Gear/Mental Model
+  [NodeType.OBSERVATION]: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z", // Eye/Place
+  [NodeType.EQUATION]: "M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V9h14v10z", // Calendar/Math
+  [NodeType.SIMULATION]: "M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44a.99.99 0 0 1-.94 0l-7.9-4.44A.993.993 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44a.99.99 0 0 1 .94 0l7.9 4.44c.32.17.53.5.53.88v9z M12 12l8.73-4.91 M12 12v9.7 M12 12L3.27 7.09", // Box/Implementation
+  [NodeType.GAP]: "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z", // Trace/Search
 };
 
 export const EXPANSION_BLUEPRINTS_INNOVATION = [
@@ -327,6 +395,57 @@ export const EXPANSION_BLUEPRINTS_KNOWLEDGE = [
   },
 ];
 
+export const EXPANSION_BLUEPRINTS_RESEARCH = [
+  {
+    label: "What hypothesis can we derive?",
+    relation: "proposes",
+    targetType: NodeType.HYPOTHESIS,
+    sourceTypes: [NodeType.GAP, NodeType.LITERATURE, NodeType.OBSERVATION]
+  },
+  {
+    label: "What is the methodology?",
+    relation: "tested via",
+    targetType: NodeType.METHODOLOGY,
+    sourceTypes: [NodeType.HYPOTHESIS]
+  },
+  {
+    label: "What data supports this?",
+    relation: "validates",
+    targetType: NodeType.EVIDENCE,
+    sourceTypes: [NodeType.HYPOTHESIS, NodeType.DATA_SET]
+  },
+  {
+    label: "What literature exists?",
+    relation: "derived from",
+    targetType: NodeType.LITERATURE,
+    sourceTypes: [NodeType.HYPOTHESIS, NodeType.CONCEPT, NodeType.METHODOLOGY]
+  },
+  {
+    label: "Identify the literature gap.",
+    relation: "identifies",
+    targetType: NodeType.GAP,
+    sourceTypes: [NodeType.LITERATURE]
+  },
+  {
+    label: "What is the core variable?",
+    relation: "measured by",
+    targetType: NodeType.VARIABLE,
+    sourceTypes: [NodeType.METHODOLOGY, NodeType.HYPOTHESIS, NodeType.EQUATION]
+  },
+  {
+    label: "How is it simulated?",
+    relation: "modeled as",
+    targetType: NodeType.SIMULATION,
+    sourceTypes: [NodeType.HYPOTHESIS, NodeType.EQUATION]
+  },
+  {
+    label: "What are the key findings?",
+    relation: "supports",
+    targetType: NodeType.EVIDENCE,
+    sourceTypes: [NodeType.DATA_SET, NodeType.OBSERVATION]
+  }
+];
+
 export const INITIAL_DATA = {
   nodes: [],
   links: []
@@ -338,9 +457,9 @@ export function getModeConfig(mode: ExplorationMode): ModeConfig {
 }
 
 export function getExpansionBlueprints(mode: ExplorationMode) {
-  return mode === ExplorationMode.INNOVATION
-    ? EXPANSION_BLUEPRINTS_INNOVATION
-    : EXPANSION_BLUEPRINTS_KNOWLEDGE;
+  if (mode === ExplorationMode.INNOVATION) return EXPANSION_BLUEPRINTS_INNOVATION;
+  if (mode === ExplorationMode.KNOWLEDGE) return EXPANSION_BLUEPRINTS_KNOWLEDGE;
+  return EXPANSION_BLUEPRINTS_RESEARCH;
 }
 
 export function getRelationOptions(mode: ExplorationMode): string[] {
