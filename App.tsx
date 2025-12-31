@@ -2482,6 +2482,17 @@ function App() {
 
   // --- WIKI INTEGRATION HANDLERS ---
   const handleOpenWikiBrowser = async (node: GraphNode) => {
+    // If we have a direct source title, use it immediately
+    if (node.isWikipediaSource && node.sourceTitle) {
+      setWikiBrowser({
+        isOpen: true,
+        title: node.sourceTitle,
+        url: '', // Loaded by browser component
+        sourceNodeId: node.id
+      });
+      return;
+    }
+
     // Attempt to find a matching page if it's just a search request
     setIsProcessing(true);
     try {
@@ -2529,7 +2540,8 @@ function App() {
           y: (sourceNode.y || 0) + (Math.random() - 0.5) * 100,
           isNew: true,
           isWikipediaSource: true,
-          wikiUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(pageTitle.replace(/ /g, '_'))}`
+          wikiUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(pageTitle.replace(/ /g, '_'))}`,
+          sourceTitle: pageTitle
         };
 
         const newLink: GraphLink = {
@@ -2590,6 +2602,9 @@ function App() {
           authors: metadata.authors,
           publishYear: metadata.year,
           wikiUrl: metadata.url, // Reusing field for link
+          sourceTitle: snippet,
+          sourcePaperTitle: paperTitle,
+          openAlexId: metadata.id,
           x: (sourceNode.x || 0) + 150,
           y: (sourceNode.y || 0) + (Math.random() - 0.5) * 100,
           isNew: true
@@ -3253,7 +3268,12 @@ function App() {
         onAssimilate={handleAssimilateNode}
         onPrune={handlePruneNode}
         onOpenWiki={handleOpenWikiBrowser}
-        onOpenScholarly={(node) => setScholarlyBrowser({ isOpen: true, query: node.label, sourceNodeId: node.id })}
+        onOpenScholarly={(node) => setScholarlyBrowser({
+          isOpen: true,
+          query: node.sourcePaperTitle || node.sourceTitle || node.label,
+          sourceNodeId: node.id,
+          initialWorkId: node.openAlexId
+        })}
         onSetGoalNode={handleSetGoalNode}
         onSetConstraintNode={handleSetConstraintNode}
         allLinks={data.links}
@@ -3285,7 +3305,8 @@ function App() {
       <NexusScholarlyBrowser
         isOpen={scholarlyBrowser.isOpen}
         initialQuery={scholarlyBrowser.query}
-        onClose={() => setScholarlyBrowser(prev => ({ ...prev, isOpen: false }))}
+        initialWorkId={scholarlyBrowser.initialWorkId}
+        onClose={() => setScholarlyBrowser(prev => ({ ...prev, isOpen: false, initialWorkId: undefined }))}
         onAddSeed={handleScholarlyHarvest}
         isProcessing={isProcessing}
       />

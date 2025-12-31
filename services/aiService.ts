@@ -22,6 +22,8 @@ INNOVATION_PRINCIPLES (VENTURE ARCHITECT MODE - YC SCALE):
 7. SYSTEMIC FRICTION: Hunt for expensive, slow, or broken industries (Law, Logistics, Health, Construction). Propose a 10x more efficient system.
 8. DEEP INFRASTRUCTURE: Do not shy away from the backend. If the innovation is a new consensus protocol or a better energy storage chemistry, map it.
 9. CLARITY OVER HYPE: Avoid "synergy" and "paradigm shifts." Use specific, industrial, and technical terminology that a venture capitalist or lead engineer would respect.
+10. CONTEXTUAL JUSTIFICATION: The description MUST explain this node's relevance to its parent. Do not provide generic definitions. Justify WHY this innovation or technology is being proposed in this specific context.
+11. RELATIONAL DIVERSITY: Use high-intent relationship verbs (e.g. "addresses", "solves", "implements", "disrupts", "enables"). Avoid "operationalizes" unless no other choice exists.
 `;
 
 const KNOWLEDGE_RESEARCH_PRINCIPLES = `
@@ -38,6 +40,8 @@ KNOWLEDGE RESEARCH PRINCIPLES:
    - Originality (novelty): 1.0 = unique/groundbreaking, 0.1 = common/derivative knowledge.
    - Complexity (friction): 1.0 = highly nuanced/contradictory, 0.1 = straightforward/simple.
    - Significance (impact): 1.0 = changed the course of history/thought, 0.1 = minor detail.
+9. CONTEXTUAL JUSTIFICATION: Descriptions MUST justify why this event/entity is relevant to the parent node. Avoid generic Wikipedia-style summaries. Explain its structural or causal role in the current research path.
+10. RELATIONAL DIVERSITY: Use precise verbs (e.g. "precedes", "reinterprets", "contradicts", "instigates"). Avoid "operationalizes" or "related to".
 `;
 
 const RESEARCH_PRINCIPLES = `
@@ -50,6 +54,7 @@ RESEARCH PRINCIPLES (R&D ARCHITECT & VENTURE SCIENTIST MODE):
 6. SYSTEMIC FRICTION: Identify the technical FRICTION or physical CONSTRAINT that prevents a breakthrough. Propose RESEARCH that addresses these bottlenecks.
 7. VENTURE SCALE RIGOR: Follow scientific laws, but think at venture scale. A "statistically significant" result should lead to a "billlion-dollar" category-defining TECHNOLOGY.
 8. COGNITIVE ACCESSIBILITY: Explain like a "Master Teacher." Use multiple short, punchy sentences instead of one long, nested academic clause. Ground technical terms in physical reality (e.g., "vibrations in the material").
+9. CONTEXTUAL JUSTIFICATION: Every new Seed description MUST explain its specific relevance to the parent node. Do not provide generic Wikipedia-style definitions. Explain WHY this node matters for the current research path.
 `;
 
 // Defined schemas via imported constants
@@ -144,6 +149,9 @@ SEED REUSABILITY RULE:
 Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
 
     ${modeSpecificGuidance}
+    CRITICAL RULE:
+    - CONTEXTUAL JUSTIFICATION: Each node's description MUST explain its relationship to the parent or path. Do not use generic definitions.
+    - RELATIONAL DIVERSITY: Use specific verbs for relationships. Avoid a graph where every link says "operationalizes".
     The relationships should be active verbs.`;
 
     return await runIPCRequest(settings, prompt, true, mode);
@@ -176,6 +184,9 @@ ${fullGraphContext || 'Empty graph.'}
 SEED REUSABILITY RULE:
 Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
 
+CRITICAL RULE:
+- CONTEXTUAL JUSTIFICATION: Each node's description MUST explain its relationship to the parent or path. Do not use generic definitions.
+- RELATIONAL DIVERSITY: Use specific verbs for relationships. Avoid a graph where every link says "operationalizes".
 Be specific and factually accurate.`;
 
     return await runIPCRequest(settings, prompt, count > 1, mode);
@@ -202,6 +213,9 @@ export const generateSynergyNode = async (
     2. "${labelB}" (${descriptionB}) ${contextB ? `[History: ${contextB}]` : ''}
     
     ${modeSpecificGuidance}
+    CRITICAL RULE:
+    - CONTEXTUAL JUSTIFICATION: The node's description MUST explain its relationship to the parent nodes (labelA and labelB). Do not use generic definitions.
+    - RELATIONAL DIVERSITY: Use specific verbs for relationships. Avoid a graph where every link says "operationalizes".
     Response schema: single node.`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
@@ -234,6 +248,9 @@ export const directedDiscovery = async (
     SEED REUSABILITY RULE:
     Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept you want to suggest, you MUST use that exact label. Do not create duplicates.
 
+    CRITICAL RULE:
+    - CONTEXTUAL JUSTIFICATION: Each node's description MUST explain its relationship to the parent or path. Do not use generic definitions.
+    - RELATIONAL DIVERSITY: Use specific verbs for relationships. Avoid a graph where every link says "operationalizes".
     Be specific, factually accurate, and highly relevant to the instruction.`;
 
     return await runIPCRequest(settings, prompt, count > 1, mode);
@@ -313,7 +330,11 @@ export const innovateConcept = async (
     ${fullGraphContext}
     
     Your Task:
-    ${modeSpecificTask}`;
+    ${modeSpecificTask}
+    
+    CRITICAL RULE:
+    - CONTEXTUAL JUSTIFICATION: The node's description MUST explain its relationship to the target node. Do not use generic definitions.
+    - RELATIONAL DIVERSITY: Use specific verbs for relationships. Avoid a graph where every link says "operationalizes".`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
     return result[0] || null;
@@ -357,7 +378,11 @@ export const solveProblem = async (
     ${fullGraphContext}
     
     Your Task:
-    ${modeSpecificTask}`;
+    ${modeSpecificTask}
+    
+    CRITICAL RULE:
+    - CONTEXTUAL JUSTIFICATION: The node's description MUST explain its relationship to the target node. Do not use generic definitions.
+    - RELATIONAL DIVERSITY: Use specific verbs for relationships. Avoid a graph where every link says "operationalizes".`;
 
     const result = await runIPCRequest(settings, prompt, false, mode);
     return result[0] || null;
@@ -398,6 +423,10 @@ export const answerQuestion = async (
     
     Your Task:
     ${modeSpecificTask}
+    
+    CRITICAL RULE:
+    - CONTEXTUAL JUSTIFICATION: The node's description MUST explain the resolution specifically within the context of the target node and graph. Avoid generic definitions.
+    - RELATIONAL DIVERSITY: Use specific verbs for relationships. Avoid a graph where every link says "operationalizes".
     
     Response schema: single node.`;
 
@@ -1009,12 +1038,13 @@ export const extractKnowledgeMap = async (
     ${fullGraphContext}
 
     CRITICAL RULES:
-1. Extract 2 - 5 significant Seeds(Nodes) and their Relationships(Links).
-    2. CONTENT FIDELITY: Seeds must represent THE SPECIFIC TOPICS mentioned in the text, not generic definitions.
-    3. SEED REUSABILITY RULE: Before proposing a new seed, check the FULL GRAPH CONTEXT.If an existing seed(by label) represents the concept mentioned in the text, you MUST use that exact label in your JSON nodes.Do not create duplicates.
-    4. NO DISCONNECTED CLUSTERS: At least one new node MUST link to an existing node in the FULL GRAPH CONTEXT(if any exist).
-5. Relationships MUST be active verbs that reflect HOW the topics were connected in the discussion.
-    6. OUTPUT ONLY RAW JSON.Do not use Markdown code blocks.Do not add any text before or after the JSON.
+    1. Extract 2 - 5 significant Seeds (Nodes) and their Relationships (Links).
+    2. CONTENT FIDELITY: Seeds must represent the SPECIFIC TOPICS discussed, not generic definitions.
+    3. CONTEXTUAL JUSTIFICATION: The \`description\` for each node MUST justify its connection to the overall discussion. Explain WHY this node is relevant.
+    4. SEED REUSABILITY RULE: Before proposing a new seed, check the FULL GRAPH CONTEXT. If an existing seed (by label) represents the concept, you MUST use that exact label.
+    5. RELATIONAL DIVERSITY: Relationships MUST be high-intent active verbs (e.g., "enables", "challenges", "derived from"). Avoid "operationalizes" or "related to".
+    6. NO DISCONNECTED CLUSTERS: At least one new node MUST link to an existing node in the FULL GRAPH CONTEXT.
+    7. OUTPUT ONLY RAW JSON.
     
     [MAP]
 {
@@ -1077,15 +1107,14 @@ SNIPPET: "${snippet}"
     The user is connecting this back to their existing seed: "${sourceNodeContext.label}"(${sourceNodeContext.description}).
 
     TASK:
-1. ARTIFACT CREATION: Summarize the snippet into a high - density "Seed Node".Focus on the core mechanism, event, or principle.
-    2. ARCHITECTURAL PLACEMENT: Select the most accurate NodeType from the internal framework.
-    3. RELATIONAL SYNTHESIS: Determine the precise relationship verb connecting this new seed back to "${sourceNodeContext.label}".
-    
-    PRINCIPLES OF RELATIONAL SYNTHESIS(MANDATORY):
-- ANALYTICAL DEPTH: Move beyond generic connections.Identify the structural / functional role(e.g., is it a "catalyst for," "structural component of," "modern critique of," or "functional precursor to" ?).
-    - TEMPORAL & CAUSAL INTEGRITY: Be sophisticated about time.While the arrow of time is absolute(earlier can cause later, not vice - versa), bridge - links can be thematic.A modern theory might "re-interpret" or "provide a framework for analyzing" an ancient event.
-    - EPISTEMIC PRECISION: Use high - intent, active verbs.If a technology is used in an event, use "operationalized by".If a person founded a movement, use "galvanized".
-    - SOPHISTICATED BRIDGE - LINKING: If the connection is indirect, identify the shared principle or structural parallel(e.g., "strategic analogue of" or "instantiates the principle of").
+    1. ARTIFACT EXTRACTION: Distill the snippet into a high-density "Seed Node".
+    2. EPISTEMIC CATEGORIZATION: Select the most accurate NodeType.
+    3. CONTEXTUAL SYNTHESIS (CRITICAL): The \`description\` MUST NOT be a generic definition. It must explain the **specific relevance** of this insight to the parent: "${sourceNodeContext.label}".
+    4. RELATIONAL PRECISION: Use high-intent verbs. Avoid "operationalizes" unless strictly necessary.
+
+    PRINCIPLES:
+    - NO GENERIC DEFINITIONS: Describe what the snippet 'represents' in the context of the user's research.
+    - ACADEMIC PRECISION: Maintain formal terminology but prioritize the logic of the connection.
 
 \${ mode === ExplorationMode.INNOVATION ? INNOVATION_RESEARCH_PRINCIPLES : '' }
     Response schema: single node.`;
@@ -1117,22 +1146,15 @@ export const curatePaperSnippet = async (
 
     TASK:
     1. ARTIFACT EXTRACTION: Distill the snippet into a high-density "Seed Node". Identify the specific finding, method, or claim.
-    2. EPISTEMIC CATEGORIZATION: Select the most accurate NodeType from our Research & Innovation Ontology:
-       - METHODOLOGY: if it describes techniques or protocols.
-       - RESULT: if it describes data, findings, or outcomes.
-       - HYPOTHESIS: if it's a proposed explanation.
-       - MECHANISM: if it explains how something works.
-       - TECHNOLOGY: if it describes a technical tool or system.
-       - PROBLEM: if it identifies a technical or scientific bottleneck.
-       - INNOVATION: if it describes a technical resolution or breakthrough.
-       - LITERATURE: if it's a general reference or broad context.
-       - ... (and use any other appropriate Research Mode types like MENTAL_MODEL, ETHICS, REGULATION if highly relevant).
-    3. RELATIONAL SYNTHESIS: Determine the precise relationship (e.g. "corroborates", "contradicts", "operationalizes", "extends", "challenges", "addresses") connecting this new seed back to "${sourceNodeContext.label}".
-    
+    2. EPISTEMIC CATEGORIZATION: Select the most accurate NodeType from our Research & Innovation Ontology.
+    3. CONTEXTUAL SYNTHESIS (CRITICAL): The \`description\` MUST NOT be a generic definition. It must explain the **specific relevance** of this insight to the parent node: "${sourceNodeContext.label}". How does this snippet support, enable, or challenge the parent's goal? 
+    4. RELATIONAL PRECISION: Determine the most high-intent relationship connecting this seed back to "${sourceNodeContext.label}". Avoid "operationalizes" or "related to" unless no other choice exists. 
+       - Use "validates", "simulates", "measures", "constrains", "addresses", "implements", "challenges", "derived from", "enables".
+
     PRINCIPLES:
-    - CAUSAL RIGOR: Prioritize mechanistic transparency.
-    - ACADEMIC PRECISION: Use formal scientific terminology.
-    - LINKING: Ensure the relationship verb is unidirectional and logical.
+    - NO GENERIC DEFINITIONS: Do not describe what the snippet 'is' in isolation. Describe what it 'represents' in the context of the user's research path.
+    - TRANSLATIONAL MOMENTUM: If the parent is a HYPOTHESIS and the snippet is a METHODOLOGY, the description should explain how this method specifically tests that hypothesis.
+    - ACADEMIC RIGOR: Maintain formal terminology but ensure the LOGIC of the connection is the priority.
 
     Mode: ${mode}.
     Response schema: single node.`;

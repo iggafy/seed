@@ -66,7 +66,16 @@ export const searchOpenAlex = async (query: string): Promise<OpenAlexWork[]> => 
 
 export const getOpenAlexWork = async (id: string): Promise<OpenAlexWork | null> => {
     try {
-        const response = await fetch(`${id}?mailto=team@seed-app.com`);
+        // Ensure we hit the API endpoint correctly
+        let apiUrl = id;
+        if (id.includes('openalex.org/W')) {
+            const workId = id.split('/').pop()?.split('?')[0];
+            apiUrl = `https://api.openalex.org/works/${workId}`;
+        } else if (!id.startsWith('http')) {
+            apiUrl = `https://api.openalex.org/works/${id}`;
+        }
+
+        const response = await fetch(`${apiUrl}?mailto=team@seed-app.com`);
         const work = await response.json();
 
         return {

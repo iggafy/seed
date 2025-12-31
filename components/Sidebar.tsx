@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GraphNode, NodeType, ExplorationMode } from '../types';
-import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle, ChevronRight, Binary, Sparkles, Orbit, Layers, Search, SquarePlus, Microscope } from 'lucide-react';
+import { BrainCircuit, X, Network, Lightbulb, Zap, Link as LinkIcon, ArrowRight, Edit2, Trash2, Save, RotateCcw, Check, MousePointerClick, RefreshCw, Dices, PlusCircle, Cpu, CheckCircle2, Heart, AlertCircle, ChevronRight, Binary, Sparkles, Orbit, Layers, Search, SquarePlus, Microscope, Globe } from 'lucide-react';
 
 interface SidebarProps {
   nodes: GraphNode[];
@@ -279,6 +279,33 @@ const Sidebar: React.FC<SidebarProps> = ({
               </p>
             )}
           </div>
+
+          {/* Source Attribution Section */}
+          {(node.isWikipediaSource || node.isScholarlySource) && (
+            <div className="bg-slate-950/30 rounded-xl p-4 border border-white/5 space-y-3">
+              <h3 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">
+                Seed sourced from {node.isWikipediaSource ? 'Wikipedia' : 'OpenAlex'}
+              </h3>
+              <div className="flex flex-col gap-2">
+                <div className="text-[10px] text-slate-400 leading-tight">
+                  <span className="opacity-50">ORIGIN:</span> <span className="text-white font-bold italic">
+                    {node.isScholarlySource ? `"${node.sourceTitle}"` : node.sourceTitle || node.label}
+                  </span>
+                </div>
+                {node.sourcePaperTitle && (
+                  <div className="text-[9px] text-slate-500 leading-tight mt-1">
+                    <span className="opacity-50 uppercase tracking-tighter">Paper:</span> <span className="font-semibold">{node.sourcePaperTitle}</span>
+                  </div>
+                )}
+                <button
+                  onClick={() => node.isWikipediaSource ? onOpenWiki(node) : onOpenScholarly(node)}
+                  className={`mt-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${node.isWikipediaSource ? 'text-sky-400 hover:text-sky-300' : 'text-amber-500 hover:text-amber-400'}`}
+                >
+                  {node.isWikipediaSource ? <Globe size={12} /> : <Microscope size={12} />} Explore Source
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* VALUE VECTOR (Material Discovery Style) */}
           {node.valueVector && (

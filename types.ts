@@ -32,6 +32,9 @@ export interface GraphNode extends d3.SimulationNodeDatum {
   authors?: string[];
   journal?: string;
   publishYear?: number;
+  sourceTitle?: string; // Harvested snippet or page title
+  sourcePaperTitle?: string; // Paper title (for scholarly)
+  openAlexId?: string;  // Permanent OpenAlex ID
   // --- INNOVATION DISCOVERY ENHANCEMENTS ---
   valueVector?: ValueVector;
   isGoalNode?: boolean;
@@ -62,6 +65,7 @@ export interface ScholarlyBrowserState {
   isOpen: boolean;
   query: string;
   sourceNodeId: string | null;
+  initialWorkId?: string;
 }
 
 export interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {
