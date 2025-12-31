@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SeedFile, ExplorationMode } from '../types';
-import { LayoutGrid, Plus, Trash2, Clock, FileText, Loader2, Share2, Edit2, Check, X } from 'lucide-react';
+import { LayoutGrid, Plus, Trash2, Clock, FileText, Loader2, Share2, Edit2, Check, X, Microscope } from 'lucide-react';
 
 interface SeedsDashboardProps {
     onLoadSeed: (id: string) => void;
@@ -114,6 +114,12 @@ const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, 
                         {/* Tabs */}
                         <div className="flex items-center bg-slate-800/50 p-1 rounded-xl border border-white/5 ml-4">
                             <button
+                                onClick={() => setActiveTab(ExplorationMode.RESEARCH)}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === ExplorationMode.RESEARCH ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/40' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                Research
+                            </button>
+                            <button
                                 onClick={() => setActiveTab(ExplorationMode.INNOVATION)}
                                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === ExplorationMode.INNOVATION ? 'bg-sky-500 text-white shadow-lg shadow-sky-900/40' : 'text-slate-400 hover:text-white'}`}
                             >
@@ -145,12 +151,16 @@ const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, 
                             <button
                                 onClick={() => onSelectMode ? onSelectMode(activeTab) : onNewSeed()}
                                 className={`group flex flex-col items-center justify-center h-40 rounded-[20px] border-2 border-dashed transition-all gap-2 
-                                    ${activeTab === ExplorationMode.INNOVATION ? 'border-sky-500/20 hover:border-sky-500/50 hover:bg-sky-500/5' : 'border-indigo-500/20 hover:border-indigo-500/50 hover:bg-indigo-500/5'}`}
+                                    ${activeTab === ExplorationMode.INNOVATION ? 'border-sky-500/20 hover:border-sky-500/50 hover:bg-sky-500/5' :
+                                        activeTab === ExplorationMode.RESEARCH ? 'border-amber-500/20 hover:border-amber-500/50 hover:bg-amber-500/5' :
+                                            'border-indigo-500/20 hover:border-indigo-500/50 hover:bg-indigo-500/5'}`}
                             >
-                                <div className={`p-2.5 rounded-full group-hover:scale-110 transition-transform ${activeTab === ExplorationMode.INNOVATION ? 'bg-sky-500/10' : 'bg-indigo-500/10'}`}>
-                                    <Plus size={20} className={activeTab === ExplorationMode.INNOVATION ? 'text-sky-400' : 'text-indigo-400'} />
+                                <div className={`p-2.5 rounded-full group-hover:scale-110 transition-transform ${activeTab === ExplorationMode.INNOVATION ? 'bg-sky-500/10' : activeTab === ExplorationMode.RESEARCH ? 'bg-amber-500/10' : 'bg-indigo-500/10'}`}>
+                                    {activeTab === ExplorationMode.INNOVATION ? <Plus size={20} className="text-sky-400" /> :
+                                        activeTab === ExplorationMode.RESEARCH ? <Microscope size={20} className="text-amber-400" /> :
+                                            <Plus size={20} className="text-indigo-400" />}
                                 </div>
-                                <span className="text-sm font-bold text-slate-300">Create New {activeTab === ExplorationMode.INNOVATION ? 'Innovation' : 'Knowledge'} Space</span>
+                                <span className="text-sm font-bold text-slate-300">Create New {activeTab === ExplorationMode.INNOVATION ? 'Innovation' : activeTab === ExplorationMode.RESEARCH ? 'Research' : 'Knowledge'} Space</span>
                             </button>
 
                             {/* Seed Cards */}
@@ -162,7 +172,11 @@ const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, 
                                     }}
                                     className={`
                                 relative group flex flex-col h-40 rounded-[20px] border p-4 cursor-pointer transition-all
-                                ${currentSeedId === seed.id ? (activeTab === ExplorationMode.INNOVATION ? 'bg-sky-900/10 border-sky-500/50 ring-1 ring-sky-500/20' : 'bg-indigo-900/10 border-indigo-500/50 ring-1 ring-indigo-500/20') : 'bg-slate-800/50 border-slate-700 hover:border-slate-600 hover:bg-slate-800'}
+                                ${currentSeedId === seed.id ? (
+                                            activeTab === ExplorationMode.INNOVATION ? 'bg-sky-900/10 border-sky-500/50 ring-1 ring-sky-500/20' :
+                                                activeTab === ExplorationMode.RESEARCH ? 'bg-amber-900/10 border-amber-500/50 ring-1 ring-amber-500/20' :
+                                                    'bg-indigo-900/10 border-indigo-500/50 ring-1 ring-indigo-500/20'
+                                        ) : 'bg-slate-800/50 border-slate-700 hover:border-slate-600 hover:bg-slate-800'}
                             `}
                                 >
                                     <div className="flex justify-between items-start mb-1 h-8">
@@ -187,7 +201,7 @@ const SeedsDashboard: React.FC<SeedsDashboardProps> = ({ onLoadSeed, onNewSeed, 
                                                 <h3 className="font-bold text-base text-slate-200 truncate pr-2 tracking-tight flex-1" title={seed.name}>{seed.name}</h3>
                                                 <div className="flex items-center gap-1">
                                                     {currentSeedId === seed.id && (
-                                                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-widest whitespace-nowrap ${activeTab === ExplorationMode.INNOVATION ? 'bg-sky-500/20 text-sky-300 border-sky-500/20' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/20'}`}>Active</span>
+                                                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-widest whitespace-nowrap ${activeTab === ExplorationMode.INNOVATION ? 'bg-sky-500/20 text-sky-300 border-sky-500/20' : activeTab === ExplorationMode.RESEARCH ? 'bg-amber-500/20 text-amber-300 border-amber-500/20' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/20'}`}>Active</span>
                                                     )}
                                                     <button
                                                         onClick={(e) => handleStartEdit(e, seed)}

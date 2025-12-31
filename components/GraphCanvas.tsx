@@ -323,12 +323,16 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
     const linkSelection = g.selectAll<SVGPathElement, GraphLink>("path.link")
       .data(links, getLinkId);
 
+
     const linkEnter = linkSelection.enter().append("path")
       .attr("class", "link")
       .attr("fill", "none")
       .attr("stroke", "#64748b") // Slate 500
       .attr("stroke-opacity", 0.6) // Visible base
-      .attr("stroke-width", 1.5);
+      .attr("stroke-width", 1.5)
+      .style("cursor", "pointer")
+      .on("mouseenter", (event, d) => handleHover(d))
+      .on("mouseleave", () => handleHover(null));
 
     linkSelection.exit().remove();
     const allLinks = linkEnter.merge(linkSelection)
@@ -585,6 +589,80 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
 
     const allNodes = nodeEnter.merge(nodeSelection);
 
+    // --- HOVER LOGIC & PATH TRACING ---
+    const handleHover = (item: GraphNode | GraphLink | null) => {
+      if (!item) {
+        allNodes.transition().duration(300).attr("opacity", d => d.isGhost ? 0.7 : 1);
+        allLinks.transition().duration(300).attr("stroke-opacity", 0.6).attr("stroke-width", 1.5);
+        allFlows.transition().duration(300).attr("stroke-opacity", 0.5);
+        allLabels.transition().duration(300).style("opacity", 0.7);
+        return;
+      }
+
+      const { nodesInPath, linksInPath } = tracePath(item);
+
+      allNodes.transition().duration(250).attr("opacity", d => nodesInPath.has(d.id) ? 1 : 0.15);
+      allLinks.transition().duration(250)
+        .attr("stroke-opacity", l => linksInPath.has(getLinkId(l)) ? 1 : 0.05)
+        .attr("stroke-width", l => linksInPath.has(getLinkId(l)) ? 2.5 : 1.5);
+      allFlows.transition().duration(250).attr("stroke-opacity", l => linksInPath.has(getLinkId(l)) ? 0.8 : 0);
+      allLabels.transition().duration(250).style("opacity", l => linksInPath.has(getLinkId(l)) ? 1 : 0.05);
+    };
+
+    const tracePath = (startItem: GraphNode | GraphLink) => {
+      const nodesInPath = new Set<string>();
+      const linksInPath = new Set<string>();
+
+      let startNodeIds: string[] = [];
+      if ('id' in startItem) {
+        startNodeIds = [startItem.id];
+        nodesInPath.add(startItem.id);
+      } else {
+        const sId = typeof startItem.source === 'object' ? (startItem.source as any).id : startItem.source;
+        const tId = typeof startItem.target === 'object' ? (startItem.target as any).id : startItem.target;
+        startNodeIds = [sId, tId];
+        nodesInPath.add(sId);
+        nodesInPath.add(tId);
+        linksInPath.add(getLinkId(startItem));
+      }
+
+      // Upstream (Ancestors)
+      let queue = [...startNodeIds];
+      const visitedUp = new Set<string>(startNodeIds);
+      while (queue.length > 0) {
+        const currId = queue.shift()!;
+        links.forEach(l => {
+          const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+          const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+          if (t === currId && !visitedUp.has(s)) {
+            nodesInPath.add(s);
+            linksInPath.add(getLinkId(l));
+            visitedUp.add(s);
+            queue.push(s);
+          }
+        });
+      }
+
+      // Downstream (Descendants)
+      queue = [...startNodeIds];
+      const visitedDown = new Set<string>(startNodeIds);
+      while (queue.length > 0) {
+        const currId = queue.shift()!;
+        links.forEach(l => {
+          const s = typeof l.source === 'object' ? (l.source as any).id : l.source;
+          const t = typeof l.target === 'object' ? (l.target as any).id : l.target;
+          if (s === currId && !visitedDown.has(t)) {
+            nodesInPath.add(t);
+            linksInPath.add(getLinkId(l));
+            visitedDown.add(t);
+            queue.push(t);
+          }
+        });
+      }
+
+      return { nodesInPath, linksInPath };
+    };
+
     // Update Wormhole Vortex
     allNodes.select("circle.node-wormhole-vortex")
       .attr("r", d => d.isWormhole ? (d.type === NodeType.TRACE ? 35 : 55) : 0)
@@ -737,10 +815,10 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({ data, onNodeClick, onNodeDoub
         onNodeDoubleClick(d);
       })
       .on("mouseenter", (event, d) => {
-        // Hover effect removed
+        handleHover(d);
       })
       .on("mouseleave", () => {
-        // Hover effect removed
+        handleHover(null);
       });
 
     allNodes.select("circle.node-body")
