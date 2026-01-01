@@ -1,53 +1,56 @@
-# SEED: Shared Exploration & Emergent Discovery
+# 🌱 SEED: The Relational Intelligence Engine
 
-**SEED** is an interactive engine for emergent discovery. It transforms complex research and learning into a visual journey, helping you grasp the big picture and discover connections the moment they happen.
+**Beyond Search. Beyond Chat. Towards Synthesis.**  
 
----
-
-## ✨ Emergent Discovery
-
-The core of SEED is "Emergent Discovery." You often don't know exactly what you're looking for until you find it. SEED acts as your navigator, suggesting the paths you didn't know existed and connecting dots you hadn't seen yet.
-
-### � Knowledge Mode (Emergent Learning)
-Master **emergent learning** by connecting the dots visually. Grasp and memorize complex topics through a gamified, interactive experience that reveals hidden interdisciplinary links.
-*   **Visual Memorization**: By connecting text to a 3D visual map, you grasp and memorize concepts faster. Your brain sees the "shape" of the information.
-*   **Discovery on the Go**: Start with one event or person, and watch a universe of interdisciplinary connections unfold.
-*   **Epistemic Fun**: It feels like a forensic investigation where you are the lead researcher uncovering hidden patterns across history and science.
-
-### �️ Innovation Mode (Emergent Innovation)
-Experience **emergent innovation** as the AI proactively suggests breakthroughs and strategic paths, helping you brainstorm solutions to complex problems in real-time.
-*   **Autonomous Brainstorming**: The AI doesn't just answer; it proactively hunts for breakthroughs, technologies, and market segments that solve your specific problem.
-*   **Smart Strategy**: It acts as a partner that looks for "friction" and "bottlenecks," forcing you to think about how an idea actually works in the real world.
+SEED is a high-fidelity relational intelligence engine designed to **transform complex research and discovery into actionable insights**. Unlike standard note-taking or chat tools, SEED treats every concept as a **living node in an interactive graph**, enabling users to **explore, synthesize, and connect ideas across domains** in a single, unified cognitive space.
 
 ---
 
-## 🕹️ Interactive Intelligence
-
-### 🧬 The Pulse (How it moves)
-SEED uses four "Discovery Policies" to keep the exploration alive:
-- **Deepen**: Focuses on the current idea to find the hard facts.
-- **Wander**: Scans "into the fog" to find creative analogies and wild connections.
-- **Stress Test**: Deliberately tries to find what breaks your idea or your theory.
-- **Re-Anchor**: Safely pulls you back toward your main goal if you get too lost in the weeds.
-
-### 🧠 Smart Memory
-SEED remembers where you've been. Every new concept the AI suggests is based on the unique path you’ve taken. If you move from *Ancient Rome* to *Modern Fiber Optics*, the AI understands that specific bridge.
+## 🤖 Agentic Intelligence
+SEED leverages high-reasoning AI agents in **Autonomous Discovery Mode** to actively scout, expand, and explore concepts without manual prompting. By leveraging advanced AI contextual understanding, SEED **identifies hidden relationships** and surfaces **emergent insights in real time**, transforming the AI from a reactive chatbot into a **proactive research partner**.
 
 ---
 
-## � Privacy & Local-First
+## 🏗️ Core Architecture
 
-Your ideas are yours alone.
-- **Local Storage**: All your graphs ("Seeds") are saved strictly on your device.
-- **Private Keys**: Your AI API keys stay in your SEED application. No data is sent to us—ever.
+- **Three Modes of Intelligence:**  
+  Optimized workflows for **Innovation**, **Research**, and **Knowledge** to support founders, scientists, and polymaths in uncovering market opportunities and interdisciplinary breakthroughs.
+
+- **Synergy Finder:**  
+  A specialized **lateral-thinking engine** that autonomously discovers creative "third-way" connections between distant nodes—solutions that often remain invisible in linear documents.
+
+- **Nexus Browser:**  
+  An integrated scholarly research tool that **ingests data from sources like OpenAlex or Wikipedia**, preserving rich metadata and ensuring full reproducibility of the research path.
+
+- **Sovereign & Local:**  
+  SEED is **cross-platform (Windows/Linux)** and **BYOK-enabled (Bring Your Own Key)**, ensuring users maintain **full ownership of their data and intelligence**.
+
+---
+
+## 🔍 From Retrieval to Discovery
+SEED goes **beyond simple information retrieval**. It enables **emergent discovery**, helping users bridge the gap between **static knowledge** and **actionable solutions**.  
+
+It is an **Idea Laboratory built specifically for the high-velocity researcher**.
+
+> It is stable.  
+> It is grounded.  
+> It is relentless.  
+> It’s ready to **build the next big thing**.
+
+**Open a new space. Drop your first seed. Solve the system.**
+
 
 ---
 
 ## 🚀 Get Started
 
+*Find your installers for Windows and Linux in the `/release` folder.*
+
+**OR**
+
 1.  **Clone the Repo**
     ```bash
-    git clone https://github.com/your-username/seed.git
+    git clone https://github.com/iggafy/seed.git
     cd seed
     ```
 2.  **Install & Start**
@@ -59,7 +62,24 @@ Your ideas are yours alone.
     ```bash
     npm run dist
     ```
-    *Find your installers for Windows and Linux in the `/release` folder.*
 
 ---
+
+## 🔑 BYOK: Bring Your Own Key
+
+SEED uses a **BYOK (Bring Your Own Key)** model, so you can run it locally without sharing sensitive credentials.  
+
+- Copy your **API key**.  
+- Paste it into the SEED app when prompted at the **Welcome Screen**.  
+> 🔒 Your key and data remain fully local—nothing is sent externally.
+
+## 4️⃣ Explore & Test
+
+- 📖 Read the **Seed Manual** for a full overview of features and functionality.  
+- 🌱 Open a new space and drop your first seed concept.  
+- 🤖 Activate **Autonomous Discovery Mode** and watch SEED scout related ideas automatically.  
+- 🔍 Try the **Synergy Finder** to discover hidden connections and lateral-thinking insights.  
+- 🧩 Explore **Innovation**, **Research**, and **Knowledge Modes**, and expand your seeds via **Chat Mode** or the **Tailored Path Discovery** features to see SEED’s full potential.  
+
+
 
