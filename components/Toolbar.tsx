@@ -161,7 +161,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
           {/* Active Status Badge */}
           {isDiscoveryActive && (
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-red-500 animate-bounce" />
+            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-600 rounded-sm border border-white shadow-sm animate-pulse" />
           )}
         </button>
 
@@ -181,7 +181,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
           {/* Active Status Badge */}
           {isSynergyActive && (
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-amber-500 animate-bounce" />
+            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-600 rounded-sm border border-white shadow-sm animate-pulse" />
           )}
         </button>
 
